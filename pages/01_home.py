@@ -39,6 +39,9 @@ if apply_clicked:
 
         # In the next step we'll kick off scrape + AI generation.
         st.session_state["scrape_status"] = "queued"
+        st.session_state["scraped_text"] = ""
+        st.session_state["scraped_images"] = []
+        st.session_state["visited_urls"] = []
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
 
