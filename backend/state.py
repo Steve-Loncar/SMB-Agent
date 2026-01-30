@@ -14,5 +14,12 @@ def init_state() -> None:
 
     # n8n settings
     st.session_state.setdefault("n8n_mode", "TEST")  # TEST | LIVE
-    st.session_state.setdefault("n8n_test_url", os.getenv("N8N_TEST_WEBHOOK_URL", ""))
-    st.session_state.setdefault("n8n_live_url", os.getenv("N8N_WEBHOOK_URL", ""))
+    # Hardcode for alpha iteration (you can move these to Secrets later)
+    st.session_state.setdefault(
+        "n8n_test_url",
+        os.getenv("N8N_TEST_WEBHOOK_URL", "PASTE_YOUR_WEBHOOK_TEST_URL_HERE"),
+    )
+    st.session_state.setdefault(
+        "n8n_live_url",
+        os.getenv("N8N_WEBHOOK_URL", "PASTE_YOUR_WEBHOOK_LIVE_URL_HERE"),
+    )
