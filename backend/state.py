@@ -21,6 +21,7 @@ def init_state() -> None:
 
     # n8n settings
     st.session_state.setdefault("n8n_mode", "TEST")  # TEST | LIVE
-    # Computed URLs (no paste boxes)
-    st.session_state.setdefault("n8n_test_url", N8N_BASE_URL + N8N_TEST_PATH)
-    st.session_state.setdefault("n8n_live_url", N8N_BASE_URL + N8N_LIVE_PATH)
+    # Computed URLs (no paste boxes) - always set to avoid stale/empty session values
+    st.session_state["n8n_test_url"] = N8N_BASE_URL + N8N_TEST_PATH
+    st.session_state["n8n_live_url"] = N8N_BASE_URL + N8N_LIVE_PATH
+
