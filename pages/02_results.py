@@ -85,7 +85,7 @@ else:
 
 st.subheader("Images found (alpha)")
 imgs = st.session_state.get("scraped_images", [])
-if imgs:)
+if imgs:
     st.session_state["scrape_status"] = "done"
 
 
