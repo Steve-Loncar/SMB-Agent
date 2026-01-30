@@ -58,7 +58,14 @@ if status == "queued":
             st.session_state["scrape_status"] = "error"
             st.error(f"Scrape failed: {e}")
 
-status = st.
+status = st.session_state.get("scrape_status", "idle")
+if status == "error":
+    st.stop()
+
+st.subheader("Business / product description")
+st.write(st.session_state.get("business_summary", ""))
+
+st.divider()
 
 st.subheader("Scraped pages")
 visited = st.session_state.get("visited_urls", [])
@@ -78,17 +85,7 @@ else:
 
 st.subheader("Images found (alpha)")
 imgs = st.session_state.get("scraped_images", [])
-if imgs:
-    # show first few images inline
-    st.caption("Best-effort extraction. We'll improve selection/branding later.")
-    st.image(imgs[:6], caption=imgs[:6], use_container_width=True)
-else:
-    st.write("No images extracted.")
-
-st.divider()session_state.get("scrape_status", "idle")
-if status == "error":
-    st.stop()
-    ]
+if imgs:)
     st.session_state["scrape_status"] = "done"
 
 
