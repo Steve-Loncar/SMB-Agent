@@ -1,6 +1,7 @@
 import streamlit as st
 
 from backend.scraper import scrape_site
+from backend.n8n_client import call_n8n_generate_ads
 
 
 st.title("2) Results")
@@ -42,16 +43,18 @@ if status == "queued":
             st.session_state["scraped_text"] = result.text
             st.session_state["scraped_images"] = result.image_urls
 
-            # Still mocked "AI outputs" for now — next step is wiring to a model.
-            st.session_state["business_summary"] = (
-                "Draft summary (placeholder): extracted website content is now available below. "
-                "Next we'll send this text + selected images into the GenAI step."
-            )
-            st.session_state["poster_concepts"] = [
-                {"headline": "Discover What's Possible", "subhead": "A fresh take on what you do best.", "cta": "Explore"},
-                {"headline": "Built for Your Customers", "subhead": "Clear benefits. Simple choices.", "cta": "Learn more"},
-                {"headline": "Your Next Upgrade", "subhead": "Make the switch with confidence.", "cta": "Get started"},
-            ]
+            # Call n8n workflow for AI generation
+            with st.spinner("Calling AI workflow (n8n + Sonar)…"):
+                override = (st.session_state.get("n8n_webhook_override") or "").strip() or None
+                ai = call_n8n_generate_ads(
+                    scraped_text=result.text,
+                    image_urls=result.image_urls,
+                    url=target_url,
+                    webhook_url=override,
+                )
+
+            st.session_state["business_summary"] = ai.get("business_summary", "")
+            st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
 
             st.session_state["scrape_status"] = "done"
         except Exception as e:

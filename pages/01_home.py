@@ -14,6 +14,16 @@ def is_probably_valid_url(url: str) -> bool:
     return re.match(pattern, url.strip()) is not None
 
 
+with st.expander("n8n settings (alpha)", expanded=False):
+    st.caption("For rapid iteration, paste your n8n *Test* webhook URL here.")
+    st.text_input(
+        "n8n webhook URL override",
+        key="n8n_webhook_override",
+        placeholder="https://<n8n>/webhook-test/....",
+        help="If set, Streamlit will call this URL instead of N8N_WEBHOOK_URL env var.",
+    )
+
+
 url = st.text_input(
     "Website URL",
     placeholder="https://example.com",
