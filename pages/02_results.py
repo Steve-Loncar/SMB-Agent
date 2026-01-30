@@ -9,6 +9,8 @@ init_state()
 
 st.title("2) Results")
 
+st.session_state.setdefault("run_ai_requested", False)
+
 target_url = st.session_state.get("target_url", "")
 if not target_url:
     st.warning("No URL provided yet. Go to Home and enter a website URL.")
@@ -36,7 +38,8 @@ with st.sidebar:
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
     can_run_ai = bool(st.session_state.get("scraped_text"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        st.session_state["scrape_status"] = "scraped"
+        # Do not change scrape_status here; just mark that we want to call n8n
+        st.session_state["run_ai_requested"] = True
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -46,6 +49,7 @@ with st.sidebar:
         st.session_state["visited_urls"] = []
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
+        st.session_state["run_ai_requested"] = False
         st.switch_page("pages/01_home.py")
 
 @st.cache_data(show_spinner=False, ttl=60 * 60)
@@ -70,7 +74,7 @@ if status == "queued":
             st.error(f"Scrape failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
-if status == "scraped":
+if status == "scraped" and st.session_state.get("run_ai_requested"):
     webhook_url = get_webhook_url().strip()
     if not webhook_url:
         st.warning("Scrape complete. Webhook URL is not set.")
@@ -86,9 +90,14 @@ if status == "scraped":
                 st.session_state["business_summary"] = ai.get("business_summary", "")
                 st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
                 st.session_state["scrape_status"] = "done"
+                st.session_state["run_ai_requested"] = False
             except Exception as e:
                 st.session_state["scrape_status"] = "error"
-                st.error(f"AI call failed: {e}")
+                st.session_state["run_ai_requested"] = False
+                st.error("AI call failed. See debug details below.")
+                with st.expander("n8n / AI debug details", expanded=False):
+                    # e.__str__() will include status, content-type, and body snippet
+                    st.code(str(e), language="text")
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
