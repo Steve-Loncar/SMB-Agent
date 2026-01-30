@@ -23,11 +23,24 @@ def call_n8n_generate_ads(scraped_text: str, image_urls: list[str], url: str, *,
         "image_urls": image_urls,
     }
 
-    headers = {}
+    headers: dict[str, str] = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
     if secret:
         headers["x-agent-secret"] = secret
 
     r = requests.post(webhook_url, json=payload, headers=headers, timeout=60)
     r.raise_for_status()
 
+    try:
+        return r.json()
+    except Exception:
+        body = (r.text or "").strip()
+        snippet = body[:800].replace("\n", "\\n")
+        # This is what will surface in Streamlit if response is HTML / text / empty.
+        raise RuntimeError(
+            f"n8n returned non-JSON. status={r.status_code} "
+            f"content-type={r.headers.get('content-type')} body={snippet}"
+        )
     return r.json()
