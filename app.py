@@ -1,22 +1,13 @@
 import streamlit as st
 
+from backend.state import init_state
+
 
 st.set_page_config(
     page_title="SMB Ad Agent (Alpha)",
     page_icon="🧩",
     layout="wide",
 )
-
-
-def init_state() -> None:
-    st.session_state.setdefault("target_url", "")
-    st.session_state.setdefault("scrape_status", "idle")  # idle | queued | done | error
-    st.session_state.setdefault("scraped_text", "")
-    st.session_state.setdefault("scraped_images", [])
-    st.session_state.setdefault("visited_urls", [])
-    st.session_state.setdefault("business_summary", "")
-    st.session_state.setdefault("poster_concepts", [])
-
 
 init_state()
 
