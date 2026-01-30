@@ -7,8 +7,9 @@ init_state()
 
 with st.sidebar:
     st.subheader("n8n")
-    st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    st.caption(f"Endpoint: `{st.session_state['n8n_test_url' if st.session_state['n8n_mode']=='TEST' else 'n8n_live_url']}`")
+    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    endpoint = st.session_state["n8n_test_url"] if mode == "TEST" else st.session_state["n8n_live_url"]
+    st.caption(f"Endpoint: `{endpoint}`")
 
 st.title("1) Enter a website URL")
 st.caption("Paste the business website you want to analyze.")

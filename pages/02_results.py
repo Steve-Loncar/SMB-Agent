@@ -22,9 +22,7 @@ status = st.session_state.get("scrape_status", "idle")
 
 def get_webhook_url() -> str:
     mode = st.session_state.get("n8n_mode", "TEST")
-    if mode == "LIVE":
-        return (st.session_state.get("n8n_live_url") or "").strip()
-    return (st.session_state.get("n8n_test_url") or "").strip()
+    return (st.session_state.get("n8n_test_url") if mode == "TEST" else st.session_state.get("n8n_live_url")) or ""
 
 with st.sidebar:
     st.subheader("n8n")
@@ -36,9 +34,9 @@ with st.sidebar:
     st.caption("Alpha: in-app scrape (will move to n8n later).")
 
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
-    can_run_ai = bool(st.session_state.get("scraped_text")) and bool(get_webhook_url())
+    can_run_ai = bool(st.session_state.get("scraped_text"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        st.session_state["scrape_status"] = "scraped"  # triggers AI step below
+        st.session_state["scrape_status"] = "scraped"
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -57,37 +55,38 @@ def cached_scrape(url: str):
 
 
 if status == "queued":
-    # Step 1: scrape only (never fail just because n8n isn't set yet)
     with st.spinner("Scraping website (alpha)…"):
         try:
             result = cached_scrape(target_url)
             st.session_state["visited_urls"] = result.visited_urls
             st.session_state["scraped_text"] = result.text
             st.session_state["scraped_images"] = result.image_urls
+            # Stop here. Let user trigger n8n manually.
             st.session_state["scrape_status"] = "scraped"
-            status = "scraped"
         except Exception as e:
             st.session_state["scrape_status"] = "error"
             st.error(f"Scrape failed: {e}")
 
+status = st.session_state.get("scrape_status", "idle")
 if status == "scraped":
-    # Step 2: AI call only if webhook URL exists
-    webhook_url = get_webhook_url()
-    with st.spinner("Calling AI workflow (n8n + Sonar)…"):
-        try:
-            ai = call_n8n_generate_ads(
-                scraped_text=st.session_state.get("scraped_text", ""),
-                image_urls=st.session_state.get("scraped_images", []),
-                url=target_url,
-                webhook_url=webhook_url,
-            )
-            st.session_state["business_summary"] = ai.get("business_summary", "")
-            st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
-            st.session_state["scrape_status"] = "done"
-            status = "done"
-        except Exception as e:
-            st.session_state["scrape_status"] = "error"
-            st.error(f"AI call failed: {e}")
+    webhook_url = get_webhook_url().strip()
+    if not webhook_url:
+        st.warning("Scrape complete. Webhook URL is not set.")
+    else:
+        with st.spinner("Calling AI workflow (n8n + Sonar)…"):
+            try:
+                ai = call_n8n_generate_ads(
+                    scraped_text=st.session_state.get("scraped_text", ""),
+                    image_urls=st.session_state.get("scraped_images", []),
+                    url=target_url,
+                    webhook_url=webhook_url,
+                )
+                st.session_state["business_summary"] = ai.get("business_summary", "")
+                st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
+                st.session_state["scrape_status"] = "done"
+            except Exception as e:
+                st.session_state["scrape_status"] = "error"
+                st.error(f"AI call failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
