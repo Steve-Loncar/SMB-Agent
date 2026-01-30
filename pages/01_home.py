@@ -1,6 +1,17 @@
 import re
 import streamlit as st
 
+from backend.state import init_state
+
+init_state()
+
+with st.sidebar:
+    st.subheader("n8n")
+    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    if mode == "TEST":
+        st.text_input("Test webhook URL", key="n8n_test_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads")
+    else:
+        st.text_input("Live webhook URL", key="n8n_live_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook/generate-ads")
 
 st.title("1) Enter a website URL")
 st.caption("Paste the business website you want to analyze.")
@@ -12,16 +23,6 @@ def is_probably_valid_url(url: str) -> bool:
         return False
     pattern = r"^https?://"
     return re.match(pattern, url.strip()) is not None
-
-
-with st.expander("n8n settings (alpha)", expanded=False):
-    st.caption("For rapid iteration, paste your n8n *Test* webhook URL here.")
-    st.text_input(
-        "n8n webhook URL override",
-        key="n8n_webhook_override",
-        placeholder="https://<n8n>/webhook-test/....",
-        help="If set, Streamlit will call this URL instead of N8N_WEBHOOK_URL env var.",
-    )
 
 
 url = st.text_input(

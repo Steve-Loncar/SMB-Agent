@@ -2,6 +2,9 @@ import streamlit as st
 
 from backend.scraper import scrape_site
 from backend.n8n_client import call_n8n_generate_ads
+from backend.state import init_state
+
+init_state()
 
 
 st.title("2) Results")
@@ -18,6 +21,15 @@ st.caption(f"Target: {target_url}")
 status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
+    st.subheader("n8n")
+    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    if mode == "TEST":
+        st.text_input("Test webhook URL", key="n8n_test_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads")
+    else:        
+        st.text_input("Live webhook URL", key="n8n_live_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook/generate-ads")
+
+    st.subheader("Run status")
+    st.write(f"**{status}**")
     st.caption("Alpha: in-app scrape (will move to n8n later).")
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -45,12 +57,20 @@ if status == "queued":
 
             # Call n8n workflow for AI generation
             with st.spinner("Calling AI workflow (n8n + Sonar)…"):
-                override = (st.session_state.get("n8n_webhook_override") or "").strip() or None
+                mode = st.session_state.get("n8n_mode", "TEST")
+                if mode == "LIVE":
+                    webhook_url = (st.session_state.get("n8n_live_url") or "").strip()
+                else:
+                    webhook_url = (st.session_state.get("n8n_test_url") or "").strip()
+
+                if not webhook_url:
+                    raise RuntimeError(f"Missing n8n {mode} webhook URL (set it in the sidebar).")
+
                 ai = call_n8n_generate_ads(
                     scraped_text=result.text,
                     image_urls=result.image_urls,
                     url=target_url,
-                    webhook_url=override,
+                    webhook_url=webhook_url,
                 )
 
             st.session_state["business_summary"] = ai.get("business_summary", "")
