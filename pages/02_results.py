@@ -20,17 +20,26 @@ st.caption(f"Target: {target_url}")
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
 
+def get_webhook_url() -> str:
+    mode = st.session_state.get("n8n_mode", "TEST")
+    if mode == "LIVE":
+        return (st.session_state.get("n8n_live_url") or "").strip()
+    return (st.session_state.get("n8n_test_url") or "").strip()
+
 with st.sidebar:
     st.subheader("n8n")
-    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    if mode == "TEST":
-        st.text_input("Test webhook URL", key="n8n_test_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads")
-    else:        
-        st.text_input("Live webhook URL", key="n8n_live_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook/generate-ads")
+    st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    st.caption(f"Endpoint: `{get_webhook_url()}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
     st.caption("Alpha: in-app scrape (will move to n8n later).")
+
+    # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
+    can_run_ai = bool(st.session_state.get("scraped_text")) and bool(get_webhook_url())
+    if st.button("Run AI (n8n)", disabled=not can_run_ai):
+        st.session_state["scrape_status"] = "scraped"  # triggers AI step below
+
     if st.button("Reset"):
         st.session_state["target_url"] = ""
         st.session_state["scrape_status"] = "idle"
@@ -48,38 +57,37 @@ def cached_scrape(url: str):
 
 
 if status == "queued":
+    # Step 1: scrape only (never fail just because n8n isn't set yet)
     with st.spinner("Scraping website (alpha)…"):
         try:
             result = cached_scrape(target_url)
             st.session_state["visited_urls"] = result.visited_urls
             st.session_state["scraped_text"] = result.text
             st.session_state["scraped_images"] = result.image_urls
-
-            # Call n8n workflow for AI generation
-            with st.spinner("Calling AI workflow (n8n + Sonar)…"):
-                mode = st.session_state.get("n8n_mode", "TEST")
-                if mode == "LIVE":
-                    webhook_url = (st.session_state.get("n8n_live_url") or "").strip()
-                else:
-                    webhook_url = (st.session_state.get("n8n_test_url") or "").strip()
-
-                if not webhook_url:
-                    raise RuntimeError(f"Missing n8n {mode} webhook URL (set it in the sidebar).")
-
-                ai = call_n8n_generate_ads(
-                    scraped_text=result.text,
-                    image_urls=result.image_urls,
-                    url=target_url,
-                    webhook_url=webhook_url,
-                )
-
-            st.session_state["business_summary"] = ai.get("business_summary", "")
-            st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
-
-            st.session_state["scrape_status"] = "done"
+            st.session_state["scrape_status"] = "scraped"
+            status = "scraped"
         except Exception as e:
             st.session_state["scrape_status"] = "error"
             st.error(f"Scrape failed: {e}")
+
+if status == "scraped":
+    # Step 2: AI call only if webhook URL exists
+    webhook_url = get_webhook_url()
+    with st.spinner("Calling AI workflow (n8n + Sonar)…"):
+        try:
+            ai = call_n8n_generate_ads(
+                scraped_text=st.session_state.get("scraped_text", ""),
+                image_urls=st.session_state.get("scraped_images", []),
+                url=target_url,
+                webhook_url=webhook_url,
+            )
+            st.session_state["business_summary"] = ai.get("business_summary", "")
+            st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
+            st.session_state["scrape_status"] = "done"
+            status = "done"
+        except Exception as e:
+            st.session_state["scrape_status"] = "error"
+            st.error(f"AI call failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
@@ -109,11 +117,11 @@ else:
 st.subheader("Images found (alpha)")
 imgs = st.session_state.get("scraped_images", [])
 if imgs:
-    st.session_state["scrape_status"] = "done"
-
-
-st.subheader("Business / product description")
-st.write(st.session_state.get("business_summary", ""))
+    # show first few images inline
+    st.caption("Best-effort extraction. We'll improve selection/branding later.")
+    st.image(imgs[:6], caption=imgs[:6], use_container_width=True)
+else:
+    st.write("No images extracted.")
 
 st.divider()
 

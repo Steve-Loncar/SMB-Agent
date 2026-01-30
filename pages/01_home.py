@@ -7,11 +7,8 @@ init_state()
 
 with st.sidebar:
     st.subheader("n8n")
-    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    if mode == "TEST":
-        st.text_input("Test webhook URL", key="n8n_test_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads")
-    else:
-        st.text_input("Live webhook URL", key="n8n_live_url", placeholder="https://fpgconsulting.app.n8n.cloud/webhook/generate-ads")
+    st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    st.caption(f"Endpoint: `{st.session_state['n8n_test_url' if st.session_state['n8n_mode']=='TEST' else 'n8n_live_url']}`")
 
 st.title("1) Enter a website URL")
 st.caption("Paste the business website you want to analyze.")
