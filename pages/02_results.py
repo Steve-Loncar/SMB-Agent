@@ -63,6 +63,8 @@ if status == "queued":
             st.session_state["scraped_images"] = result.image_urls
             # Stop here. Let user trigger n8n manually.
             st.session_state["scrape_status"] = "scraped"
+            # Ensure the next block runs immediately in this same user flow
+            st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
             st.error(f"Scrape failed: {e}")
