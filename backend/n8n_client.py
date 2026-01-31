@@ -24,6 +24,10 @@ def call_n8n_generate_ads(
             or "https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads"
         )
 
+    # Hard fail if URL isn't exactly what we expect (prevents "posting to nowhere")
+    if not isinstance(target_url, str) or not target_url.startswith("https://") or "/webhook" not in target_url:
+        raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
+
     # Mirror Tender / Echo pattern: secret optional but supported
     webhook_secret = os.getenv("WEBHOOK_SECRET", "")
 
