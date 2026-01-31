@@ -39,7 +39,7 @@ def call_n8n_generate_ads(
         "Accept": "application/json",
     }
 
-    # 4) POST JSON
+    # 4) POST JSON (exactly like your working apps)
     resp = requests.post(
         target_url,
         json=payload,
@@ -48,7 +48,8 @@ def call_n8n_generate_ads(
     )
 
     # 5) Best-effort JSON parse, but do NOT treat empty body as fatal
-    if not resp.text.strip():
+    text = (resp.text or "").strip()
+    if not text:
         return {}
 
     try:
