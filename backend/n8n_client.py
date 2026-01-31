@@ -49,10 +49,14 @@ def call_n8n_generate_ads(
 
     # 5) Best-effort JSON parse, but do NOT treat empty body as fatal
     text = (resp.text or "").strip()
-    if not text:
-        return {}
+    result: dict = {}
+    if text:
+        try:
+            result = resp.json()
+        except Exception:
+            result = {}
 
-    try:
-        return resp.json()
-    except Exception:
-        return {}
+    # Always include the outbound payload for debugging in the caller
+    result.setdefault("_debug_payload_sent", payload)
+    result.setdefault("_debug_target_url", target_url)
+    return result
