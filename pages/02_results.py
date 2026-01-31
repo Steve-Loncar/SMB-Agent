@@ -49,12 +49,21 @@ with st.sidebar:
             st.code(debug_result.get("_debug_target_url", ""), language="text")
             st.write("HTTP status / final URL:")
             st.code(
-                f"{debug_result.get('_debug_http_status')} | final={debug_result.get('_debug_final_url')} | redirects={debug_result.get('_debug_redirect_count')}",
+                f"{debug_result.get('_debug_http_status')} | final={debug_result.get('_debug_final_url')}",
                 language="text",
             )
+            if debug_result.get("_error"):
+                st.error(debug_result.get("_error"))
+            if debug_result.get("_location"):
+                st.write("Redirect Location:")
+                st.code(debug_result.get("_location", ""), language="text")
+            st.write("Response Content-Type:")
+            st.code(debug_result.get("_debug_resp_content_type", ""), language="text")
+            st.write("Response text (first 400 chars):")
+            st.code(debug_result.get("_debug_resp_text_snippet", ""), language="text")
             st.write("Payload:")
             st.json(debug_result.get("_debug_payload_sent", {}))
-            st.write("Response headers (from n8n/proxy):")
+            st.write("Response headers:")
             st.json(debug_result.get("_debug_resp_headers", {}))
 
     if st.button("Reset"):
