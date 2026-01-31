@@ -1,6 +1,7 @@
 import streamlit as st
 
 from backend.scraper import scrape_site
+from backend.n8n_client import call_n8n_generate_ads
 from backend.state import init_state
 
 init_state()
@@ -35,32 +36,11 @@ with st.sidebar:
     st.caption("Alpha: in-app scrape (will move to n8n later).")
 
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
-    can_run_ai = bool(st.session_state.get("scraped_text"))
+    can_run_ai = True  # for this test, always allow
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        # HARDCODED TEST PAYLOAD – ignore n8n for now
-        st.session_state["business_summary"] = (
-            "The Ginger Pig is a premium butcher offering high-quality meats and prepared foods, "
-            "with a focus on provenance and traditional craftsmanship."
-        )
-        st.session_state["poster_concepts"] = [
-            {
-                "headline": "Butchered the Traditional Way",
-                "subhead": "Hand-cut, properly aged meats from farms we actually know.",
-                "cta": "Discover today's cuts",
-            },
-            {
-                "headline": "Sunday Roast, Sorted",
-                "subhead": "From rib of beef to perfect potatoes, we've done the hard work.",
-                "cta": "Plan your roast",
-            },
-            {
-                "headline": "Better Meat, Fewer Compromises",
-                "subhead": "Traceable farms, serious flavour, no supermarket shortcuts.",
-                "cta": "Shop now",
-            },
-        ]
-        st.session_state["scrape_status"] = "done"
-        st.session_state["run_ai_requested"] = False
+        with st.spinner("Sending hardcoded test payload to n8n…"):
+            _ = call_n8n_generate_ads()  # ignores arguments in debug version
+        st.success("Hardcoded payload sent to n8n (check Webhook node).")
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
