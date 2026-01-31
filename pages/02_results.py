@@ -1,7 +1,6 @@
 import streamlit as st
 
 from backend.scraper import scrape_site
-from backend.n8n_client import call_n8n_generate_ads
 from backend.state import init_state
 
 init_state()
@@ -38,8 +37,30 @@ with st.sidebar:
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
     can_run_ai = bool(st.session_state.get("scraped_text"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        # Do not change scrape_status here; just mark that we want to call n8n
-        st.session_state["run_ai_requested"] = True
+        # HARDCODED TEST PAYLOAD – ignore n8n for now
+        st.session_state["business_summary"] = (
+            "The Ginger Pig is a premium butcher offering high-quality meats and prepared foods, "
+            "with a focus on provenance and traditional craftsmanship."
+        )
+        st.session_state["poster_concepts"] = [
+            {
+                "headline": "Butchered the Traditional Way",
+                "subhead": "Hand-cut, properly aged meats from farms we actually know.",
+                "cta": "Discover today's cuts",
+            },
+            {
+                "headline": "Sunday Roast, Sorted",
+                "subhead": "From rib of beef to perfect potatoes, we've done the hard work.",
+                "cta": "Plan your roast",
+            },
+            {
+                "headline": "Better Meat, Fewer Compromises",
+                "subhead": "Traceable farms, serious flavour, no supermarket shortcuts.",
+                "cta": "Shop now",
+            },
+        ]
+        st.session_state["scrape_status"] = "done"
+        st.session_state["run_ai_requested"] = False
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -74,30 +95,9 @@ if status == "queued":
             st.error(f"Scrape failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
-if status == "scraped" and st.session_state.get("run_ai_requested"):
-    webhook_url = get_webhook_url().strip()
-    if not webhook_url:
-        st.warning("Scrape complete. Webhook URL is not set.")
-    else:
-        with st.spinner("Calling AI workflow (n8n + Sonar)…"):
-            try:
-                ai = call_n8n_generate_ads(
-                    scraped_text=st.session_state.get("scraped_text", ""),
-                    image_urls=st.session_state.get("scraped_images", []),
-                    url=target_url,
-                    webhook_url=webhook_url,
-                )
-                st.session_state["business_summary"] = ai.get("business_summary", "")
-                st.session_state["poster_concepts"] = ai.get("poster_concepts", [])
-                st.session_state["scrape_status"] = "done"
-                st.session_state["run_ai_requested"] = False
-            except Exception as e:
-                st.session_state["scrape_status"] = "error"
-                st.session_state["run_ai_requested"] = False
-                st.error("AI call failed. See debug details below.")
-                with st.expander("n8n / AI debug details", expanded=False):
-                    # e.__str__() will include status, content-type, and body snippet
-                    st.code(str(e), language="text")
+if status == "scraped":
+    # In test mode we do nothing here; button already dropped fake payload.
+    pass
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
