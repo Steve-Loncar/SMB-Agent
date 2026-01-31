@@ -37,13 +37,18 @@ with st.sidebar:
     can_run_ai = bool(st.session_state.get("scraped_text"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
         with st.spinner("Calling n8n with test payload…"):
-            _ = call_n8n_generate_ads(
+            debug_result = call_n8n_generate_ads(
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
                 url=target_url,
                 webhook_url=get_webhook_url().strip(),
             )
         st.success("Sent test payload to n8n – check Webhook node Output → JSON.")
+        with st.expander("Debug: JSON sent to n8n", expanded=True):
+            st.write("Target URL:")
+            st.code(debug_result.get("_debug_target_url", ""), language="text")
+            st.write("Payload:")
+            st.json(debug_result.get("_debug_payload_sent", {}))
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
