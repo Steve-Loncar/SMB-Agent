@@ -1,23 +1,57 @@
-# backend/n8n_client.py
+import os
+import json
 import requests
 
-def call_n8n_generate_ads(*args, **kwargs) -> dict:
-    """
-    DEBUG ONLY: ignore inputs and send a fixed JSON payload to the TEST webhook.
-    """
-    webhook_url = "https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads"
 
+def call_n8n_generate_ads(
+    scraped_text: str,
+    image_urls: list[str],
+    url: str,
+    *,
+    webhook_url: str | None = None,
+) -> dict:
+    """
+    Sends scraped content to an n8n webhook.
+    For now, send a very simple payload and don't try to be clever.
+    """
+
+    # 1) Decide URL: prefer explicit argument, else env var, else TEST endpoint
+    if webhook_url:
+        target_url = webhook_url
+    else:
+        target_url = (
+            os.getenv("N8N_WEBHOOK_URL")
+            or "https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads"
+        )
+
+    # 2) Build a flat, boring payload
     payload = {
-        "hello": "world-from-streamlit",
-        "answer": 42,
-        "note": "hardcoded-payload-test"
+        "payload_type": "smb_ad_agent_test",
+        "url": url,
+        "scraped_text_len": len(scraped_text or ""),
+        "image_count": len(image_urls or []),
+        "sample_text": (scraped_text or "")[:500],
     }
 
+    # 3) Same header style as tender_agent_app
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
-    r = requests.post(webhook_url, json=payload, headers=headers, timeout=30)
-    # Do NOT try to parse response for now; just return empty dict.
-    return {}
+    # 4) POST JSON
+    resp = requests.post(
+        target_url,
+        json=payload,
+        headers=headers,
+        timeout=60,
+    )
+
+    # 5) Best-effort JSON parse, but do NOT treat empty body as fatal
+    if not resp.text.strip():
+        return {}
+
+    try:
+        return resp.json()
+    except Exception:
+        return {}
