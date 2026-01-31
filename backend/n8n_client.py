@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 from typing import Any, Dict
 
@@ -25,6 +24,9 @@ def call_n8n_generate_ads(
             or "https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads"
         )
 
+    # Mirror Tender / Echo pattern: secret optional but supported
+    webhook_secret = os.getenv("WEBHOOK_SECRET", "")
+
     # 2) Build a flat, boring payload
     payload = {
         "payload_type": "smb_ad_agent_test",
@@ -38,24 +40,16 @@ def call_n8n_generate_ads(
         "sample_text": (scraped_text or "")[:500],  # keep for quick inspection
     }
 
-    # 3) Same header style as tender_agent_app
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+    # EXACT Tender-style headers (no Accept)
+    headers = {"Content-Type": "application/json"}
+    if webhook_secret:
+        headers["X-Webhook-Secret"] = webhook_secret
 
-    # 4) POST JSON (exactly like your working apps)
-    # IMPORTANT: if a proxy redirects a POST, some clients drop the body.
-    # Disabling redirects makes this visible.
-    resp = requests.post(
-        target_url,
-        json=payload,
-        headers=headers,
-        timeout=60,
-        allow_redirects=False,
-    )
+    # EXACT Tender-style timeout shape: (connect, read)
+    req_timeout = (10, 60)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
-    # 5) Build result with debug fields first
+    # Build result with debug fields first
     result: Dict[str, Any] = {}
     result["_debug_target_url"] = target_url
     result["_debug_payload_sent"] = payload
@@ -65,17 +59,14 @@ def call_n8n_generate_ads(
     result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
     result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
 
-    # Fail fast on redirects – this is a common cause of "webhook triggered but empty body".
-    if resp.status_code in (301, 302, 303, 307, 308):
-        result["_error"] = "n8n returned a redirect; request likely did not reach the webhook handler as intended."
-        result["_location"] = resp.headers.get("Location", "")
-        return result
-
-    # If n8n returns HTML/text with status 200, that is strong evidence the test webhook is not listening
-    # (or you hit a proxy/login/error page) rather than your workflow handler.
-    ct = (result.get("_debug_resp_content_type") or "").lower()
-    if ct and ("application/json" not in ct):
-        result["_error"] = f"Unexpected response Content-Type from n8n: {result['_debug_resp_content_type']}"
+    # EXACT Tender-style failure handling: non-200 => surface body snippet
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
         return result
 
     # Best effort parse JSON response (Respond to Webhook node may return JSON)
