@@ -21,8 +21,12 @@ st.caption(f"Target: {target_url}")
 status = st.session_state.get("scrape_status", "idle")
 
 def get_webhook_url() -> str:
+    # EXACT Tender-style endpoint construction (no session_state URL storage)
+    N8N_BASE_URL = "https://fpgconsulting.app.n8n.cloud"
+    N8N_TEST_PATH = "/webhook-test/generate-ads"
+    N8N_LIVE_PATH = "/webhook/generate-ads"
     mode = st.session_state.get("n8n_mode", "TEST")
-    return (st.session_state.get("n8n_test_url") if mode == "TEST" else st.session_state.get("n8n_live_url")) or ""
+    return (N8N_BASE_URL + N8N_TEST_PATH) if mode == "TEST" else (N8N_BASE_URL + N8N_LIVE_PATH)
 
 with st.sidebar:
     st.subheader("n8n")
@@ -41,9 +45,10 @@ with st.sidebar:
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
                 url=target_url,
-                webhook_url=get_webhook_url().strip(),
+                webhook_url=get_webhook_url(),
             )
-        st.success("Sent test payload to n8n – check Webhook node Output → JSON.")
+        mode = st.session_state.get("n8n_mode", "TEST")
+        st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
         with st.expander("Debug: JSON sent to n8n", expanded=True):
             st.write("Target URL:")
             st.code(debug_result.get("_debug_target_url", ""), language="text")
