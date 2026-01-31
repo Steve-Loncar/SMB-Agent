@@ -47,8 +47,15 @@ with st.sidebar:
         with st.expander("Debug: JSON sent to n8n", expanded=True):
             st.write("Target URL:")
             st.code(debug_result.get("_debug_target_url", ""), language="text")
+            st.write("HTTP status / final URL:")
+            st.code(
+                f"{debug_result.get('_debug_http_status')} | final={debug_result.get('_debug_final_url')} | redirects={debug_result.get('_debug_redirect_count')}",
+                language="text",
+            )
             st.write("Payload:")
             st.json(debug_result.get("_debug_payload_sent", {}))
+            st.write("Response headers (from n8n/proxy):")
+            st.json(debug_result.get("_debug_resp_headers", {}))
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
