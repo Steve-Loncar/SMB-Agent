@@ -9,8 +9,6 @@ init_state()
 
 st.title("2) Results")
 
-st.session_state.setdefault("run_ai_requested", False)
-
 target_url = st.session_state.get("target_url", "")
 if not target_url:
     st.warning("No URL provided yet. Go to Home and enter a website URL.")
@@ -36,11 +34,16 @@ with st.sidebar:
     st.caption("Alpha: in-app scrape (will move to n8n later).")
 
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
-    can_run_ai = True  # for this test, always allow
+    can_run_ai = bool(st.session_state.get("scraped_text"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        with st.spinner("Sending hardcoded test payload to n8n…"):
-            _ = call_n8n_generate_ads()  # ignores arguments in debug version
-        st.success("Hardcoded payload sent to n8n (check Webhook node).")
+        with st.spinner("Calling n8n with test payload…"):
+            _ = call_n8n_generate_ads(
+                scraped_text=st.session_state.get("scraped_text", ""),
+                image_urls=st.session_state.get("scraped_images", []),
+                url=target_url,
+                webhook_url=get_webhook_url().strip(),
+            )
+        st.success("Sent test payload to n8n – check Webhook node Output → JSON.")
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -50,7 +53,6 @@ with st.sidebar:
         st.session_state["visited_urls"] = []
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
-        st.session_state["run_ai_requested"] = False
         st.switch_page("pages/01_home.py")
 
 @st.cache_data(show_spinner=False, ttl=60 * 60)
@@ -75,9 +77,7 @@ if status == "queued":
             st.error(f"Scrape failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
-if status == "scraped":
-    # In test mode we do nothing here; button already dropped fake payload.
-    pass
+# For this test, we do nothing here. The button above always sends the payload.
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
