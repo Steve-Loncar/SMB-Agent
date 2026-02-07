@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 
 from backend.scraper import scrape_site
 from backend.n8n_client import call_n8n_generate_ads
@@ -47,6 +48,20 @@ with st.sidebar:
                 url=target_url,
                 webhook_url=get_webhook_url(),
             )
+
+        # --- V1: Consume clean payload from n8n ---
+        try:
+            resp = debug_result.get("_n8n_response_json")
+            if isinstance(resp, list) and resp:
+                resp = resp[0]
+
+            st.session_state["business_summary"] = resp.get("business_summary", {})
+            st.session_state["poster_concepts"] = resp.get("poster_concepts", [])
+            st.session_state["scrape_status"] = "done"
+        except Exception as e:
+            st.session_state["scrape_status"] = "error"
+            st.error(f"Could not read n8n response payload: {e}")
+
         mode = st.session_state.get("n8n_mode", "TEST")
         st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
         with st.expander("Debug: JSON sent to n8n", expanded=True):
@@ -66,6 +81,8 @@ with st.sidebar:
             st.code(debug_result.get("_debug_resp_content_type", ""), language="text")
             st.write("Response text (first 400 chars):")
             st.code(debug_result.get("_debug_resp_text_snippet", ""), language="text")
+            st.write("n8n response JSON (clean payload):")
+            st.json(debug_result.get("_n8n_response_json", {}))
             st.write("Payload:")
             st.json(debug_result.get("_debug_payload_sent", {}))
             st.write("Response headers:")
@@ -109,8 +126,24 @@ status = st.session_state.get("scrape_status", "idle")
 if status == "error":
     st.stop()
 
-st.subheader("Business / product description")
-st.write(st.session_state.get("business_summary", ""))
+# --- Display Business Summary ---
+summary = st.session_state.get("business_summary", {})
+if summary:
+    st.subheader("Business summary")
+    st.markdown(f"**Name:** {summary.get('name_guess','')}")
+    st.markdown(f"**Category:** {summary.get('category','')}")
+    st.markdown(f"**Target customer:** {summary.get('target_customer','')}")
+    st.markdown(f"**Value proposition:** {summary.get('value_prop','')}")
+    st.markdown(f"**Tone:** {summary.get('tone','')}")
+
+    with st.expander("Key offers / proof / CTAs"):
+        st.write("**Key offers**")
+        st.write(summary.get("key_offers", []))
+        st.write("**Proof points**")
+        st.write(summary.get("key_proof_points", []))
+        st.write("**CTAs**")
+        st.write(summary.get("key_ctas", []))
+
 
 st.divider()
 
@@ -152,6 +185,9 @@ else:
         with cols[i % 3]:
             st.markdown("#### Poster concept")
             st.markdown(f"**Headline:** {concept.get('headline','')}")
-            st.markdown(f"**Subhead:** {concept.get('subhead','')}")
+            st.markdown(f"**Supporting copy:** {concept.get('supporting_copy','')}")
             st.markdown(f"**CTA:** {concept.get('cta','')}")
+            tags = concept.get("style_tags", [])
+            if tags:
+                st.caption("Style tags: " + ", ".join(tags))
             st.button("Generate image (soon)", disabled=True, key=f"gen_{i}")
