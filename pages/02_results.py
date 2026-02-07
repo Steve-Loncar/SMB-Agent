@@ -3,6 +3,7 @@ import json
 
 from backend.scraper import scrape_site
 from backend.n8n_client import call_n8n_generate_ads
+from backend.image_gen import generate_poster_image
 from backend.state import init_state
 
 init_state()
@@ -29,10 +30,19 @@ def get_webhook_url() -> str:
     mode = st.session_state.get("n8n_mode", "TEST")
     return (N8N_BASE_URL + N8N_TEST_PATH) if mode == "TEST" else (N8N_BASE_URL + N8N_LIVE_PATH)
 
+def get_image_webhook_url() -> str:
+    # Same base + env split, but image endpoint
+    N8N_BASE_URL = "https://fpgconsulting.app.n8n.cloud"
+    N8N_TEST_PATH = "/webhook-test/generate-image"
+    N8N_LIVE_PATH = "/webhook/generate-image"
+    mode = st.session_state.get("n8n_mode", "TEST")
+    return (N8N_BASE_URL + N8N_TEST_PATH) if mode == "TEST" else (N8N_BASE_URL + N8N_LIVE_PATH)
+
 with st.sidebar:
     st.subheader("n8n")
     st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    st.caption(f"Endpoint: `{get_webhook_url()}`")
+    st.caption(f"Ads endpoint: `{get_webhook_url()}`")
+    st.caption(f"Image endpoint: `{get_image_webhook_url()}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
@@ -49,18 +59,26 @@ with st.sidebar:
                 webhook_url=get_webhook_url(),
             )
 
-        # --- V1: Consume clean payload from n8n ---
+        # ---- NEW: hydrate session_state from n8n response payload ----
+        # Your "Respond to Webhook" is set to "allIncomingItems", so expect a list of 1 item.
+        resp_json = debug_result.get("_n8n_response_json")
         try:
-            resp = debug_result.get("_n8n_response_json")
-            if isinstance(resp, list) and resp:
-                resp = resp[0]
-
-            st.session_state["business_summary"] = resp.get("business_summary", {})
-            st.session_state["poster_concepts"] = resp.get("poster_concepts", [])
-            st.session_state["scrape_status"] = "done"
-        except Exception as e:
-            st.session_state["scrape_status"] = "error"
-            st.error(f"Could not read n8n response payload: {e}")
+            if isinstance(resp_json, list) and resp_json:
+                item0 = resp_json[0]
+                # You are preparing a payload like:
+                # { business_summary: {...}, poster_concepts: [...] }
+                if isinstance(item0, dict):
+                    bs = item0.get("business_summary")
+                    pc = item0.get("poster_concepts")
+                    if isinstance(bs, dict):
+                        st.session_state["business_summary"] = bs
+                    if isinstance(pc, list):
+                        st.session_state["poster_concepts"] = pc
+                        # Reset any previously generated images (concepts changed)
+                        st.session_state["poster_images"] = {}
+        except Exception:
+            # Keep debug visible below; don't crash UI.
+            pass
 
         mode = st.session_state.get("n8n_mode", "TEST")
         st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
@@ -87,6 +105,8 @@ with st.sidebar:
             st.json(debug_result.get("_debug_payload_sent", {}))
             st.write("Response headers:")
             st.json(debug_result.get("_debug_resp_headers", {}))
+            st.write("Response JSON (parsed):")
+            st.json(resp_json)
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -126,24 +146,16 @@ status = st.session_state.get("scrape_status", "idle")
 if status == "error":
     st.stop()
 
-# --- Display Business Summary ---
-summary = st.session_state.get("business_summary", {})
-if summary:
-    st.subheader("Business summary")
-    st.markdown(f"**Name:** {summary.get('name_guess','')}")
-    st.markdown(f"**Category:** {summary.get('category','')}")
-    st.markdown(f"**Target customer:** {summary.get('target_customer','')}")
-    st.markdown(f"**Value proposition:** {summary.get('value_prop','')}")
-    st.markdown(f"**Tone:** {summary.get('tone','')}")
-
-    with st.expander("Key offers / proof / CTAs"):
-        st.write("**Key offers**")
-        st.write(summary.get("key_offers", []))
-        st.write("**Proof points**")
-        st.write(summary.get("key_proof_points", []))
-        st.write("**CTAs**")
-        st.write(summary.get("key_ctas", []))
-
+st.subheader("Business / product description")
+bs = st.session_state.get("business_summary", {})
+if isinstance(bs, dict) and bs:
+    st.markdown(f"**Name:** {bs.get('name_guess','')}")
+    st.markdown(f"**Category:** {bs.get('category','')}")
+    st.markdown(f"**Value prop:** {bs.get('value_prop','')}")
+    st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
+    st.markdown(f"**Tone:** {bs.get('tone','')}")
+else:
+    st.info("Run AI to populate business summary.")
 
 st.divider()
 
@@ -174,7 +186,7 @@ else:
 
 st.divider()
 
-st.subheader("AI-generated poster concepts (text-only for now)")
+st.subheader("AI-generated poster concepts")
 concepts = st.session_state.get("poster_concepts", [])
 
 if not concepts:
@@ -184,10 +196,48 @@ else:
     for i, concept in enumerate(concepts):
         with cols[i % 3]:
             st.markdown("#### Poster concept")
+            st.caption(concept.get("concept_name", ""))
             st.markdown(f"**Headline:** {concept.get('headline','')}")
             st.markdown(f"**Supporting copy:** {concept.get('supporting_copy','')}")
             st.markdown(f"**CTA:** {concept.get('cta','')}")
-            tags = concept.get("style_tags", [])
-            if tags:
-                st.caption("Style tags: " + ", ".join(tags))
-            st.button("Generate image (soon)", disabled=True, key=f"gen_{i}")
+            st.markdown(f"**Layout notes:** {concept.get('layout_notes','')}")
+            st.markdown(f"**Image idea:** {concept.get('image_idea','')}")
+            tags = concept.get("style_tags") or []
+            if isinstance(tags, list) and tags:
+                st.caption("Style tags: " + ", ".join([str(t) for t in tags]))
+
+            # Show generated image if we have one
+            img_cache = st.session_state.get("poster_images", {}) or {}
+            if i in img_cache:
+                st.image(img_cache[i], use_container_width=True)
+
+            # Generate on demand
+            if st.button("Generate image", key=f"gen_{i}", use_container_width=True):
+                bs = st.session_state.get("business_summary", {}) or {}
+                # V1 prompt: simple + reliable (iterate later)
+                prompt = (
+                    "Create a UK roadside OOH poster mockup.\n"
+                    f"Business: {bs.get('name_guess','')}\n"
+                    f"Category: {bs.get('category','')}\n"
+                    f"Tone: {bs.get('tone','')}\n"
+                    f"Headline text on poster: {concept.get('headline','')}\n"
+                    f"Supporting copy on poster: {concept.get('supporting_copy','')}\n"
+                    f"CTA on poster: {concept.get('cta','')}\n"
+                    f"Visual concept: {concept.get('image_idea','')}\n"
+                    f"Layout guidance: {concept.get('layout_notes','')}\n"
+                    f"Style tags: {', '.join(tags) if isinstance(tags, list) else ''}\n"
+                    "Design requirements:\n"
+                    "- Poster is legible from distance\n"
+                    "- Large headline, minimal text\n"
+                    "- Clean composition, high contrast\n"
+                    "- Do NOT include phone numbers unless explicitly provided\n"
+                    "- No brand logos unless provided\n"
+                )
+
+                try:
+                    with st.spinner("Generating image…"):
+                        img_bytes = generate_poster_image(prompt=prompt)
+                    st.session_state["poster_images"][i] = img_bytes
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Image generation failed: {e}")
