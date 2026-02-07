@@ -2,8 +2,8 @@ import streamlit as st
 import json
 
 from backend.scraper import scrape_site
-from backend.n8n_client import call_n8n_generate_ads
-from backend.image_gen import generate_poster_image
+import base64
+from backend.n8n_client import call_n8n_generate_ads, call_n8n_generate_image
 from backend.state import init_state
 
 init_state()
@@ -236,7 +236,25 @@ else:
 
                 try:
                     with st.spinner("Generating image…"):
-                        img_bytes = generate_poster_image(prompt=prompt)
+                        img_res = call_n8n_generate_image(
+                            prompt=prompt,
+                            webhook_url=get_image_webhook_url(),
+                        )
+                        if not img_res.get("ok"):
+                            raise RuntimeError(
+                                img_res.get("response_text_snippet", "n8n image call failed")
+                            )
+
+                        resp = img_res.get("response_json") or {}
+                        # n8n Respond node may return a list (allIncomingItems)
+                        if isinstance(resp, list) and resp:
+                            resp = resp[0]
+
+                        b64 = (resp or {}).get("image_b64", "")
+                        if not b64:
+                            raise RuntimeError("Missing image_b64 in n8n response")
+
+                        img_bytes = base64.b64decode(b64)
                     st.session_state["poster_images"][i] = img_bytes
                     st.rerun()
                 except Exception as e:
