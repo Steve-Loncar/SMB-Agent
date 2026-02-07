@@ -11,9 +11,15 @@ def call_n8n_generate_ads(
     webhook_url: str | None = None,
 ) -> dict:
     """
-    Sends scraped content to an n8n webhook.
-    For now, send a very simple payload and don't try to be clever.
+    POST payload to n8n webhook. Returns debug-rich dict including:
+    - ok (bool)
+    - status_code
+    - response_json (if parseable)
+    - response_text_snippet
+    - sent_payload (echo)
     """
+    # Sends scraped content to an n8n webhook.
+    # For now, send a very simple payload and don't try to be clever.
 
     # 1) Decide URL: prefer explicit argument, else env var, else TEST endpoint
     if webhook_url:
@@ -82,3 +88,28 @@ def call_n8n_generate_ads(
         pass
 
     return result
+
+
+def call_n8n_generate_image(prompt: str, size: str = "1024x1024", webhook_url: str | None = None) -> dict:
+    """
+    POST an image prompt to n8n /generate-image. Expects response:
+      { image_b64: "...", mime: "image/png" }
+    """
+    url = webhook_url or os.getenv("N8N_IMAGE_WEBHOOK_URL", "").strip()
+    if not url:
+        raise RuntimeError("Missing N8N_IMAGE_WEBHOOK_URL env var")
+
+    headers = {"Content-Type": "application/json"}
+    secret = os.getenv("WEBHOOK_SECRET", "").strip()
+    if secret:
+        headers["X-Webhook-Secret"] = secret
+
+    payload = {"prompt": prompt, "size": size}
+    r = requests.post(url, json=payload, headers=headers, timeout=120)
+    out = {"ok": (200 <= r.status_code < 300), "status_code": r.status_code, "sent_payload": payload}
+    out["response_text_snippet"] = (r.text or "")[:1200]
+    try:
+        out["response_json"] = r.json()
+    except Exception:
+        out["response_json"] = None
+    return out
