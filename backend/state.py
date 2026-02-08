@@ -5,9 +5,17 @@ def init_state() -> None:
     # Core app state
     st.session_state.setdefault("target_url", "")
     st.session_state.setdefault("scrape_status", "idle")  # idle | queued | scraped | done | error
+    # V1 scrape outputs (legacy; will be phased out)
     st.session_state.setdefault("scraped_text", "")
     st.session_state.setdefault("scraped_images", [])
     st.session_state.setdefault("visited_urls", [])
+
+    # V2 scrape-pack config + outputs
+    st.session_state.setdefault("scrape_depth", "homepage_plus")   # homepage_only | homepage_plus
+    st.session_state.setdefault("scrape_max_pages", 3)
+    st.session_state.setdefault("scrape_pack", None)               # clean payload from n8n (if/when)
+    st.session_state.setdefault("scrape_pack_debug", None)         # debug envelope returned by backend client
+
     st.session_state.setdefault("business_summary", "")
     st.session_state.setdefault("poster_concepts", [])
     # Cache generated images by concept index: {0: bytes, 1: bytes, ...}

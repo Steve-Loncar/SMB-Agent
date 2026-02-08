@@ -1,6 +1,73 @@
 import os
 import requests
-from typing import Any, Dict
+from typing import Any, Dict, Literal
+
+
+Mode = Literal["TEST", "LIVE"]
+Endpoint = Literal["generate_ads", "generate_image", "scrape_pack"]
+
+
+def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: str | None = None) -> str:
+    """
+    Single source of truth for webhook URLs.
+
+    Env:
+      N8N_BASE_URL (optional, defaults to your n8n cloud)
+      N8N_WEBHOOK_SECRET (optional, sent as X-Webhook-Secret)
+
+      Optional per-endpoint override env vars (if you want them later):
+        N8N_GENERATE_ADS_URL_TEST / _LIVE
+        N8N_GENERATE_IMAGE_URL_TEST / _LIVE
+        N8N_SCRAPE_PACK_URL_TEST / _LIVE
+    """
+    if override_url:
+        target_url = override_url.strip()
+    else:
+        base = (os.getenv("N8N_BASE_URL") or "https://fpgconsulting.app.n8n.cloud").rstrip("/")
+
+        # Optional explicit full URL overrides (handy for quick swaps)
+        env_map = {
+            ("generate_ads", "TEST"): "N8N_GENERATE_ADS_URL_TEST",
+            ("generate_ads", "LIVE"): "N8N_GENERATE_ADS_URL_LIVE",
+            ("generate_image", "TEST"): "N8N_GENERATE_IMAGE_URL_TEST",
+            ("generate_image", "LIVE"): "N8N_GENERATE_IMAGE_URL_LIVE",
+            ("scrape_pack", "TEST"): "N8N_SCRAPE_PACK_URL_TEST",
+            ("scrape_pack", "LIVE"): "N8N_SCRAPE_PACK_URL_LIVE",
+        }
+        env_key = env_map[(endpoint, mode)]
+        explicit = (os.getenv(env_key) or "").strip()
+        if explicit:
+            target_url = explicit
+        else:
+            # Default paths (your current conventions)
+            paths = {
+                ("generate_ads", "TEST"): "/webhook-test/generate-ads",
+                ("generate_ads", "LIVE"): "/webhook/generate-ads",
+                ("generate_image", "TEST"): "/webhook-test/generate-image",
+                ("generate_image", "LIVE"): "/webhook/generate-image",
+                ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",
+                ("scrape_pack", "LIVE"): "/webhook/scrape-pack",
+            }
+            target_url = base + paths[(endpoint, mode)]
+
+    # Hard fail if URL isn't exactly what we expect (prevents "posting to nowhere")
+    if (
+        not isinstance(target_url, str)
+        or not target_url.startswith("https://")
+        or "/webhook" not in target_url
+    ):
+        raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
+
+    return target_url
+
+
+def _tender_headers() -> dict:
+    headers = {"Content-Type": "application/json"}
+    # Mirror Tender / Echo pattern: secret optional but supported
+    secret = (os.getenv("WEBHOOK_SECRET") or os.getenv("N8N_WEBHOOK_SECRET") or "").strip()
+    if secret:
+        headers["X-Webhook-Secret"] = secret
+    return headers
 
 
 def call_n8n_generate_ads(
@@ -8,6 +75,7 @@ def call_n8n_generate_ads(
     image_urls: list[str],
     url: str,
     *,
+    mode: Mode = "TEST",
     webhook_url: str | None = None,
 ) -> dict:
     """
@@ -21,21 +89,8 @@ def call_n8n_generate_ads(
     # Sends scraped content to an n8n webhook.
     # For now, send a very simple payload and don't try to be clever.
 
-    # 1) Decide URL: prefer explicit argument, else env var, else TEST endpoint
-    if webhook_url:
-        target_url = webhook_url
-    else:
-        target_url = (
-            os.getenv("N8N_WEBHOOK_URL")
-            or "https://fpgconsulting.app.n8n.cloud/webhook-test/generate-ads"
-        )
-
-    # Hard fail if URL isn't exactly what we expect (prevents "posting to nowhere")
-    if not isinstance(target_url, str) or not target_url.startswith("https://") or "/webhook" not in target_url:
-        raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
-
-    # Mirror Tender / Echo pattern: secret optional but supported
-    webhook_secret = os.getenv("WEBHOOK_SECRET", "")
+    # 1) Decide URL from single source of truth
+    target_url = resolve_n8n_webhook("generate_ads", mode, override_url=webhook_url)
 
     # 2) Build a flat, boring payload
     payload = {
@@ -51,9 +106,7 @@ def call_n8n_generate_ads(
     }
 
     # EXACT Tender-style headers (no Accept)
-    headers = {"Content-Type": "application/json"}
-    if webhook_secret:
-        headers["X-Webhook-Secret"] = webhook_secret
+    headers = _tender_headers()
 
     # EXACT Tender-style timeout shape: (connect, read)
     req_timeout = (10, 60)
@@ -90,19 +143,19 @@ def call_n8n_generate_ads(
     return result
 
 
-def call_n8n_generate_image(prompt: str, size: str = "1024x1024", webhook_url: str | None = None) -> dict:
+def call_n8n_generate_image(
+    prompt: str,
+    size: str = "1024x1024",
+    *,
+    mode: Mode = "TEST",
+    webhook_url: str | None = None,
+) -> dict:
     """
     POST an image prompt to n8n /generate-image. Expects response:
       { image_b64: "...", mime: "image/png" }
     """
-    url = webhook_url or os.getenv("N8N_IMAGE_WEBHOOK_URL", "").strip()
-    if not url:
-        raise RuntimeError("Missing N8N_IMAGE_WEBHOOK_URL env var")
-
-    headers = {"Content-Type": "application/json"}
-    secret = os.getenv("WEBHOOK_SECRET", "").strip()
-    if secret:
-        headers["X-Webhook-Secret"] = secret
+    url = resolve_n8n_webhook("generate_image", mode, override_url=webhook_url)
+    headers = _tender_headers()
 
     payload = {"prompt": prompt, "size": size}
     r = requests.post(url, json=payload, headers=headers, timeout=120)
@@ -113,3 +166,55 @@ def call_n8n_generate_image(prompt: str, size: str = "1024x1024", webhook_url: s
     except Exception:
         out["response_json"] = None
     return out
+
+
+def call_n8n_scrape_pack(
+    *,
+    url: str,
+    depth: str = "homepage_plus",
+    max_pages: int = 3,
+    mode: Mode = "TEST",
+    webhook_url: str | None = None,
+) -> dict:
+    """
+    POST payload to n8n /scrape-pack.
+    This is wiring-friendly: it returns the same debug envelope shape as generate_ads.
+    """
+    target_url = resolve_n8n_webhook("scrape_pack", mode, override_url=webhook_url)
+    headers = _tender_headers()
+
+    payload = {
+        "payload_type": "smb_scrape_pack",
+        "url": url,
+        "depth": depth,
+        "max_pages": int(max_pages),
+    }
+
+    req_timeout = (10, 60)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
+
+    result: Dict[str, Any] = {}
+    result["_debug_target_url"] = target_url
+    result["_debug_payload_sent"] = payload
+    result["_debug_http_status"] = resp.status_code
+    result["_debug_final_url"] = resp.url
+    result["_debug_resp_headers"] = dict(resp.headers)
+    result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
+    result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
+
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
+        return result
+
+    try:
+        if (resp.text or "").strip():
+            result["_n8n_response_json"] = resp.json()
+    except Exception:
+        pass
+
+    return result
