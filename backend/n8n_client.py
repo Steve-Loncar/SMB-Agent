@@ -1,13 +1,13 @@
 import os
 import requests
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 
 Mode = Literal["TEST", "LIVE"]
 Endpoint = Literal["generate_ads", "generate_image", "scrape_pack"]
 
 
-def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: str | None = None) -> str:
+def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
     """
     Single source of truth for webhook URLs.
 
@@ -76,7 +76,7 @@ def call_n8n_generate_ads(
     url: str,
     *,
     mode: Mode = "TEST",
-    webhook_url: str | None = None,
+    webhook_url: Optional[str] = None,
 ) -> dict:
     """
     POST payload to n8n webhook. Returns debug-rich dict including:
@@ -148,7 +148,7 @@ def call_n8n_generate_image(
     size: str = "1024x1024",
     *,
     mode: Mode = "TEST",
-    webhook_url: str | None = None,
+    webhook_url: Optional[str] = None,
 ) -> dict:
     """
     POST an image prompt to n8n /generate-image. Expects response:
@@ -174,7 +174,7 @@ def call_n8n_scrape_pack(
     depth: str = "homepage_plus",
     max_pages: int = 3,
     mode: Mode = "TEST",
-    webhook_url: str | None = None,
+    webhook_url: Optional[str] = None,
 ) -> dict:
     """
     POST payload to n8n /scrape-pack.
