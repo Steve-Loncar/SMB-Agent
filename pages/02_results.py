@@ -1,9 +1,12 @@
 import streamlit as st
 import json
-
-from backend.scraper import scrape_site
 import base64
-from backend.n8n_client import call_n8n_generate_ads, call_n8n_generate_image
+from backend.n8n_client import (
+    call_n8n_generate_ads,
+    call_n8n_generate_image,
+    call_n8n_scrape_pack,
+    resolve_n8n_webhook,
+)
 from backend.state import init_state
 
 init_state()
@@ -22,31 +25,17 @@ st.caption(f"Target: {target_url}")
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
 
-def get_webhook_url() -> str:
-    # EXACT Tender-style endpoint construction (no session_state URL storage)
-    N8N_BASE_URL = "https://fpgconsulting.app.n8n.cloud"
-    N8N_TEST_PATH = "/webhook-test/generate-ads"
-    N8N_LIVE_PATH = "/webhook/generate-ads"
-    mode = st.session_state.get("n8n_mode", "TEST")
-    return (N8N_BASE_URL + N8N_TEST_PATH) if mode == "TEST" else (N8N_BASE_URL + N8N_LIVE_PATH)
-
-def get_image_webhook_url() -> str:
-    # Same base + env split, but image endpoint
-    N8N_BASE_URL = "https://fpgconsulting.app.n8n.cloud"
-    N8N_TEST_PATH = "/webhook-test/generate-image"
-    N8N_LIVE_PATH = "/webhook/generate-image"
-    mode = st.session_state.get("n8n_mode", "TEST")
-    return (N8N_BASE_URL + N8N_TEST_PATH) if mode == "TEST" else (N8N_BASE_URL + N8N_LIVE_PATH)
-
 with st.sidebar:
     st.subheader("n8n")
     st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    st.caption(f"Ads endpoint: `{get_webhook_url()}`")
-    st.caption(f"Image endpoint: `{get_image_webhook_url()}`")
+    mode = st.session_state.get("n8n_mode", "TEST")
+    st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
+    st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
+    st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
-    st.caption("Alpha: in-app scrape (will move to n8n later).")
+    st.caption("V2: scrape-pack runs via n8n on page load when queued.")
 
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
     can_run_ai = bool(st.session_state.get("scraped_text"))
@@ -56,7 +45,7 @@ with st.sidebar:
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
                 url=target_url,
-                webhook_url=get_webhook_url(),
+                mode=st.session_state.get("n8n_mode", "TEST"),
             )
 
         # ---- NEW: hydrate session_state from n8n response payload ----
@@ -114,37 +103,64 @@ with st.sidebar:
         st.session_state["scraped_text"] = ""
         st.session_state["scraped_images"] = []
         st.session_state["visited_urls"] = []
+        st.session_state["scrape_pack"] = None
+        st.session_state["scrape_pack_debug"] = None
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
+        st.session_state["poster_images"] = {}
         st.switch_page("pages/01_home.py")
 
-@st.cache_data(show_spinner=False, ttl=60 * 60)
-def cached_scrape(url: str):
-    # Cache by URL for fast repeats during prompt/UI iteration.
-    return scrape_site(url, max_pages=3, max_images_total=12, timeout_s=15)
-
-
 if status == "queued":
-    with st.spinner("Scraping website (alpha)…"):
+    with st.spinner("Running scrape-pack via n8n…"):
         try:
-            result = cached_scrape(target_url)
-            st.session_state["visited_urls"] = result.visited_urls
-            st.session_state["scraped_text"] = result.text
-            st.session_state["scraped_images"] = result.image_urls
-            # Stop here. Let user trigger n8n manually.
+            debug = call_n8n_scrape_pack(
+                url=target_url,
+                depth=st.session_state.get("scrape_depth", "homepage_plus"),
+                max_pages=int(st.session_state.get("scrape_max_pages", 3)),
+                mode=st.session_state.get("n8n_mode", "TEST"),
+            )
+            st.session_state["scrape_pack_debug"] = debug
+
+            # If n8n responds with a clean JSON payload, store it as scrape_pack too
+            resp_json = debug.get("_n8n_response_json")
+            if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+                st.session_state["scrape_pack"] = resp_json[0]
+            elif isinstance(resp_json, dict):
+                st.session_state["scrape_pack"] = resp_json
+
             st.session_state["scrape_status"] = "scraped"
-            # Ensure the next block runs immediately in this same user flow
             st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
-            st.error(f"Scrape failed: {e}")
-
-status = st.session_state.get("scrape_status", "idle")
-# For this test, we do nothing here. The button above always sends the payload.
+            st.error(f"scrape-pack failed: {e}")
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
     st.stop()
+
+st.subheader("Scrape-pack output (debug)")
+sp = st.session_state.get("scrape_pack")
+if sp:
+    st.json(sp)
+else:
+    st.info("No scrape-pack payload yet (check debug below).")
+
+dbg = st.session_state.get("scrape_pack_debug")
+if dbg:
+    with st.expander("Debug: scrape-pack request/response", expanded=False):
+        st.write("Target URL:")
+        st.code(dbg.get("_debug_target_url", ""), language="text")
+        st.write("HTTP status / final URL:")
+        st.code(
+            f"{dbg.get('_debug_http_status')} | final={dbg.get('_debug_final_url')}",
+            language="text",
+        )
+        if dbg.get("_error"):
+            st.error(dbg.get("_error"))
+        st.write("Response text (first 400 chars):")
+        st.code(dbg.get("_debug_resp_text_snippet", ""), language="text")
+        st.write("Payload sent:")
+        st.json(dbg.get("_debug_payload_sent", {}))
 
 st.subheader("Business / product description")
 bs = st.session_state.get("business_summary", {})
@@ -238,7 +254,7 @@ else:
                     with st.spinner("Generating image…"):
                         img_res = call_n8n_generate_image(
                             prompt=prompt,
-                            webhook_url=get_image_webhook_url(),
+                            mode=st.session_state.get("n8n_mode", "TEST"),
                         )
                         if not img_res.get("ok"):
                             raise RuntimeError(

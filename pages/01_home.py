@@ -2,14 +2,16 @@ import re
 import streamlit as st
 
 from backend.state import init_state
+from backend.n8n_client import resolve_n8n_webhook
 
 init_state()
 
 with st.sidebar:
     st.subheader("n8n")
     mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    endpoint = st.session_state["n8n_test_url"] if mode == "TEST" else st.session_state["n8n_live_url"]
-    st.caption(f"Endpoint: `{endpoint}`")
+    st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
+    st.caption(f"Generate-ads: `{resolve_n8n_webhook('generate_ads', mode)}`")
+    st.caption(f"Generate-image: `{resolve_n8n_webhook('generate_image', mode)}`")
 
 st.title("1) Enter a website URL")
 st.caption("Paste the business website you want to analyze.")
@@ -29,6 +31,23 @@ url = st.text_input(
     value=st.session_state.get("target_url", ""),
 )
 
+# Dev-only controls (for wiring + iteration). You'll hide later.
+st.caption("Dev controls (temporary)")
+depth = st.selectbox(
+    "Scrape depth",
+    options=["homepage_only", "homepage_plus"],
+    index=1 if st.session_state.get("scrape_depth") == "homepage_plus" else 0,
+    help="homepage_plus is intended to fetch homepage plus a couple of likely About/Services pages.",
+)
+max_pages = st.number_input(
+    "Max pages",
+    min_value=1,
+    max_value=10,
+    value=int(st.session_state.get("scrape_max_pages", 3)),
+    step=1,
+    help="Used by scrape-pack workflow to limit extra internal pages.",
+)
+
 col1, col2 = st.columns([1, 3])
 
 with col1:
@@ -45,14 +64,23 @@ if apply_clicked:
         st.error("Please enter a valid URL starting with http:// or https://")
     else:
         st.session_state["target_url"] = cleaned
+        st.session_state["scrape_depth"] = depth
+        st.session_state["scrape_max_pages"] = int(max_pages)
 
         # In the next step we'll kick off scrape + AI generation.
         st.session_state["scrape_status"] = "queued"
+        # Clear legacy scrape fields (kept for now, but we stop using them)
         st.session_state["scraped_text"] = ""
         st.session_state["scraped_images"] = []
         st.session_state["visited_urls"] = []
+
+        # Clear V2 scrape-pack fields
+        st.session_state["scrape_pack"] = None
+        st.session_state["scrape_pack_debug"] = None
+
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
+        st.session_state["poster_images"] = {}
 
         st.success("Saved. Opening Results…")
         st.switch_page("pages/02_results.py")
