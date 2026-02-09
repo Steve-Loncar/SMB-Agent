@@ -162,6 +162,21 @@ if dbg:
         st.write("Payload sent:")
         st.json(dbg.get("_debug_payload_sent", {}))
 
+# NEW: Tiered Scrapepack Viewer (5 lines)
+sp = st.session_state.get("scrape_pack")
+if sp and isinstance(sp, dict) and "pages" in sp:
+    st.subheader("📦 Tiered Signals")
+    cols = st.columns(3)
+    pages = sp.get("pages", [])
+    for i, page in enumerate(pages[:3]):
+        with cols[i]:
+            tier = page.get("tier", "?")
+            page_url = page.get("page_url", "")
+            st.metric(f"Tier {tier}", page_url[:40])
+            page_signals = page.get("page_signals", {})
+            h1_text = page_signals.get("h1", "No h1")
+            st.caption(h1_text[:60] if h1_text else "No h1")
+
 st.subheader("Business / product description")
 bs = st.session_state.get("business_summary", {})
 if isinstance(bs, dict) and bs:
