@@ -1,7 +1,7 @@
 import streamlit as st
 
 
-def init_state() -> None:
+def initstate() -> None:
     # Core app state
     st.session_state.setdefault("target_url", "")
     st.session_state.setdefault("scrape_status", "idle")  # idle | queued | scraped | done | error
