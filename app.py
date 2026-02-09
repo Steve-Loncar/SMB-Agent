@@ -1,6 +1,6 @@
 import streamlit as st
 
-from backend.state import init_state
+from backend.state import initstate
 
 
 st.set_page_config(
@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide",
 )
 
-init_state()
+initstate()
 
 st.title("🧩 SMB Ad Agent (Alpha)")
 st.caption(
