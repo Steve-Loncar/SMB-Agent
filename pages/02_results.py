@@ -31,8 +31,6 @@ with st.sidebar:
     # Manually update session state
     st.session_state["n8n_mode"] = selected_mode
     
-    st.caption(f"DEBUG: n8n_mode in session_state = {st.session_state.get('n8n_mode', 'NOT SET')}")
-    st.caption(f"DEBUG: selected_mode variable = {selected_mode}")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', selected_mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', selected_mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', selected_mode)}`")
@@ -187,6 +185,26 @@ if sp and isinstance(sp, dict) and "pages" in sp:
             page_signals = page.get("page_signals", {})
             h1_text = page_signals.get("h1", "No h1")
             st.caption(h1_text[:60] if h1_text else "No h1")
+
+# V2 (current n8n): Aggregate -> { scrape_pack: [ {page_url, Source, page_signals, page_text_blocks, page_brand, ...}, ... ] }
+if sp and isinstance(sp, dict) and "scrape_pack" in sp and isinstance(sp.get("scrape_pack"), list):
+    st.subheader("📦 Scrape-pack signals")
+    items = [x for x in sp.get("scrape_pack", []) if isinstance(x, dict)]
+    cols = st.columns(3)
+    for i, item in enumerate(items[:3]):
+        with cols[i]:
+            src = item.get("Source", item.get("source", "?"))
+            page_url = item.get("page_url", "")
+            st.metric(f"{src}", page_url[:40])
+            sig = item.get("page_signals", {}) or {}
+            h1_text = (sig.get("h1") or "").strip()
+            title = (sig.get("title") or "").strip()
+            if h1_text:
+                st.caption(f"H1: {h1_text[:70]}")
+            elif title:
+                st.caption(f"Title: {title[:70]}")
+            else:
+                st.caption("No h1/title found")
 
 st.subheader("Business / product description")
 bs = st.session_state.get("business_summary", {})
