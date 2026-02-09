@@ -20,10 +20,18 @@ status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
-    # Set index based on current session state value
-    current_mode = st.session_state.get("n8n_mode", "TEST")
+    # Direct control via session_state - no key to avoid conflicts
+    if "n8n_mode" not in st.session_state:
+        st.session_state["n8n_mode"] = "TEST"
+    
+    current_mode = st.session_state["n8n_mode"]
     mode_index = 0 if current_mode == "TEST" else 1
-    mode = st.radio("Mode", ["TEST", "LIVE"], index=mode_index, key="n8n_mode", horizontal=True)
+    selected = st.radio("Mode", ["TEST", "LIVE"], index=mode_index, horizontal=True)
+    # Update session state if changed
+    if selected != st.session_state["n8n_mode"]:
+        st.session_state["n8n_mode"] = selected
+    mode = st.session_state["n8n_mode"]
+    
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
