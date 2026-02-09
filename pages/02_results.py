@@ -20,7 +20,10 @@ status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
-    # Streamlit automatically syncs radio value to session_state via key
+    # Ensure n8n_mode exists before widget renders
+    if "n8n_mode" not in st.session_state:
+        st.session_state["n8n_mode"] = "TEST"
+    
     mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
