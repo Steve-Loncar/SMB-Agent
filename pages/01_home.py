@@ -8,9 +8,8 @@ initstate()
 
 with st.sidebar:
     st.subheader("n8n mode")
-    # Display-only: mode controlled from Results sidebar
     mode = st.session_state.get("n8n_mode", "TEST")
-    st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode_display", index=0 if mode == "TEST" else 1, horizontal=True, disabled=True)
+    st.caption(f"**{mode}** mode active (change in Results)")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Generate-ads: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Generate-image: `{resolve_n8n_webhook('generate_image', mode)}`")

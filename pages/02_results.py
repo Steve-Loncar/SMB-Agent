@@ -47,7 +47,7 @@ with st.sidebar:
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
                 url=target_url,
-                mode=st.session_state.get("n8n_mode", "TEST"),
+                mode=st.session_state.n8n_mode,
             )
 
         # ---- NEW: hydrate session_state from n8n response payload ----
@@ -71,7 +71,7 @@ with st.sidebar:
             # Keep debug visible below; don't crash UI.
             pass
 
-        mode = st.session_state.get("n8n_mode", "TEST")
+        mode = st.session_state.n8n_mode
         st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
         with st.expander("Debug: JSON sent to n8n", expanded=True):
             st.write("Target URL:")
@@ -119,7 +119,7 @@ if status == "queued":
                 url=target_url,
                 depth=st.session_state.get("scrape_depth", "homepage_plus"),
                 max_pages=int(st.session_state.get("scrape_max_pages", 3)),
-                mode=st.session_state.get("n8n_mode", "TEST"),
+                mode=st.session_state.n8n_mode,
             )
             st.session_state["scrape_pack_debug"] = debug
 
@@ -271,7 +271,7 @@ else:
                     with st.spinner("Generating image…"):
                         img_res = call_n8n_generate_image(
                             prompt=prompt,
-                            mode=st.session_state.get("n8n_mode", "TEST"),
+                            mode=st.session_state.n8n_mode,
                         )
                         if not img_res.get("ok"):
                             raise RuntimeError(
