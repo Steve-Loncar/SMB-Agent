@@ -20,7 +20,10 @@ status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
-    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    # Set index based on current session state value
+    current_mode = st.session_state.get("n8n_mode", "TEST")
+    mode_index = 0 if current_mode == "TEST" else 1
+    mode = st.radio("Mode", ["TEST", "LIVE"], index=mode_index, key="n8n_mode", horizontal=True)
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
