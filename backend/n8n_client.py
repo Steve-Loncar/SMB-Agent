@@ -190,7 +190,9 @@ def call_n8n_scrape_pack(
         "max_pages": int(max_pages),
     }
 
-    req_timeout = (10, 60)
+    # scrape-pack can legitimately take longer on slow/old SMB sites (multi-page fetch)
+    # Keep connect timeout tight; extend read timeout to avoid false negatives.
+    req_timeout = (10, 180)
     resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
     result: Dict[str, Any] = {}
