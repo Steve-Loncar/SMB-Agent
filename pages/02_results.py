@@ -40,7 +40,7 @@ with st.sidebar:
     st.caption("V2: scrape-pack runs via n8n on page load when queued.")
 
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
-    can_run_ai = bool(st.session_state.get("scraped_text"))
+    can_run_ai = bool(st.session_state.get("scraped_text")) or bool(st.session_state.get("scrape_pack"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
         with st.spinner("Calling n8n with test payload…"):
             debug_result = call_n8n_generate_ads(
@@ -136,6 +136,55 @@ if status == "queued":
                 st.session_state["scrape_pack"] = resp_json[0]
             elif isinstance(resp_json, dict):
                 st.session_state["scrape_pack"] = resp_json
+
+            # ---- Plumbing: hydrate legacy fields from V2 scrape_pack output ----
+            sp = st.session_state.get("scrape_pack") or {}
+            items = []
+            if isinstance(sp, dict) and isinstance(sp.get("scrape_pack"), list):
+                items = [x for x in sp.get("scrape_pack", []) if isinstance(x, dict)]
+
+            if items:
+                # visited urls
+                st.session_state["visited_urls"] = [x.get("page_url", "") for x in items if x.get("page_url")]
+
+                # scraped images (best-effort): logo candidates across pages
+                imgs = []
+                for x in items:
+                    pb = x.get("page_brand") or {}
+                    cands = pb.get("logo_candidates") or []
+                    if isinstance(cands, list):
+                        for c in cands:
+                            if isinstance(c, dict) and c.get("url"):
+                                imgs.append(c["url"])
+                # dedupe, cap
+                dedup = []
+                seen = set()
+                for u in imgs:
+                    if u in seen:
+                        continue
+                    seen.add(u)
+                    dedup.append(u)
+                    if len(dedup) >= 12:
+                        break
+                st.session_state["scraped_images"] = dedup
+
+                # scraped text: concat page_signals + page_text_blocks (bounded)
+                parts = []
+                for x in items:
+                    sig = x.get("page_signals") or {}
+                    h1 = (sig.get("h1") or "").strip()
+                    title = (sig.get("title") or "").strip()
+                    md = (sig.get("meta_description") or "").strip()
+                    blocks = x.get("page_text_blocks") or []
+                    if not isinstance(blocks, list):
+                        blocks = []
+                    chunk = " | ".join([t for t in [h1, title, md] if t])
+                    if chunk:
+                        parts.append(chunk)
+                    for b in blocks[:8]:
+                        if isinstance(b, str) and b.strip():
+                            parts.append(b.strip())
+                st.session_state["scraped_text"] = ("\n".join(parts))[:20000]
 
             st.session_state["scrape_status"] = "scraped"
             st.rerun()
