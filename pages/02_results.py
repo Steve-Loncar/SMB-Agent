@@ -14,13 +14,6 @@ initstate()
 
 st.title("2) Results")
 
-target_url = st.session_state.get("target_url", "")
-if not target_url:
-    st.warning("No URL provided yet. Go to Home and enter a website URL.")
-    st.stop()
-
-st.caption(f"Target: {target_url}")
-
 # --- Placeholder pipeline behaviour (alpha UI) ---
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
@@ -111,6 +104,13 @@ with st.sidebar:
         st.session_state["poster_concepts"] = []
         st.session_state["poster_images"] = {}
         st.switch_page("pages/01_home.py")
+
+target_url = st.session_state.get("target_url", "")
+if not target_url:
+    st.warning("No URL provided yet. Go to Home and enter a website URL.")
+    st.stop()
+
+st.caption(f"Target: {target_url}")
 
 if status == "queued":
     with st.spinner("Running scrape-pack via n8n…"):
