@@ -20,19 +20,22 @@ status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
-    # Debug: show what's in session state
+    
+    # Get current value, default to TEST if not set
+    current_mode = st.session_state.get("n8n_mode", "TEST")
+    current_index = 0 if current_mode == "TEST" else 1
+    
+    # Radio button with different key, then manually sync
+    selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
+    
+    # Manually update session state
+    st.session_state["n8n_mode"] = selected_mode
+    
     st.caption(f"DEBUG: n8n_mode in session_state = {st.session_state.get('n8n_mode', 'NOT SET')}")
-    
-    # Ensure n8n_mode exists before widget renders
-    if "n8n_mode" not in st.session_state:
-        st.session_state["n8n_mode"] = "TEST"
-        st.caption("DEBUG: Just initialized to TEST")
-    
-    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
-    st.caption(f"DEBUG: mode variable = {mode}")
-    st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
-    st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
-    st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
+    st.caption(f"DEBUG: selected_mode variable = {selected_mode}")
+    st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', selected_mode)}`")
+    st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', selected_mode)}`")
+    st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', selected_mode)}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
