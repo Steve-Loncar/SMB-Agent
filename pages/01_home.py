@@ -8,7 +8,7 @@ init_state()
 
 with st.sidebar:
     st.subheader("n8n")
-    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode", horizontal=True)
+    mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode_home", horizontal=True)
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Generate-ads: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Generate-image: `{resolve_n8n_webhook('generate_image', mode)}`")
