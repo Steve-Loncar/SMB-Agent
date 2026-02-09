@@ -7,9 +7,9 @@ from backend.n8n_client import (
     call_n8n_scrape_pack,
     resolve_n8n_webhook,
 )
-from backend.state import init_state
+from backend.state import initstate
 
-init_state()
+initstate()
 
 
 st.title("2) Results")

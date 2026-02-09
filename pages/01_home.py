@@ -1,10 +1,10 @@
 import re
 import streamlit as st
 
-from backend.state import init_state
+from backend.state import initstate
 from backend.n8n_client import resolve_n8n_webhook
 
-init_state()
+initstate()
 
 with st.sidebar:
     st.subheader("n8n mode")
