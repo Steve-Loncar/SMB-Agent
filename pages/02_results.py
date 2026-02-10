@@ -98,12 +98,17 @@ status = st.session_state.get("scrape_status", "idle")
 with st.sidebar:
     st.subheader("n8n")
     
-    # Radio button manages its own state via key, we just sync to our session_state variable
-    selected_mode = st.radio("Mode", ["TEST", "LIVE"], key="n8n_mode_widget", horizontal=True)
+    # Get current value, default to TEST if not set
+    current_mode = st.session_state.get("n8n_mode", "TEST")
+    current_index = 0 if current_mode == "TEST" else 1
     
-    # Sync widget state to our session_state variable
+    # Radio button with different key, then manually sync
+    selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
+    
+    # Manually update session state
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
+    
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
