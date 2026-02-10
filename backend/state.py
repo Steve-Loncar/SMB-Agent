@@ -27,5 +27,5 @@ def initstate() -> None:
     st.session_state.setdefault("ads_debug", None)           # store generate-ads debug envelope
 
     # n8n settings
-    st.session_state.setdefault("n8n_mode", "TEST")  # TEST | LIVE
+    st.session_state.setdefault("n8n_mode", "LIVE")  # TEST | LIVE
 
