@@ -19,7 +19,7 @@ st.markdown(
       /* Hide Streamlit chrome */
       #MainMenu { visibility: hidden; }
       footer { visibility: hidden; }
-      [data-testid="stToolbar"] { display: none; }
+    /* Keep toolbar visible so sidebar toggle stays accessible */
       [data-testid="stDecoration"] { display: none; }
 
       /* Keep header present so the sidebar collapsedControl remains clickable */
