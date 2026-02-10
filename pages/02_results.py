@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import base64
+from typing import Any
 from backend.n8n_client import (
     call_n8n_generate_ads,
     call_n8n_generate_image,
@@ -11,15 +12,17 @@ from backend.state import initstate
 
 initstate()
 
+# Toggle dev diagnostics (keep plumbing; hide clutter for client demos)
+# Flip to True when you're debugging n8n request/response envelopes.
+DEBUG_UI = False
+
 st.markdown(
     """
     <style>
       /* Hide Streamlit chrome */
       #MainMenu { visibility: hidden; }
       footer { visibility: hidden; }
-      /* Keep header visible so the sidebar expand/collapse control still works */
-      header[data-testid="stHeader"] { background: transparent; }
-      [data-testid="stToolbar"] { visibility: hidden; }
+      [data-testid="stToolbar"] { display: none; }
 
       /* Hide default multipage nav in sidebar (we'll use top nav) */
       [data-testid="stSidebarNav"] { display: none; }
@@ -50,6 +53,63 @@ def _iter_scrape_items(sp):
     if isinstance(sp, list):
         return [x for x in sp if isinstance(x, dict)]
     return []
+
+
+def _tier_rank(source: str) -> int:
+    s = (source or "").strip().lower()
+    order = {"tier0": 0, "homepage": 0, "tier1": 1, "tier2": 2}
+    return order.get(s, 99)
+
+
+def _best_title(sig: dict) -> str:
+    if not isinstance(sig, dict):
+        return ""
+    return (sig.get("h1") or sig.get("title") or "").strip()
+
+
+def _snippets(blocks: Any, n: int = 2) -> list[str]:
+    if not isinstance(blocks, list):
+        return []
+    out = []
+    for b in blocks:
+        s = str(b).strip()
+        if not s:
+            continue
+        out.append(s)
+        if len(out) >= n:
+            break
+    return out
+
+
+def _ranked_pages_for_display(sp: Any, limit: int = 6) -> list[dict]:
+    """
+    Client-facing shortlist:
+    - order by tier: tier0 -> tier1 -> tier2
+    - preserve within-tier order from workflow (assumes your Merge append is tier0, tier1, tier2)
+    - show title/h1 + 1-2 text snippets
+    """
+    items = _iter_scrape_items(sp)
+    if not items:
+        return []
+
+    # stable tier order; preserve original order within tier
+    enriched = []
+    for it in items:
+        src = (it.get("Source") or it.get("source") or "").strip()
+        sig = it.get("page_signals") or {}
+        blocks = it.get("page_text_blocks") or []
+        enriched.append(
+            {
+                "page_url": (it.get("page_url") or "").strip(),
+                "source": src,
+                "tier_rank": _tier_rank(src),
+                "title": _best_title(sig),
+                "snips": _snippets(blocks, n=2),
+            }
+        )
+
+    enriched.sort(key=lambda x: x["tier_rank"])
+    return enriched[:limit]
 
 
 def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
@@ -132,6 +192,30 @@ if not target_url:
 
 st.caption(f"Target: {target_url}")
 
+# --- Client-facing narrative header (lightweight; no new plumbing) ---
+status = st.session_state.get("scrape_status", "idle")
+
+st.markdown("### 👋 Thank you — just reviewing your website!")
+if status in ("queued", "idle"):
+    st.caption("We're doing a quick scan of your homepage and a few key internal pages.")
+elif status == "scraped":
+    st.caption("Quick check complete — now generating ad concepts based on the most relevant pages.")
+elif status == "error":
+    st.caption("We hit a snag scanning the site — please try again in a moment.")
+
+sp = st.session_state.get("scrape_pack")
+ranked = _ranked_pages_for_display(sp, limit=6)
+if ranked and status in ("scraped", "done"):
+    st.markdown("#### ✅ Quick check of your website complete")
+    st.markdown("These pages look the most relevant:")
+    for p in ranked:
+        title = p["title"] or "(No headline/title found)"
+        tier = (p["source"] or "").upper() or "UNKNOWN"
+        st.markdown(f"- **{title}**  \n  {p['page_url']}  \n  _{tier}_")
+        for sn in p["snips"]:
+            st.caption(f"• {sn[:180]}")
+    st.divider()
+
 # --- Placeholder pipeline behaviour (alpha UI) ---
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
@@ -199,9 +283,10 @@ with st.sidebar:
 
         mode = st.session_state.n8n_mode
         st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
-        with st.expander("Debug: JSON sent to n8n", expanded=True):
-            st.write("Target URL:")
-            st.code(debug_result.get("_debug_target_url", ""), language="text")
+        if DEBUG_UI:
+            with st.expander("Debug: JSON sent to n8n", expanded=True):
+                st.write("Target URL:")
+                st.code(debug_result.get("_debug_target_url", ""), language="text")
             st.write("HTTP status / final URL:")
             st.code(
                 f"{debug_result.get('_debug_http_status')} | final={debug_result.get('_debug_final_url')}",
@@ -325,44 +410,32 @@ if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
         st.session_state["ads_autorun_done"] = True
         st.rerun()
 
-st.subheader("Scrape-pack output (debug)")
-sp = st.session_state.get("scrape_pack")
-if sp:
-    st.json(sp)
-else:
-    st.info("No scrape-pack payload yet (check debug below).")
+if DEBUG_UI:
+    st.subheader("Scrape-pack output (debug)")
+    sp = st.session_state.get("scrape_pack")
+    if sp:
+        st.json(sp)
+    else:
+        st.info("No scrape-pack payload yet (check debug below).")
 
-dbg = st.session_state.get("scrape_pack_debug")
-if dbg:
-    with st.expander("Debug: scrape-pack request/response", expanded=False):
-        st.write("Target URL:")
-        st.code(dbg.get("_debug_target_url", ""), language="text")
-        st.write("HTTP status / final URL:")
-        st.code(
-            f"{dbg.get('_debug_http_status')} | final={dbg.get('_debug_final_url')}",
-            language="text",
-        )
-        if dbg.get("_error"):
-            st.error(dbg.get("_error"))
-        st.write("Response text (first 400 chars):")
-        st.code(dbg.get("_debug_resp_text_snippet", ""), language="text")
-        st.write("Payload sent:")
-        st.json(dbg.get("_debug_payload_sent", {}))
+    dbg = st.session_state.get("scrape_pack_debug")
+    if dbg:
+        with st.expander("Debug: scrape-pack request/response", expanded=False):
+            st.write("Target URL:")
+            st.code(dbg.get("_debug_target_url", ""), language="text")
+            st.write("HTTP status / final URL:")
+            st.code(
+                f"{dbg.get('_debug_http_status')} | final={dbg.get('_debug_final_url')}",
+                language="text",
+            )
+            if dbg.get("_error"):
+                st.error(dbg.get("_error"))
+            st.write("Response text (first 400 chars):")
+            st.code(dbg.get("_debug_resp_text_snippet", ""), language="text")
+            st.write("Payload sent:")
+            st.json(dbg.get("_debug_payload_sent", {}))
 
-# Quick tier viewer for your CURRENT schema (scrape_pack list w/ Source + signals)
-sp = st.session_state.get("scrape_pack")
-items = _iter_scrape_items(sp)
-if items:
-    st.subheader("📦 Tiered Signals (preview)")
-    cols = st.columns(3)
-    for i, it in enumerate(items[:3]):
-        with cols[i]:
-            src = (it.get("Source") or it.get("source") or "?")
-            page_url = (it.get("page_url") or "")[:40]
-            st.metric(str(src), page_url)
-            sig = it.get("page_signals") or {}
-            h1_text = sig.get("h1") or "No h1"
-            st.caption(str(h1_text)[:60])
+# Tiered Signals was debug-y; replaced by the client-facing ranked list above.
 
 st.subheader("Business / product description")
 bs = st.session_state.get("business_summary", {})
@@ -376,7 +449,7 @@ else:
     st.info("Waiting for generate-ads output (auto-runs once after scrape, or use sidebar button).")
 
 ads_dbg = st.session_state.get("ads_debug")
-if ads_dbg:
+if DEBUG_UI and ads_dbg:
     with st.expander("Debug: generate-ads request/response", expanded=False):
         st.code(ads_dbg.get("_debug_target_url", ""), language="text")
         if ads_dbg.get("_error"):
