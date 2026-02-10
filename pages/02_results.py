@@ -11,6 +11,33 @@ from backend.state import initstate
 
 initstate()
 
+st.markdown(
+    """
+    <style>
+      /* Hide Streamlit chrome */
+      #MainMenu { visibility: hidden; }
+      header { visibility: hidden; }
+      footer { visibility: hidden; }
+      [data-testid="stToolbar"] { display: none; }
+
+      /* Hide default multipage nav in sidebar (we'll use top nav) */
+      [data-testid="stSidebarNav"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Top navigation (keeps flow out of sidebar)
+nav1, nav2, _spacer = st.columns([1, 1, 8])
+with nav1:
+    if st.button("Home", use_container_width=True):
+        st.switch_page("pages/01_home.py")
+with nav2:
+    if st.button("Results", use_container_width=True):
+        st.switch_page("pages/02_results.py")
+
+st.divider()
+
 def _iter_scrape_items(sp):
     """
     Supports both shapes:
@@ -97,22 +124,28 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
 
 st.title("2) Results")
 
+target_url = st.session_state.get("target_url", "")
+if not target_url:
+    st.warning("No URL provided yet. Go to Home and enter a website URL.")
+    st.stop()
+
+st.caption(f"Target: {target_url}")
+
 # --- Placeholder pipeline behaviour (alpha UI) ---
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
-target_url = st.session_state.get("target_url", "")
 
 with st.sidebar:
     st.subheader("n8n")
-    current_mode = st.session_state.get("n8n_mode", "TEST")
+    
+    # Get current value, default to LIVE if not set
+    current_mode = st.session_state.get("n8n_mode", "LIVE")
     current_index = 0 if current_mode == "TEST" else 1
-    selected_mode = st.radio(
-        "Mode",
-        ["TEST", "LIVE"],
-        index=current_index,
-        key="n8n_mode_widget",
-        horizontal=True,
-    )
+    
+    # Radio button with different key, then manually sync
+    selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
+    
+    # Manually update session state
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")

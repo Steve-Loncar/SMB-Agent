@@ -6,9 +6,36 @@ from backend.n8n_client import resolve_n8n_webhook
 
 initstate()
 
+st.markdown(
+    """
+    <style>
+      /* Hide Streamlit chrome */
+      #MainMenu { visibility: hidden; }
+      header { visibility: hidden; }
+      footer { visibility: hidden; }
+      [data-testid="stToolbar"] { display: none; }
+
+      /* Hide default multipage nav in sidebar (we'll use top nav) */
+      [data-testid="stSidebarNav"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Top navigation (keeps flow out of sidebar)
+nav1, nav2, _spacer = st.columns([1, 1, 8])
+with nav1:
+    if st.button("Home", use_container_width=True):
+        st.switch_page("pages/01_home.py")
+with nav2:
+    if st.button("Results", use_container_width=True):
+        st.switch_page("pages/02_results.py")
+
+st.divider()
+
 with st.sidebar:
     st.subheader("n8n mode")
-    mode = st.session_state.get("n8n_mode", "TEST")
+    mode = st.session_state.get("n8n_mode", "LIVE")
     st.caption(f"**{mode}** mode active (change in Results)")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Generate-ads: `{resolve_n8n_webhook('generate_ads', mode)}`")
