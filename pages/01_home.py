@@ -9,7 +9,6 @@ initstate()
 with st.sidebar:
     st.subheader("n8n mode")
     mode = st.session_state.get("n8n_mode", "TEST")
-    st.caption(f"DEBUG: n8n_mode from session = {st.session_state.get('n8n_mode', 'NOT SET')}")
     st.caption(f"**{mode}** mode active (change in Results)")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Generate-ads: `{resolve_n8n_webhook('generate_ads', mode)}`")
@@ -83,6 +82,8 @@ if apply_clicked:
         st.session_state["business_summary"] = ""
         st.session_state["poster_concepts"] = []
         st.session_state["poster_images"] = {}
+        st.session_state["ads_autorun_done"] = False
+        st.session_state["ads_debug"] = None
 
         st.success("Saved. Opening Results…")
         st.switch_page("pages/02_results.py")
