@@ -11,44 +11,49 @@ from backend.state import initstate
 
 initstate()
 
+def _iter_scrape_items(sp):
+    """
+    Supports both shapes:
+      A) {"scrape_pack": [ {page_url, Source, page_signals, page_text_blocks, page_brand, ...}, ... ]}
+      B) [ {page_url, Source, ...}, ... ]
+    """
+    if isinstance(sp, dict) and isinstance(sp.get("scrape_pack"), list):
+        return [x for x in sp.get("scrape_pack", []) if isinstance(x, dict)]
+    if isinstance(sp, list):
+        return [x for x in sp if isinstance(x, dict)]
+    return []
+
+
 def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
     """
-    Your V2 schema:
-      scrape_pack: list[{
-        page_url, Source, page_signals:{title,meta_description,h1}, page_text_blocks:[...],
-        page_brand:{ logo_candidates:[{url,...}], colours:[{hex,...}] }
-      }]
-    Returns (scraped_text, image_urls) bounded for n8n generate-ads.
+    Builds bounded (scraped_text, image_urls) for generate-ads from your V2 schema.
+    Preference order: tier0/homepage -> tier1 -> tier2 (preserve within-tier order).
     """
-    pages = []
-    if isinstance(sp, dict) and isinstance(sp.get("scrape_pack"), list):
-        pages = sp.get("scrape_pack") or []
-    elif isinstance(sp, list):
-        pages = sp
-    else:
+    items = _iter_scrape_items(sp)
+    if not items:
         return "", []
 
-    # Prefer tier order by Source: tier0 -> tier1 -> tier2, then preserve within-tier order
     order = {"tier0": 0, "homepage": 0, "tier1": 1, "tier2": 2}
-    def src_rank(p):
-        s = (p.get("Source") or p.get("source") or "").strip().lower()
+
+    def _rank(it):
+        s = (it.get("Source") or it.get("source") or "").strip().lower()
         return order.get(s, 99)
-    pages = sorted(pages, key=src_rank)
+
+    items = sorted(items, key=_rank)
 
     parts: list[str] = []
     imgs: list[str] = []
 
-    for p in pages:
-        if not isinstance(p, dict):
-            continue
-        url = (p.get("page_url") or "").strip()
-        src = (p.get("Source") or p.get("source") or "").strip()
-        sig = p.get("page_signals") or {}
+    for it in items:
+        url = (it.get("page_url") or "").strip()
+        src = (it.get("Source") or it.get("source") or "").strip()
+
+        sig = it.get("page_signals") or {}
         title = (sig.get("title") or "").strip()
         meta = (sig.get("meta_description") or "").strip()
         h1 = (sig.get("h1") or "").strip()
 
-        blocks = p.get("page_text_blocks") or []
+        blocks = it.get("page_text_blocks") or []
         if not isinstance(blocks, list):
             blocks = []
         blocks = [str(b).strip() for b in blocks if str(b).strip()]
@@ -68,25 +73,26 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
         if chunk:
             parts.append(f"[PAGE] {url}\n" + "\n".join(chunk))
 
-        brand = p.get("page_brand") or {}
+        brand = it.get("page_brand") or {}
         logos = brand.get("logo_candidates") or []
         if isinstance(logos, list):
             for c in logos:
                 if isinstance(c, dict) and c.get("url"):
                     imgs.append(str(c["url"]))
 
-    scraped_text = "\n\n".join(parts).strip()
-    scraped_text = scraped_text[:20000]
-    # dedupe, cap
-    dedup_imgs = []
+    scraped_text = "\n\n".join(parts).strip()[:20000]
+
+    # dedupe + cap images
+    out_imgs = []
     seen = set()
     for u in imgs:
         if u and u not in seen:
             seen.add(u)
-            dedup_imgs.append(u)
-        if len(dedup_imgs) >= 12:
+            out_imgs.append(u)
+        if len(out_imgs) >= 12:
             break
-    return scraped_text, dedup_imgs
+
+    return scraped_text, out_imgs
 
 
 st.title("2) Results")
@@ -94,21 +100,21 @@ st.title("2) Results")
 # --- Placeholder pipeline behaviour (alpha UI) ---
 # We'll replace this with: scrape → n8n trigger → model output → render.
 status = st.session_state.get("scrape_status", "idle")
+target_url = st.session_state.get("target_url", "")
 
 with st.sidebar:
     st.subheader("n8n")
-    
-    # Get current value, default to TEST if not set
     current_mode = st.session_state.get("n8n_mode", "TEST")
     current_index = 0 if current_mode == "TEST" else 1
-    
-    # Radio button with different key, then manually sync
-    selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
-    
-    # Manually update session state
+    selected_mode = st.radio(
+        "Mode",
+        ["TEST", "LIVE"],
+        index=current_index,
+        key="n8n_mode_widget",
+        horizontal=True,
+    )
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
-    
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
@@ -120,7 +126,7 @@ with st.sidebar:
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
     can_run_ai = bool(st.session_state.get("scraped_text")) or bool(st.session_state.get("scrape_pack"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        # If V2 scrape-pack is present, derive inputs from it (no legacy scraper needed)
+        # If V2 scrape-pack exists but legacy fields are empty, derive them on-demand
         if not st.session_state.get("scraped_text") and st.session_state.get("scrape_pack"):
             txt, urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
             st.session_state["scraped_text"] = txt
@@ -151,6 +157,8 @@ with st.sidebar:
                         st.session_state["poster_concepts"] = pc
                         # Reset any previously generated images (concepts changed)
                         st.session_state["poster_images"] = {}
+                        # mark autorun done if this was triggered automatically later
+                        st.session_state["ads_autorun_done"] = True
         except Exception:
             # Keep debug visible below; don't crash UI.
             pass
@@ -191,12 +199,13 @@ with st.sidebar:
         st.session_state["visited_urls"] = []
         st.session_state["scrape_pack"] = None
         st.session_state["scrape_pack_debug"] = None
-        st.session_state["business_summary"] = ""
+        st.session_state["business_summary"] = {}
         st.session_state["poster_concepts"] = []
         st.session_state["poster_images"] = {}
+        st.session_state["ads_autorun_done"] = False
+        st.session_state["ads_debug"] = None
         st.switch_page("pages/01_home.py")
 
-target_url = st.session_state.get("target_url", "")
 if not target_url:
     st.warning("No URL provided yet. Go to Home and enter a website URL.")
     st.stop()
@@ -221,54 +230,17 @@ if status == "queued":
             elif isinstance(resp_json, dict):
                 st.session_state["scrape_pack"] = resp_json
 
-            # ---- Plumbing: hydrate legacy fields from V2 scrape_pack output ----
-            sp = st.session_state.get("scrape_pack") or {}
-            items = []
-            if isinstance(sp, dict) and isinstance(sp.get("scrape_pack"), list):
-                items = [x for x in sp.get("scrape_pack", []) if isinstance(x, dict)]
+            # ---- Plumbing: hydrate legacy fields from V2 scrape-pack ----
+            txt, urls = _derive_inputs_from_scrape_pack(st.session_state.get("scrape_pack"))
+            st.session_state["scraped_text"] = txt
+            st.session_state["scraped_images"] = urls
 
+            # visited urls (for UI)
+            items = _iter_scrape_items(st.session_state.get("scrape_pack"))
             if items:
-                # visited urls
-                st.session_state["visited_urls"] = [x.get("page_url", "") for x in items if x.get("page_url")]
-
-                # scraped images (best-effort): logo candidates across pages
-                imgs = []
-                for x in items:
-                    pb = x.get("page_brand") or {}
-                    cands = pb.get("logo_candidates") or []
-                    if isinstance(cands, list):
-                        for c in cands:
-                            if isinstance(c, dict) and c.get("url"):
-                                imgs.append(c["url"])
-                # dedupe, cap
-                dedup = []
-                seen = set()
-                for u in imgs:
-                    if u in seen:
-                        continue
-                    seen.add(u)
-                    dedup.append(u)
-                    if len(dedup) >= 12:
-                        break
-                st.session_state["scraped_images"] = dedup
-
-                # scraped text: concat page_signals + page_text_blocks (bounded)
-                parts = []
-                for x in items:
-                    sig = x.get("page_signals") or {}
-                    h1 = (sig.get("h1") or "").strip()
-                    title = (sig.get("title") or "").strip()
-                    md = (sig.get("meta_description") or "").strip()
-                    blocks = x.get("page_text_blocks") or []
-                    if not isinstance(blocks, list):
-                        blocks = []
-                    chunk = " | ".join([t for t in [h1, title, md] if t])
-                    if chunk:
-                        parts.append(chunk)
-                    for b in blocks[:8]:
-                        if isinstance(b, str) and b.strip():
-                            parts.append(b.strip())
-                st.session_state["scraped_text"] = ("\n".join(parts))[:20000]
+                st.session_state["visited_urls"] = [
+                    x.get("page_url", "") for x in items if x.get("page_url")
+                ]
 
             st.session_state["scrape_status"] = "scraped"
             st.rerun()
@@ -280,32 +252,31 @@ status = st.session_state.get("scrape_status", "idle")
 if status == "error":
     st.stop()
 
-# ---- NEW: autorun generate-ads once after a successful scrape-pack ----
-if (
-    status == "scraped"
-    and not st.session_state.get("ads_autorun_done", False)
-    and not st.session_state.get("business_summary")
-):
-    # Derive AI inputs from V2 scrape_pack list
+#
+# AUTO-RUN generate-ads ONCE after scrape completes (proof-of-plumbing)
+#
+if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
+    # ensure inputs exist (derive from V2 if needed)
     if not st.session_state.get("scraped_text") and st.session_state.get("scrape_pack"):
         txt, urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
         st.session_state["scraped_text"] = txt
         st.session_state["scraped_images"] = urls
 
-    try:
-        with st.spinner("Auto-running generate-ads…"):
+    can_autorun = bool(st.session_state.get("scraped_text"))
+    if can_autorun:
+        with st.spinner("Auto-running generate-ads (n8n)…"):
             debug_result = call_n8n_generate_ads(
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
                 url=target_url,
-                mode=st.session_state.n8n_mode,
+                mode=st.session_state.get("n8n_mode", "TEST"),
             )
         st.session_state["ads_debug"] = debug_result
 
         resp_json = debug_result.get("_n8n_response_json")
-        if isinstance(resp_json, list) and resp_json:
-            item0 = resp_json[0]
-            if isinstance(item0, dict):
+        try:
+            if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+                item0 = resp_json[0]
                 bs = item0.get("business_summary")
                 pc = item0.get("poster_concepts")
                 if isinstance(bs, dict):
@@ -313,9 +284,10 @@ if (
                 if isinstance(pc, list):
                     st.session_state["poster_concepts"] = pc
                     st.session_state["poster_images"] = {}
-    except Exception as e:
-        st.error(f"Auto generate-ads failed: {e}")
-    finally:
+        except Exception:
+            pass
+
+        # prevent infinite rerun loops even if response parsing fails
         st.session_state["ads_autorun_done"] = True
         st.rerun()
 
@@ -343,40 +315,20 @@ if dbg:
         st.write("Payload sent:")
         st.json(dbg.get("_debug_payload_sent", {}))
 
-# NEW: Tiered Scrapepack Viewer (5 lines)
+# Quick tier viewer for your CURRENT schema (scrape_pack list w/ Source + signals)
 sp = st.session_state.get("scrape_pack")
-if sp and isinstance(sp, dict) and "pages" in sp:
-    st.subheader("📦 Tiered Signals")
+items = _iter_scrape_items(sp)
+if items:
+    st.subheader("📦 Tiered Signals (preview)")
     cols = st.columns(3)
-    pages = sp.get("pages", [])
-    for i, page in enumerate(pages[:3]):
+    for i, it in enumerate(items[:3]):
         with cols[i]:
-            tier = page.get("tier", "?")
-            page_url = page.get("page_url", "")
-            st.metric(f"Tier {tier}", page_url[:40])
-            page_signals = page.get("page_signals", {})
-            h1_text = page_signals.get("h1", "No h1")
-            st.caption(h1_text[:60] if h1_text else "No h1")
-
-# V2 (current n8n): Aggregate -> { scrape_pack: [ {page_url, Source, page_signals, page_text_blocks, page_brand, ...}, ... ] }
-if sp and isinstance(sp, dict) and "scrape_pack" in sp and isinstance(sp.get("scrape_pack"), list):
-    st.subheader("📦 Scrape-pack signals")
-    items = [x for x in sp.get("scrape_pack", []) if isinstance(x, dict)]
-    cols = st.columns(3)
-    for i, item in enumerate(items[:3]):
-        with cols[i]:
-            src = item.get("Source", item.get("source", "?"))
-            page_url = item.get("page_url", "")
-            st.metric(f"{src}", page_url[:40])
-            sig = item.get("page_signals", {}) or {}
-            h1_text = (sig.get("h1") or "").strip()
-            title = (sig.get("title") or "").strip()
-            if h1_text:
-                st.caption(f"H1: {h1_text[:70]}")
-            elif title:
-                st.caption(f"Title: {title[:70]}")
-            else:
-                st.caption("No h1/title found")
+            src = (it.get("Source") or it.get("source") or "?")
+            page_url = (it.get("page_url") or "")[:40]
+            st.metric(str(src), page_url)
+            sig = it.get("page_signals") or {}
+            h1_text = sig.get("h1") or "No h1"
+            st.caption(str(h1_text)[:60])
 
 st.subheader("Business / product description")
 bs = st.session_state.get("business_summary", {})
@@ -387,7 +339,16 @@ if isinstance(bs, dict) and bs:
     st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
     st.markdown(f"**Tone:** {bs.get('tone','')}")
 else:
-    st.info("Run AI to populate business summary.")
+    st.info("Waiting for generate-ads output (auto-runs once after scrape, or use sidebar button).")
+
+ads_dbg = st.session_state.get("ads_debug")
+if ads_dbg:
+    with st.expander("Debug: generate-ads request/response", expanded=False):
+        st.code(ads_dbg.get("_debug_target_url", ""), language="text")
+        if ads_dbg.get("_error"):
+            st.error(ads_dbg.get("_error"))
+        st.json(ads_dbg.get("_debug_payload_sent", {}))
+        st.json(ads_dbg.get("_n8n_response_json", {}))
 
 st.divider()
 
