@@ -12,6 +12,7 @@ st.set_page_config(
 from typing import Any
 from backend.n8n_client import (
     call_n8n_generate_ads,
+    call_n8n_check_text_blobs,
     call_n8n_generate_image,
     call_n8n_scrape_pack,
     resolve_n8n_webhook,
@@ -174,13 +175,6 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
         if chunk:
             parts.append(f"[PAGE] {url}\n" + "\n".join(chunk))
 
-        brand = it.get("page_brand") or {}
-        logos = brand.get("logo_candidates") or []
-        if isinstance(logos, list):
-            for c in logos:
-                if isinstance(c, dict) and c.get("url"):
-                    imgs.append(str(c["url"]))
-
     scraped_text = "\n\n".join(parts).strip()[:20000]
 
     # dedupe + cap images
@@ -197,6 +191,29 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
 
 
 st.title("2) Results")
+
+# --- AI 2nd pass (text blob review) state (kept local; avoids touching backend/state.py) ---
+st.session_state.setdefault("check_text_blobs_debug", None)       # debug envelope
+st.session_state.setdefault("check_text_blobs_result", None)      # parsed/clean payload (if any)
+st.session_state.setdefault("check_text_blobs_autorun_done", False)
+st.session_state.setdefault("check_text_blobs_last_url", "")
+
+
+def _run_check_text_blobs_now(*, target_url: str) -> None:
+    """Run the 2nd-pass workflow using the currently loaded scrape_pack (no re-scrape)."""
+    sp_local = st.session_state.get("scrape_pack")
+    if not sp_local:
+        return
+    with st.spinner("Running AI 2nd pass (check-text-blobs)…"):
+        dbg = call_n8n_check_text_blobs(
+            url=target_url,
+            scrape_pack=sp_local,
+            mode=st.session_state.get("n8n_mode", "TEST"),
+        )
+    st.session_state["check_text_blobs_debug"] = dbg
+    st.session_state["check_text_blobs_last_url"] = target_url
+    st.session_state["check_text_blobs_autorun_done"] = True
+    st.session_state["check_text_blobs_result"] = dbg.get("_n8n_response_json")
 
 target_url = st.session_state.get("target_url", "")
 if not target_url:
@@ -249,6 +266,7 @@ with st.sidebar:
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
+    st.caption(f"Check text blobs: `{resolve_n8n_webhook('check_text_blobs', mode)}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
@@ -323,6 +341,12 @@ with st.sidebar:
             st.write("Response JSON (parsed):")
             st.json(resp_json)
 
+    # NEW: AI 2nd pass over the already-loaded scrape_pack (no re-scrape required)
+    can_run_check = bool(st.session_state.get("scrape_pack"))
+    if st.button("Run AI 2nd pass (text blobs)", disabled=not can_run_check):
+        _run_check_text_blobs_now(target_url=target_url)
+        st.success("2nd pass complete (see Business summary section / diagnostics).")
+
     if st.button("Reset"):
         st.session_state["target_url"] = ""
         st.session_state["scrape_status"] = "idle"
@@ -333,6 +357,9 @@ with st.sidebar:
         st.session_state["scrape_pack_debug"] = None
         st.session_state["business_summary"] = {}
         st.session_state["poster_concepts"] = []
+        st.session_state["check_text_blobs_debug"] = None
+        st.session_state["check_text_blobs_result"] = None
+        st.session_state["check_text_blobs_autorun_done"] = False
         st.session_state["poster_images"] = {}
         st.session_state["ads_autorun_done"] = False
         st.session_state["ads_debug"] = None
@@ -389,6 +416,12 @@ if status == "queued":
                 ]
 
             st.session_state["scrape_status"] = "scraped"
+
+            # OPTIONAL / REQUESTED: run the AI 2nd pass immediately after scrape-pack returns
+            # (still allows manual re-run via sidebar button without re-scraping).
+            if not st.session_state.get("check_text_blobs_autorun_done", False):
+                _run_check_text_blobs_now(target_url=target_url)
+
             st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
@@ -462,6 +495,16 @@ if DEBUG_UI:
             st.write("Payload sent:")
             st.json(dbg.get("_debug_payload_sent", {}))
 
+# Keep demo UI clean: only surface 2nd-pass diagnostics in DEBUG_UI
+check_dbg = st.session_state.get("check_text_blobs_debug")
+if DEBUG_UI and check_dbg:
+    with st.expander("Debug: check-text-blobs request/response", expanded=False):
+        st.code(check_dbg.get("_debug_target_url", ""), language="text")
+        if check_dbg.get("_error"):
+            st.error(check_dbg.get("_error"))
+        st.json(check_dbg.get("_debug_payload_sent", {}))
+        st.json(check_dbg.get("_n8n_response_json", {}))
+
 # Tiered Signals was debug-y; replaced by the client-facing ranked list above.
 
 st.subheader("Business / product description")
@@ -474,6 +517,17 @@ if isinstance(bs, dict) and bs:
     st.markdown(f"**Tone:** {bs.get('tone','')}")
 else:
     st.info("Waiting for generate-ads output (auto-runs once after scrape, or use sidebar button).")
+
+# If your new 2nd-pass workflow returns an improved business_summary,
+# allow it to overwrite the existing one (without touching poster concepts).
+try:
+    check_payload = st.session_state.get("check_text_blobs_result")
+    if isinstance(check_payload, list) and check_payload and isinstance(check_payload[0], dict):
+        maybe_bs = check_payload[0].get("business_summary")
+        if isinstance(maybe_bs, dict) and maybe_bs:
+            st.session_state["business_summary"] = maybe_bs
+except Exception:
+    pass
 
 ads_dbg = st.session_state.get("ads_debug")
 if DEBUG_UI and ads_dbg:
