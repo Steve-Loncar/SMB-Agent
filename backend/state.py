@@ -16,7 +16,8 @@ def initstate() -> None:
     st.session_state.setdefault("scrape_pack", None)               # clean payload from n8n (if/when)
     st.session_state.setdefault("scrape_pack_debug", None)         # debug envelope returned by backend client
 
-    st.session_state.setdefault("business_summary", "")
+    # n8n returns a dict payload here (name_guess, category, etc.)
+    st.session_state.setdefault("business_summary", {})
     st.session_state.setdefault("poster_concepts", [])
     # Cache generated images by concept index: {0: bytes, 1: bytes, ...}
     st.session_state.setdefault("poster_images", {})
