@@ -8,6 +8,8 @@ initstate()
 
 with st.sidebar:
     st.subheader("n8n mode")
+    st.caption(f"DEBUG HOME: n8n_mode = {st.session_state.get('n8n_mode', 'NOT SET')}")
+    st.caption(f"DEBUG HOME: All keys = {list(st.session_state.keys())}")
     mode = st.session_state.get("n8n_mode", "TEST")
     st.caption(f"**{mode}** mode active (change in Results)")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")

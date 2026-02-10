@@ -97,6 +97,8 @@ status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
+    st.caption(f"DEBUG BEFORE: n8n_mode = {st.session_state.get('n8n_mode', 'NOT SET')}")
+    st.caption(f"DEBUG BEFORE: All keys = {list(st.session_state.keys())}")
     
     # Get current value, default to TEST if not set
     current_mode = st.session_state.get("n8n_mode", "TEST")
@@ -109,6 +111,8 @@ with st.sidebar:
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
     
+    st.caption(f"DEBUG AFTER: n8n_mode = {st.session_state['n8n_mode']}")
+    st.caption(f"DEBUG AFTER: selected_mode = {selected_mode}")
     st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
     st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
     st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
