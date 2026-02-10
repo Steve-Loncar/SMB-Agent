@@ -11,9 +11,10 @@ st.markdown(
     <style>
       /* Hide Streamlit chrome */
       #MainMenu { visibility: hidden; }
-      header { visibility: hidden; }
       footer { visibility: hidden; }
-      [data-testid="stToolbar"] { display: none; }
+      /* Keep header visible so the sidebar expand/collapse control still works */
+      header[data-testid="stHeader"] { background: transparent; }
+      [data-testid="stToolbar"] { visibility: hidden; }
 
       /* Hide default multipage nav in sidebar (we'll use top nav) */
       [data-testid="stSidebarNav"] { display: none; }
@@ -23,7 +24,7 @@ st.markdown(
 )
 
 # Top navigation (keeps flow out of sidebar)
-nav1, nav2, _spacer = st.columns([1, 1, 8])
+nav1, nav2, _spacer = st.columns([2, 2, 6])
 with nav1:
     if st.button("Home", use_container_width=True):
         st.switch_page("pages/01_home.py")
