@@ -4,7 +4,7 @@ from typing import Any, Dict, Literal, Optional
 
 
 Mode = Literal["TEST", "LIVE"]
-Endpoint = Literal["generate_ads", "generate_image", "scrape_pack"]
+Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs"]
 
 
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
@@ -19,6 +19,7 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
         N8N_GENERATE_ADS_URL_TEST / _LIVE
         N8N_GENERATE_IMAGE_URL_TEST / _LIVE
         N8N_SCRAPE_PACK_URL_TEST / _LIVE
+        N8N_CHECK_TEXT_BLOBS_URL_TEST / _LIVE
     """
     if override_url:
         target_url = override_url.strip()
@@ -33,6 +34,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
             ("generate_image", "LIVE"): "N8N_GENERATE_IMAGE_URL_LIVE",
             ("scrape_pack", "TEST"): "N8N_SCRAPE_PACK_URL_TEST",
             ("scrape_pack", "LIVE"): "N8N_SCRAPE_PACK_URL_LIVE",
+            ("check_text_blobs", "TEST"): "N8N_CHECK_TEXT_BLOBS_URL_TEST",
+            ("check_text_blobs", "LIVE"): "N8N_CHECK_TEXT_BLOBS_URL_LIVE",
         }
         env_key = env_map[(endpoint, mode)]
         explicit = (os.getenv(env_key) or "").strip()
@@ -47,6 +50,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
                 ("generate_image", "LIVE"): "/webhook/generate-image",
                 ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",
                 ("scrape_pack", "LIVE"): "/webhook/scrape-pack",
+                ("check_text_blobs", "TEST"): "/webhook-test/check-text-blobs",
+                ("check_text_blobs", "LIVE"): "/webhook/check-text-blobs",
             }
             target_url = base + paths[(endpoint, mode)]
 
@@ -166,6 +171,64 @@ def call_n8n_generate_image(
     except Exception:
         out["response_json"] = None
     return out
+
+
+def call_n8n_check_text_blobs(
+    *,
+    url: str,
+    scrape_pack: Any,
+    mode: Mode = "TEST",
+    webhook_url: Optional[str] = None,
+) -> dict:
+    """
+    POST payload to n8n /check-text-blobs.
+
+    Intended purpose:
+    - AI "2nd pass" over deterministic scrape-pack output.
+    - Improve/fill gaps ONLY using content present in the scrape_pack evidence.
+
+    Returns the same debug envelope shape as other calls.
+    """
+    target_url = resolve_n8n_webhook("check_text_blobs", mode, override_url=webhook_url)
+    headers = _tender_headers()
+
+    payload = {
+        "payload_type": "smb_check_text_blobs",
+        "url": url,
+        # Send raw scrape_pack (either list-of-pages or wrapper dict).
+        # The workflow should treat this as the evidence pack.
+        "scrape_pack": scrape_pack,
+    }
+
+    # Similar to scrape-pack: allow longer read time for LLM call.
+    req_timeout = (10, 180)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
+
+    result: Dict[str, Any] = {}
+    result["_debug_target_url"] = target_url
+    result["_debug_payload_sent"] = payload
+    result["_debug_http_status"] = resp.status_code
+    result["_debug_final_url"] = resp.url
+    result["_debug_resp_headers"] = dict(resp.headers)
+    result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
+    result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
+
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
+        return result
+
+    try:
+        if (resp.text or "").strip():
+            result["_n8n_response_json"] = resp.json()
+    except Exception:
+        pass
+
+    return result
 
 
 def call_n8n_scrape_pack(
