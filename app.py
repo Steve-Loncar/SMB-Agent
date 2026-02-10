@@ -17,9 +17,10 @@ st.markdown(
     <style>
       /* Hide Streamlit chrome */
       #MainMenu { visibility: hidden; }
-      header { visibility: hidden; }
       footer { visibility: hidden; }
-      [data-testid="stToolbar"] { display: none; }
+      /* Keep header visible so the sidebar expand/collapse control still works */
+      header[data-testid="stHeader"] { background: transparent; }
+      [data-testid="stToolbar"] { visibility: hidden; }
 
       /* Hide default multipage nav in sidebar (we'll use top nav) */
       [data-testid="stSidebarNav"] { display: none; }
