@@ -21,6 +21,10 @@ def initstate() -> None:
     # Cache generated images by concept index: {0: bytes, 1: bytes, ...}
     st.session_state.setdefault("poster_images", {})
 
-    # n8n settings
-    st.session_state.setdefault("n8n_mode", "TEST")  # TEST | LIVE
+    # Ads autorun plumbing (Phase 2 bridge)
+    st.session_state.setdefault("ads_autorun_done", False)   # only run once per scrape
+    st.session_state.setdefault("ads_debug", None)           # store generate-ads debug envelope
+
+    # n8n settings - don't use setdefault, let the radio widget in 02_results manage it
+    # st.session_state.setdefault("n8n_mode", "TEST")  # TEST | LIVE
 
