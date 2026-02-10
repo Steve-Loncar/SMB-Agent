@@ -1,6 +1,14 @@
 import streamlit as st
 import json
 import base64
+
+st.set_page_config(
+    page_title="SMB Ad Agent",
+    page_icon="🛰️",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
 from typing import Any
 from backend.n8n_client import (
     call_n8n_generate_ads,
@@ -23,6 +31,11 @@ st.markdown(
       #MainMenu { visibility: hidden; }
       footer { visibility: hidden; }
       [data-testid="stToolbar"] { display: none; }
+      [data-testid="stDecoration"] { display: none; }
+
+      /* Keep header present so the sidebar collapsedControl remains clickable */
+      [data-testid="stHeader"] { background: rgba(0,0,0,0); }
+      [data-testid="collapsedControl"] { display: block; }
 
       /* Hide default multipage nav in sidebar (we'll use top nav) */
       [data-testid="stSidebarNav"] { display: none; }
@@ -344,8 +357,22 @@ if status == "queued":
 
             # If n8n responds with a clean JSON payload, store it as scrape_pack too
             resp_json = debug.get("_n8n_response_json")
-            if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-                st.session_state["scrape_pack"] = resp_json[0]
+            if isinstance(resp_json, list) and resp_json:
+                # Two possible shapes:
+                #  A) list[page_obj, page_obj, ...]           <-- what your scrape-pack returns
+                #  B) list[{ scrape_pack: [...] , ... }]      <-- legacy "allIncomingItems" wrapper
+                if (
+                    len(resp_json) == 1
+                    and isinstance(resp_json[0], dict)
+                    and (
+                        "scrape_pack" in resp_json[0]
+                        or "pages" in resp_json[0]
+                    )
+                ):
+                    st.session_state["scrape_pack"] = resp_json[0]
+                else:
+                    # Keep the full list so downstream can extract logos across pages
+                    st.session_state["scrape_pack"] = resp_json
             elif isinstance(resp_json, dict):
                 st.session_state["scrape_pack"] = resp_json
 
@@ -459,21 +486,60 @@ if DEBUG_UI and ads_dbg:
 
 st.divider()
 
-st.subheader("Scraped pages")
-visited = st.session_state.get("visited_urls", [])
-if visited:
-    st.write(f"Visited {len(visited)} page(s):")
-    for u in visited:
-        st.write(f"- {u}")
-else:
-    st.write("No pages scraped yet.")
+with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
+    # Scrape-pack payload (raw)
+    st.subheader("Scrape-pack output (debug)")
+    sp = st.session_state.get("scrape_pack")
+    if sp:
+        st.json(sp)
+    else:
+        st.info("No scrape-pack payload yet (check debug below).")
 
-st.subheader("Scraped text (alpha)")
-scraped_text = st.session_state.get("scraped_text", "")
-if scraped_text:
-    st.text_area("Extracted text", scraped_text, height=240)
-else:
-    st.write("No text extracted.")
+    # Scrape-pack request/response debug
+    dbg = st.session_state.get("scrape_pack_debug")
+    if dbg:
+        st.subheader("Debug: scrape-pack request/response")
+        st.write("Target URL:")
+        st.code(dbg.get("_debug_target_url", ""), language="text")
+        st.write("HTTP status / final URL:")
+        st.code(
+            f"{dbg.get('_debug_http_status')} | final={dbg.get('_debug_final_url')}",
+            language="text",
+        )
+        if dbg.get("_error"):
+            st.error(dbg.get("_error"))
+        st.write("Response text (first 400 chars):")
+        st.code(dbg.get("_debug_resp_text_snippet", ""), language="text")
+        st.write("Payload sent:")
+        st.json(dbg.get("_debug_payload_sent", {}))
+
+    # Generate-ads request/response debug
+    ads_dbg = st.session_state.get("ads_debug")
+    if ads_dbg:
+        st.subheader("Debug: generate-ads request/response")
+        st.code(ads_dbg.get("_debug_target_url", ""), language="text")
+        if ads_dbg.get("_error"):
+            st.error(ads_dbg.get("_error"))
+        st.json(ads_dbg.get("_debug_payload_sent", {}))
+        st.json(ads_dbg.get("_n8n_response_json", {}))
+
+    # Scraped pages list (noisy) — now hidden by default
+    st.subheader("Scraped pages")
+    visited = st.session_state.get("visited_urls", [])
+    if visited:
+        st.write(f"Visited {len(visited)} page(s):")
+        for u in visited:
+            st.write(f"- {u}")
+    else:
+        st.write("No pages scraped yet.")
+
+    # Scraped text (noisy) — now hidden by default
+    st.subheader("Scraped text (alpha)")
+    scraped_text = st.session_state.get("scraped_text", "")
+    if scraped_text:
+        st.text_area("Extracted text", scraped_text, height=240)
+    else:
+        st.write("No text extracted.")
 
 st.subheader("Images found (alpha)")
 imgs = st.session_state.get("scraped_images", [])

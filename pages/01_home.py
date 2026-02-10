@@ -4,6 +4,13 @@ import streamlit as st
 from backend.state import initstate
 from backend.n8n_client import resolve_n8n_webhook
 
+st.set_page_config(
+    page_title="SMB Ad Agent",
+    page_icon="🛰️",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
 initstate()
 
 st.markdown(
@@ -12,9 +19,12 @@ st.markdown(
       /* Hide Streamlit chrome */
       #MainMenu { visibility: hidden; }
       footer { visibility: hidden; }
-      /* Keep header visible so the sidebar expand/collapse control still works */
-      header[data-testid="stHeader"] { background: transparent; }
-      [data-testid="stToolbar"] { visibility: hidden; }
+      [data-testid="stToolbar"] { display: none; }
+      [data-testid="stDecoration"] { display: none; }
+
+      /* Keep header present so the sidebar collapsedControl remains clickable */
+      [data-testid="stHeader"] { background: rgba(0,0,0,0); }
+      [data-testid="collapsedControl"] { display: block; }
 
       /* Hide default multipage nav in sidebar (we'll use top nav) */
       [data-testid="stSidebarNav"] { display: none; }
