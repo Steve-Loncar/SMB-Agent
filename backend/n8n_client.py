@@ -182,12 +182,7 @@ def call_n8n_check_text_blobs(
 ) -> dict:
     """
     POST payload to n8n /check-text-blobs.
-
-    Intended purpose:
-    - AI "2nd pass" over deterministic scrape-pack output.
-    - Improve/fill gaps ONLY using content present in the scrape_pack evidence.
-
-    Returns the same debug envelope shape as other calls.
+    AI "2nd pass" over deterministic scrape-pack output.
     """
     target_url = resolve_n8n_webhook("check_text_blobs", mode, override_url=webhook_url)
     headers = _tender_headers()
@@ -195,12 +190,9 @@ def call_n8n_check_text_blobs(
     payload = {
         "payload_type": "smb_check_text_blobs",
         "url": url,
-        # Send raw scrape_pack (either list-of-pages or wrapper dict).
-        # The workflow should treat this as the evidence pack.
         "scrape_pack": scrape_pack,
     }
 
-    # Similar to scrape-pack: allow longer read time for LLM call.
     req_timeout = (10, 180)
     resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
