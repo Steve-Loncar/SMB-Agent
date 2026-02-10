@@ -7,9 +7,26 @@ st.set_page_config(
     page_title="SMB Ad Agent (Alpha)",
     page_icon="🧩",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 initstate()
+
+st.markdown(
+    """
+    <style>
+      /* Hide Streamlit chrome */
+      #MainMenu { visibility: hidden; }
+      header { visibility: hidden; }
+      footer { visibility: hidden; }
+      [data-testid="stToolbar"] { display: none; }
+
+      /* Hide default multipage nav in sidebar (we'll use top nav) */
+      [data-testid="stSidebarNav"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.title("🧩 SMB Ad Agent (Alpha)")
 st.caption(
@@ -25,7 +42,7 @@ st.markdown(
 """
 )
 
-st.info("Use the sidebar to navigate: **Home** → **Results**.", icon="ℹ️")
+st.info("Use the top navigation: **Home** → **Results**.", icon="ℹ️")
 
 with st.expander("Dev notes", expanded=False):
     st.write(
