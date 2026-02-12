@@ -215,51 +215,19 @@ def _run_check_text_blobs_now(*, target_url: str) -> None:
     st.session_state["check_text_blobs_autorun_done"] = True
     st.session_state["check_text_blobs_result"] = dbg.get("_n8n_response_json")
 
-target_url = st.session_state.get("target_url", "")
-if not target_url:
-    st.warning("No URL provided yet. Go to Home and enter a website URL.")
-    st.stop()
-
-st.caption(f"Target: {target_url}")
-
-# --- Client-facing narrative header (lightweight; no new plumbing) ---
-status = st.session_state.get("scrape_status", "idle")
-
-st.markdown("### 👋 Thank you — just reviewing your website!")
-if status in ("queued", "idle"):
-    st.caption("We're doing a quick scan of your homepage and a few key internal pages.")
-elif status == "scraped":
-    st.caption("Quick check complete — now generating ad concepts based on the most relevant pages.")
-elif status == "error":
-    st.caption("We hit a snag scanning the site — please try again in a moment.")
-
-sp = st.session_state.get("scrape_pack")
-ranked = _ranked_pages_for_display(sp, limit=6)
-if ranked and status in ("scraped", "done"):
-    st.markdown("#### ✅ Quick check of your website complete")
-    st.markdown("These pages look the most relevant:")
-    for p in ranked:
-        title = p["title"] or "(No headline/title found)"
-        tier = (p["source"] or "").upper() or "UNKNOWN"
-        st.markdown(f"- **{title}**  \n  {p['page_url']}  \n  _{tier}_")
-        for sn in p["snips"]:
-            st.caption(f"• {sn[:180]}")
-    st.divider()
-
-# --- Placeholder pipeline behaviour (alpha UI) ---
-# We'll replace this with: scrape → n8n trigger → model output → render.
+# --- Sidebar (always visible, even without URL) ---
 status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
     st.subheader("n8n")
-    
+
     # Get current value, default to LIVE if not set
     current_mode = st.session_state.get("n8n_mode", "LIVE")
     current_index = 0 if current_mode == "TEST" else 1
-    
+
     # Radio button with different key, then manually sync
     selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
-    
+
     # Manually update session state
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
@@ -275,6 +243,7 @@ with st.sidebar:
     # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
     can_run_ai = bool(st.session_state.get("scraped_text")) or bool(st.session_state.get("scrape_pack"))
     if st.button("Run AI (n8n)", disabled=not can_run_ai):
+        target_url = st.session_state.get("target_url", "")
         # If V2 scrape-pack exists but legacy fields are empty, derive them on-demand
         if not st.session_state.get("scraped_text") and st.session_state.get("scrape_pack"):
             txt, urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
@@ -344,6 +313,7 @@ with st.sidebar:
     # NEW: AI 2nd pass over the already-loaded scrape_pack (no re-scrape required)
     can_run_check = bool(st.session_state.get("scrape_pack"))
     if st.button("Run AI 2nd pass (text blobs)", disabled=not can_run_check):
+        target_url = st.session_state.get("target_url", "")
         _run_check_text_blobs_now(target_url=target_url)
         st.success("2nd pass complete (see Business summary section / diagnostics).")
 
@@ -365,6 +335,38 @@ with st.sidebar:
         st.session_state["ads_debug"] = None
         st.switch_page("pages/01_home.py")
 
+target_url = st.session_state.get("target_url", "")
+if not target_url:
+    st.warning("No URL provided yet. Go to Home and enter a website URL.")
+    st.stop()
+
+st.caption(f"Target: {target_url}")
+
+# --- Client-facing narrative header (lightweight; no new plumbing) ---
+status = st.session_state.get("scrape_status", "idle")
+
+st.markdown("### 👋 Thank you — just reviewing your website!")
+if status in ("queued", "idle"):
+    st.caption("We're doing a quick scan of your homepage and a few key internal pages.")
+elif status == "scraped":
+    st.caption("Quick check complete — now generating ad concepts based on the most relevant pages.")
+elif status == "error":
+    st.caption("We hit a snag scanning the site — please try again in a moment.")
+
+sp = st.session_state.get("scrape_pack")
+ranked = _ranked_pages_for_display(sp, limit=6)
+if ranked and status in ("scraped", "done"):
+    st.markdown("#### ✅ Quick check of your website complete")
+    st.markdown("These pages look the most relevant:")
+    for p in ranked:
+        title = p["title"] or "(No headline/title found)"
+        tier = (p["source"] or "").upper() or "UNKNOWN"
+        st.markdown(f"- **{title}**  \n  {p['page_url']}  \n  _{tier}_")
+        for sn in p["snips"]:
+            st.caption(f"• {sn[:180]}")
+    st.divider()
+
+# Check target_url again (after sidebar is rendered)
 if not target_url:
     st.warning("No URL provided yet. Go to Home and enter a website URL.")
     st.stop()
