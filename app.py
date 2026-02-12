@@ -27,6 +27,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Top navigation (keeps flow out of sidebar)
+nav1, nav2, _spacer = st.columns([2, 2, 6])
+with nav1:
+    if st.button("Home", use_container_width=True):
+        st.switch_page("pages/01_home.py")
+with nav2:
+    if st.button("Results", use_container_width=True):
+        st.switch_page("pages/02_results.py")
+
+st.divider()
+
 st.title("🧩 SMB Ad Agent (Alpha)")
 st.caption(
     "Basic alpha UI. Enter a business website, then review a generated description and ad poster concepts."

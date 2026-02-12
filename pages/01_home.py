@@ -72,6 +72,18 @@ url = st.text_input(
 
 # Dev-only controls (for wiring + iteration). You'll hide later.
 st.caption("Dev controls (temporary)")
+
+# n8n mode selector (choose before running)
+current_mode = st.session_state.get("n8n_mode", "LIVE")
+selected_mode = st.radio(
+    "n8n Mode",
+    ["TEST", "LIVE"],
+    index=0 if current_mode == "TEST" else 1,
+    horizontal=True,
+    help="Choose TEST or LIVE mode before running workflows.",
+)
+st.session_state["n8n_mode"] = selected_mode
+
 depth = st.selectbox(
     "Scrape depth",
     options=["homepage_only", "homepage_plus"],
