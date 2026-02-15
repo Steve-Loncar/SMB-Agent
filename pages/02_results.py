@@ -4,7 +4,7 @@ import base64
 
 st.set_page_config(
     page_title="SMB Ad Agent",
-    page_icon="🛰️",
+    page_icon="S",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -318,7 +318,7 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
     return scraped_text, out_imgs
 
 
-st.title("2) Results")
+st.title("Results")
 
 # --- AI 2nd pass (text blob review) state (kept local; avoids touching backend/state.py) ---
 st.session_state.setdefault("check_text_blobs_debug", None)       # debug envelope
@@ -332,7 +332,7 @@ def _run_check_text_blobs_now(*, target_url: str) -> None:
     sp_local = st.session_state.get("scrape_pack")
     if not sp_local:
         return
-    with st.spinner("Running AI 2nd pass (check-text-blobs)…"):
+    with st.spinner("Analysing content..."):
         dbg = call_n8n_check_text_blobs(
             url=target_url,
             scrape_pack=sp_local,
@@ -468,20 +468,18 @@ if not target_url:
     st.warning("No URL provided yet. Go to Home and enter a website URL.")
     st.stop()
 
-st.caption(f"Target: {target_url}")
-
-# --- Client-facing narrative header (lightweight; no new plumbing) ---
+# --- Client-facing narrative header ---
 status = st.session_state.get("scrape_status", "idle")
 
-st.markdown("### 👋 Thank you — just reviewing your website!")
+st.markdown("### Thank you — we're reviewing your website")
 if status in ("queued", "idle"):
-    st.caption("We're doing a quick scan of your homepage and a few key internal pages.")
+    st.caption("Scanning your homepage and key internal pages.")
 elif status in ("scraped", "generating_ads"):
-    st.caption("Quick check complete — now generating ad concepts based on the most relevant pages.")
+    st.caption("Scan complete — generating ad concepts from the most relevant pages.")
 elif status == "done":
-    st.caption("All done — here are your results.")
+    st.caption("All done. Here are your results.")
 elif status == "error":
-    st.caption("We hit a snag scanning the site — please try again in a moment.")
+    st.caption("Something went wrong scanning the site. Please try again shortly.")
 
 sp = st.session_state.get("scrape_pack")
 pack = _extract_pack_summary(sp or {})
@@ -502,41 +500,49 @@ if sp and not st.session_state.get("scrape_pack_pack"):
     }
 
 if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "generating_ads", "done"):
-    st.markdown("#### ✅ Website scan complete")
-    st.markdown("These pages look the most relevant…")
+    st.markdown("#### Website scan complete")
+    st.caption("Pages we identified as most relevant to your advertising:")
+
+    _card_css = """
+    <style>
+    .tier-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        max-height: 280px;
+        overflow-y: auto;
+        margin-bottom: 0.5rem;
+    }
+    .tier-card p { margin: 0.25rem 0; font-size: 0.88rem; line-height: 1.5; }
+    .tier-label { font-weight: 600; margin-bottom: 0.5rem; font-size: 0.78rem;
+                  text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
+    </style>
+    """
+    st.markdown(_card_css, unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        st.caption("Tier 1")
-        if tiers.get(1):
-            st.markdown("\n".join([f"- {u}" for u in tiers[1]]))
-        else:
-            st.info("No Tier 1 links were identified.")
+        # Homepage first, then tier 1
+        key_pages = tiers.get(0, []) + tiers.get(1, [])
+        t1_links = "".join(f'<p><a href="{u}" target="_blank">{u}</a></p>' for u in key_pages)
+        st.markdown(
+            f'<div class="tier-card"><div class="tier-label">Key pages</div>{t1_links or "<p>None identified.</p>"}</div>',
+            unsafe_allow_html=True,
+        )
 
     with c2:
-        st.caption("Tier 2")
-        if tiers.get(2):
-            st.markdown("\n".join([f"- {u}" for u in tiers[2]]))
-        else:
-            st.info("No Tier 2 links were identified.")
+        t2_links = "".join(f'<p><a href="{u}" target="_blank">{u}</a></p>' for u in tiers.get(2, []))
+        st.markdown(
+            f'<div class="tier-card"><div class="tier-label">Supporting pages</div>{t2_links or "<p>None identified.</p>"}</div>',
+            unsafe_allow_html=True,
+        )
 
-    with st.expander("Homepage markdown (for the next summariser step)", expanded=False):
-        if homepage_md:
-            st.code(homepage_md, language="markdown")
-        else:
-            st.warning("No homepage markdown found in the scrape pack payload.")
-
+    # homepage_md kept in session state for downstream; not shown to client
     st.divider()
 
-# Check target_url again (after sidebar is rendered)
-if not target_url:
-    st.warning("No URL provided yet. Go to Home and enter a website URL.")
-    st.stop()
-
-st.caption(f"Target: {target_url}")
-
 if status == "queued":
-    with st.spinner("Running scrape-pack via n8n…"):
+    with st.spinner("Scanning your website — this may take a moment..."):
         try:
             debug = call_n8n_scrape_pack(
                 url=target_url,
@@ -592,7 +598,7 @@ if status == "queued":
             st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
-            st.error(f"scrape-pack failed: {e}")
+            st.error(f"We couldn't scan that website. Please check the URL and try again. ({e})")
 
 status = st.session_state.get("scrape_status", "idle")
 if status == "error":
@@ -612,7 +618,7 @@ if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
 
     can_autorun = bool(st.session_state.get("scraped_text"))
     if can_autorun:
-        with st.spinner("Generating campaign + poster concepts…"):
+        with st.spinner("Creating your campaign concepts..."):
             debug_result = call_n8n_generate_ads(
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
@@ -677,7 +683,7 @@ if DEBUG_UI and check_dbg:
 
 # Tiered Signals was debug-y; replaced by the client-facing ranked list above.
 
-st.subheader("Business / product description")
+st.subheader("About your business")
 bs = st.session_state.get("business_summary", {})
 if isinstance(bs, dict) and bs:
     st.markdown(f"**Name:** {bs.get('name_guess','')}")
@@ -686,7 +692,7 @@ if isinstance(bs, dict) and bs:
     st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
     st.markdown(f"**Tone:** {bs.get('tone','')}")
 else:
-    st.info("Waiting for generate-ads output (auto-runs once after scrape, or use sidebar button).")
+    st.info("We're still working on this. It will appear here shortly.")
 
 # If your new 2nd-pass workflow returns an improved business_summary,
 # allow it to overwrite the existing one (without touching poster concepts).
@@ -765,27 +771,24 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
     else:
         st.write("No text extracted.")
 
-st.subheader("Images found (alpha)")
+# Images section — hidden when empty (no "alpha" label for clients)
 imgs = st.session_state.get("scraped_images", [])
 if imgs:
-    # show first few images inline
-    st.caption("Best-effort extraction. We'll improve selection/branding later.")
+    st.subheader("Images from your website")
     st.image(imgs[:6], caption=imgs[:6], use_container_width=True)
-else:
-    st.write("No images extracted.")
 
 st.divider()
 
-st.subheader("AI-generated poster concepts")
+st.subheader("Campaign concepts")
 concepts = st.session_state.get("poster_concepts", [])
 
 if not concepts:
-    st.warning("No concepts yet.")
+    st.info("Concepts will appear here once generation is complete.")
 else:
     cols = st.columns(3)
     for i, concept in enumerate(concepts):
         with cols[i % 3]:
-            st.markdown("#### Poster concept")
+            st.markdown("#### Concept")
             st.caption(concept.get("concept_name", ""))
             st.markdown(f"**Headline:** {concept.get('headline','')}")
             st.markdown(f"**Supporting copy:** {concept.get('supporting_copy','')}")
@@ -825,7 +828,7 @@ else:
                 )
 
                 try:
-                    with st.spinner("Generating image…"):
+                    with st.spinner("Generating visual..."):
                         img_res = call_n8n_generate_image(
                             prompt=prompt,
                             mode=st.session_state.n8n_mode,
