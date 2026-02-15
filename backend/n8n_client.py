@@ -1,21 +1,13 @@
 import os
-import pathlib
 import requests
 from typing import Any, Dict, Literal, Optional
-
-# Prompt text files live alongside the package root
-# Try __file__-relative first, fall back to cwd (Streamlit Cloud compat)
-_PROMPTS_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / "prompts"
-if not _PROMPTS_DIR.is_dir():
-    _PROMPTS_DIR = pathlib.Path.cwd() / "prompts"
 
 
 def _load_prompt(filename: str) -> str:
     """Load a prompt .txt file from the prompts/ directory."""
-    path = _PROMPTS_DIR / filename
-    if not path.exists():
-        raise FileNotFoundError(f"Prompt file not found: {path}  (PROMPTS_DIR={_PROMPTS_DIR})")
-    return path.read_text(encoding="utf-8").strip()
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prompts", filename)
+    with open(path, encoding="utf-8") as f:
+        return f.read().strip()
 
 
 Mode = Literal["TEST", "LIVE"]
