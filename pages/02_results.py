@@ -236,7 +236,29 @@ def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
     """
     Builds bounded (scraped_text, image_urls) for generate-ads from your V2 schema.
     Preference order: tier0/homepage -> tier1 -> tier2 (preserve within-tier order).
+
+    Also handles the NEW Set-node shape where sp is a flat dict with
+    homepage_url, tier1_urls, tier2_urls, homepage_markdown (no page items).
     """
+    # --- NEW shape: flat summary dict from Set node ---
+    if isinstance(sp, dict) and "homepage_url" in sp and "tier1_urls" in sp:
+        parts: list[str] = []
+        hp_url = (sp.get("homepage_url") or "").strip()
+        hp_md = (sp.get("homepage_markdown") or "").strip()
+        if hp_url or hp_md:
+            chunk = f"[PAGE] {hp_url}\nSOURCE: homepage"
+            if hp_md:
+                chunk += f"\nTEXT:\n{hp_md[:12000]}"
+            parts.append(chunk)
+        for label, key in [("tier1", "tier1_urls"), ("tier2", "tier2_urls")]:
+            for u in (sp.get(key) or []):
+                u = str(u).strip()
+                if u:
+                    parts.append(f"[PAGE] {u}\nSOURCE: {label}")
+        scraped_text = "\n\n".join(parts).strip()[:20000]
+        return scraped_text, []
+
+    # --- OLD shape: list of page-item dicts ---
     items = _iter_scrape_items(sp)
     if not items:
         return "", []
@@ -454,8 +476,10 @@ status = st.session_state.get("scrape_status", "idle")
 st.markdown("### 👋 Thank you — just reviewing your website!")
 if status in ("queued", "idle"):
     st.caption("We're doing a quick scan of your homepage and a few key internal pages.")
-elif status == "scraped":
+elif status in ("scraped", "generating_ads"):
     st.caption("Quick check complete — now generating ad concepts based on the most relevant pages.")
+elif status == "done":
+    st.caption("All done — here are your results.")
 elif status == "error":
     st.caption("We hit a snag scanning the site — please try again in a moment.")
 
@@ -477,7 +501,7 @@ if sp and not st.session_state.get("scrape_pack_pack"):
         "raw": sp,
     }
 
-if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "done"):
+if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "generating_ads", "done"):
     st.markdown("#### ✅ Website scan complete")
     st.markdown("These pages look the most relevant…")
 
