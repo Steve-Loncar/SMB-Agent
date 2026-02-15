@@ -126,6 +126,112 @@ def _ranked_pages_for_display(sp: Any, limit: int = 6) -> list[dict]:
     return enriched[:limit]
 
 
+def _extract_urls_by_tier(scrape_pack_payload) -> dict[int, list[str]]:
+    """Return tier -> ordered unique URLs based on Source field within each tier."""
+    tiers: dict[int, list[str]] = {0: [], 1: [], 2: []}
+    seen: dict[int, set[str]] = {0: set(), 1: set(), 2: set()}
+    for item in _iter_scrape_items(scrape_pack_payload):
+        url = (item.get("page_url") or "").strip()
+        src = (item.get("Source") or item.get("source") or "").strip().lower()
+        tier = {"tier0": 0, "homepage": 0, "tier1": 1, "tier2": 2}.get(src, 99)
+        if tier not in tiers:
+            tiers[tier] = []
+            seen[tier] = set()
+        if url and url not in seen[tier]:
+            tiers[tier].append(url)
+            seen[tier].add(url)
+    # Ensure keys exist even if empty
+    for t in (0, 1, 2):
+        tiers.setdefault(t, [])
+    return tiers
+
+
+def _extract_homepage_markdown(scrape_pack_payload) -> str:
+    """Best-effort extraction of homepage markdown from tier 0 scrape result."""
+    for item in _iter_scrape_items(scrape_pack_payload):
+        src = (item.get("Source") or item.get("source") or "").strip().lower()
+        if src in ("tier0", "homepage"):
+            md = item.get("markdown") or item.get("md") or item.get("content") or item.get("homepage_markdown") or item.get("page_markdown")
+            if isinstance(md, str) and md.strip():
+                return md.strip()
+    return ""
+
+
+def _extract_pack_summary(sp: Any) -> dict:
+    """
+    Prefer the NEW, simple Set-node shape:
+      {
+        "homepage_url": str,
+        "tier1_urls": [str, ...],
+        "tier2_urls": [str, ...],
+        "homepage_markdown": str
+      }
+
+    Back-compat:
+      - If sp is a list/dict of page items, infer tiers from Source + page_url.
+      - Try to find homepage markdown from tier0/homepage item keys.
+    """
+    # --- New shape (recommended) ---
+    if isinstance(sp, dict):
+        has_new = (
+            isinstance(sp.get("homepage_url"), str)
+            and isinstance(sp.get("tier1_urls"), list)
+            and isinstance(sp.get("tier2_urls"), list)
+        )
+        if has_new:
+            return {
+                "homepage_url": (sp.get("homepage_url") or "").strip(),
+                "tier1_urls": [str(u).strip() for u in (sp.get("tier1_urls") or []) if str(u).strip()],
+                "tier2_urls": [str(u).strip() for u in (sp.get("tier2_urls") or []) if str(u).strip()],
+                "homepage_markdown": (sp.get("homepage_markdown") or "").strip(),
+            }
+
+    # --- Old shape fallback ---
+    items = _iter_scrape_items(sp)
+    homepage_url = ""
+    tier1_urls: list[str] = []
+    tier2_urls: list[str] = []
+    homepage_markdown = ""
+
+    for it in items:
+        url = (it.get("page_url") or "").strip()
+        src = (it.get("Source") or it.get("source") or "").strip().lower()
+        if not url:
+            continue
+
+        if src in ("tier0", "homepage"):
+            if not homepage_url:
+                homepage_url = url
+            # try likely markdown keys (adjust if your workflow uses different names)
+            homepage_markdown = (
+                (it.get("homepage_markdown") or "")
+                or (it.get("page_markdown") or "")
+                or (it.get("markdown") or "")
+                or ""
+            ).strip()
+        elif src == "tier1":
+            tier1_urls.append(url)
+        elif src == "tier2":
+            tier2_urls.append(url)
+
+    # de-dupe, preserve order
+    def _dedupe(seq: list[str]) -> list[str]:
+        seen = set()
+        out = []
+        for u in seq:
+            if u and u not in seen:
+                seen.add(u)
+                out.append(u)
+        return out
+
+    return {
+        "homepage_url": homepage_url,
+        "tier1_urls": _dedupe(tier1_urls),
+        "tier2_urls": _dedupe(tier2_urls),
+        "homepage_markdown": homepage_markdown,
+    }
+
+
 def _derive_inputs_from_scrape_pack(sp) -> tuple[str, list[str]]:
     """
     Builds bounded (scraped_text, image_urls) for generate-ads from your V2 schema.
@@ -354,16 +460,43 @@ elif status == "error":
     st.caption("We hit a snag scanning the site — please try again in a moment.")
 
 sp = st.session_state.get("scrape_pack")
-ranked = _ranked_pages_for_display(sp, limit=6)
-if ranked and status in ("scraped", "done"):
-    st.markdown("#### ✅ Quick check of your website complete")
-    st.markdown("These pages look the most relevant:")
-    for p in ranked:
-        title = p["title"] or "(No headline/title found)"
-        tier = (p["source"] or "").upper() or "UNKNOWN"
-        st.markdown(f"- **{title}**  \n  {p['page_url']}  \n  _{tier}_")
-        for sn in p["snips"]:
-            st.caption(f"• {sn[:180]}")
+tiers = _extract_urls_by_tier(sp or {})
+homepage_md = _extract_homepage_markdown(sp or {})
+
+# Persist a clean "pack" for downstream steps (summariser, snippet mining, concept gen, etc.)
+if sp and not st.session_state.get("scrape_pack_pack"):
+    st.session_state["scrape_pack_pack"] = {
+        "input_url": target_url,
+        "tiers": tiers,
+        "homepage_markdown": homepage_md,
+        "raw": sp,
+    }
+
+if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "done"):
+    st.markdown("#### ✅ Website scan complete")
+    st.markdown("These pages look the most relevant…")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.caption("Tier 1")
+        if tiers.get(1):
+            st.markdown("\n".join([f"- {u}" for u in tiers[1]]))
+        else:
+            st.info("No Tier 1 links were identified.")
+
+    with c2:
+        st.caption("Tier 2")
+        if tiers.get(2):
+            st.markdown("\n".join([f"- {u}" for u in tiers[2]]))
+        else:
+            st.info("No Tier 2 links were identified.")
+
+    with st.expander("Homepage markdown (for the next summariser step)", expanded=False):
+        if homepage_md:
+            st.code(homepage_md, language="markdown")
+        else:
+            st.warning("No homepage markdown found in the scrape pack payload.")
+
     st.divider()
 
 # Check target_url again (after sidebar is rendered)
@@ -437,6 +570,8 @@ if status == "error":
 # AUTO-RUN generate-ads ONCE after scrape completes (proof-of-plumbing)
 #
 if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
+    st.session_state["scrape_status"] = "generating_ads"
+
     # ensure inputs exist (derive from V2 if needed)
     if not st.session_state.get("scraped_text") and st.session_state.get("scrape_pack"):
         txt, urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
@@ -445,7 +580,7 @@ if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
 
     can_autorun = bool(st.session_state.get("scraped_text"))
     if can_autorun:
-        with st.spinner("Auto-running generate-ads (n8n)…"):
+        with st.spinner("Generating campaign + poster concepts…"):
             debug_result = call_n8n_generate_ads(
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
@@ -470,6 +605,7 @@ if status == "scraped" and not st.session_state.get("ads_autorun_done", False):
 
         # prevent infinite rerun loops even if response parsing fails
         st.session_state["ads_autorun_done"] = True
+        st.session_state["scrape_status"] = "done"
         st.rerun()
 
 if DEBUG_UI:
