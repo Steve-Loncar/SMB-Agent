@@ -460,8 +460,13 @@ elif status == "error":
     st.caption("We hit a snag scanning the site — please try again in a moment.")
 
 sp = st.session_state.get("scrape_pack")
-tiers = _extract_urls_by_tier(sp or {})
-homepage_md = _extract_homepage_markdown(sp or {})
+pack = _extract_pack_summary(sp or {})
+tiers = {
+    0: [pack.get("homepage_url", "")] if pack.get("homepage_url") else [],
+    1: pack.get("tier1_urls", []) or [],
+    2: pack.get("tier2_urls", []) or [],
+}
+homepage_md = pack.get("homepage_markdown", "") or ""
 
 # Persist a clean "pack" for downstream steps (summariser, snippet mining, concept gen, etc.)
 if sp and not st.session_state.get("scrape_pack_pack"):
@@ -520,20 +525,23 @@ if status == "queued":
             # If n8n responds with a clean JSON payload, store it as scrape_pack too
             resp_json = debug.get("_n8n_response_json")
             if isinstance(resp_json, list) and resp_json:
-                # Two possible shapes:
-                #  A) list[page_obj, page_obj, ...]           <-- what your scrape-pack returns
-                #  B) list[{ scrape_pack: [...] , ... }]      <-- legacy "allIncomingItems" wrapper
-                if (
-                    len(resp_json) == 1
-                    and isinstance(resp_json[0], dict)
-                    and (
-                        "scrape_pack" in resp_json[0]
-                        or "pages" in resp_json[0]
-                    )
-                ):
-                    st.session_state["scrape_pack"] = resp_json[0]
+                # Three possible shapes:
+                #  A) list[page_obj, page_obj, ...]   (old scrape-pack)
+                #  B) list[{ scrape_pack:[...]}]      (legacy wrapper)
+                #  C) list[{ homepage_url, tier1_urls, tier2_urls, homepage_markdown, ... }] (NEW Set-node payload)
+                if len(resp_json) == 1 and isinstance(resp_json[0], dict):
+                    item0 = resp_json[0]
+                    if (
+                        "homepage_url" in item0
+                        and "tier1_urls" in item0
+                        and "tier2_urls" in item0
+                    ):
+                        st.session_state["scrape_pack"] = item0
+                    elif ("scrape_pack" in item0) or ("pages" in item0):
+                        st.session_state["scrape_pack"] = item0
+                    else:
+                        st.session_state["scrape_pack"] = resp_json
                 else:
-                    # Keep the full list so downstream can extract logos across pages
                     st.session_state["scrape_pack"] = resp_json
             elif isinstance(resp_json, dict):
                 st.session_state["scrape_pack"] = resp_json
