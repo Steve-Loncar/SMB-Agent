@@ -1,0 +1,11 @@
+Business website: {url}
+
+Business summary:
+Name: {name_guess}
+Category: {category}
+Value prop: {value_prop}
+Target customer: {target_customer}
+Tone: {tone}
+
+Tier 1 page URLs to analyse:
+{tier1_urls}

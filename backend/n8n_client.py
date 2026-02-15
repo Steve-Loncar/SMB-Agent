@@ -1,10 +1,20 @@
 import os
+import pathlib
 import requests
 from typing import Any, Dict, Literal, Optional
 
+# Prompt text files live alongside the package root
+_PROMPTS_DIR = pathlib.Path(__file__).resolve().parent.parent / "prompts"
+
+
+def _load_prompt(filename: str) -> str:
+    """Load a prompt .txt file from the prompts/ directory."""
+    path = _PROMPTS_DIR / filename
+    return path.read_text(encoding="utf-8").strip()
+
 
 Mode = Literal["TEST", "LIVE"]
-Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs"]
+Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise"]
 
 
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
@@ -36,6 +46,10 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
             ("scrape_pack", "LIVE"): "N8N_SCRAPE_PACK_URL_LIVE",
             ("check_text_blobs", "TEST"): "N8N_CHECK_TEXT_BLOBS_URL_TEST",
             ("check_text_blobs", "LIVE"): "N8N_CHECK_TEXT_BLOBS_URL_LIVE",
+            ("homepage_summarise", "TEST"): "N8N_HOMEPAGE_SUMMARISE_URL_TEST",
+            ("homepage_summarise", "LIVE"): "N8N_HOMEPAGE_SUMMARISE_URL_LIVE",
+            ("tier1_summarise", "TEST"): "N8N_TIER1_SUMMARISE_URL_TEST",
+            ("tier1_summarise", "LIVE"): "N8N_TIER1_SUMMARISE_URL_LIVE",
         }
         env_key = env_map[(endpoint, mode)]
         explicit = (os.getenv(env_key) or "").strip()
@@ -52,6 +66,10 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
                 ("scrape_pack", "LIVE"): "/webhook/scrape-pack",
                 ("check_text_blobs", "TEST"): "/webhook-test/check-text-blobs",
                 ("check_text_blobs", "LIVE"): "/webhook/check-text-blobs",
+                ("homepage_summarise", "TEST"): "/webhook-test/SMB-homepage-summarise",
+                ("homepage_summarise", "LIVE"): "/webhook/SMB-homepage-summarise",
+                ("tier1_summarise", "TEST"): "/webhook-test/SMB-tier1-summariser",
+                ("tier1_summarise", "LIVE"): "/webhook/SMB-tier1-summariser",
             }
             target_url = base + paths[(endpoint, mode)]
 
@@ -191,6 +209,130 @@ def call_n8n_check_text_blobs(
         "payload_type": "smb_check_text_blobs",
         "url": url,
         "scrape_pack": scrape_pack,
+    }
+
+    req_timeout = (10, 180)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
+
+    result: Dict[str, Any] = {}
+    result["_debug_target_url"] = target_url
+    result["_debug_payload_sent"] = payload
+    result["_debug_http_status"] = resp.status_code
+    result["_debug_final_url"] = resp.url
+    result["_debug_resp_headers"] = dict(resp.headers)
+    result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
+    result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
+
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
+        return result
+
+    try:
+        if (resp.text or "").strip():
+            result["_n8n_response_json"] = resp.json()
+    except Exception:
+        pass
+
+    return result
+
+
+def call_n8n_homepage_summarise(
+    *,
+    url: str,
+    homepage_markdown: str,
+    mode: Mode = "TEST",
+    webhook_url: Optional[str] = None,
+) -> dict:
+    """
+    POST homepage markdown to n8n /SMB-homepage-summarise.
+    Returns business summary (name_guess, category, value_prop, target_customer, tone).
+    """
+    target_url = resolve_n8n_webhook("homepage_summarise", mode, override_url=webhook_url)
+    headers = _tender_headers()
+
+    user_template = _load_prompt("smb_homepage_summarise_user.txt")
+    prompt_user = user_template.format(
+        url=url,
+        homepage_markdown=(homepage_markdown or "")[:30000],
+    )
+
+    payload = {
+        "payload_type": "smb_homepage_summarise",
+        "url": url,
+        "homepage_markdown": (homepage_markdown or "")[:30000],
+        "prompt_system": _load_prompt("smb_homepage_summarise_system.txt"),
+        "prompt_user": prompt_user,
+    }
+
+    req_timeout = (10, 120)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
+
+    result: Dict[str, Any] = {}
+    result["_debug_target_url"] = target_url
+    result["_debug_payload_sent"] = {**payload, "homepage_markdown": f"({len(payload['homepage_markdown'])} chars)"}
+    result["_debug_http_status"] = resp.status_code
+    result["_debug_final_url"] = resp.url
+    result["_debug_resp_headers"] = dict(resp.headers)
+    result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
+    result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
+
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
+        return result
+
+    try:
+        if (resp.text or "").strip():
+            result["_n8n_response_json"] = resp.json()
+    except Exception:
+        pass
+
+    return result
+
+
+def call_n8n_tier1_summarise(
+    *,
+    url: str,
+    tier1_urls: list[str],
+    business_summary: dict,
+    mode: Mode = "TEST",
+    webhook_url: Optional[str] = None,
+) -> dict:
+    """
+    POST tier 1 URLs + business summary to n8n /SMB-tier1-summariser.
+    Returns page_summaries: [{page_url, page_title, ad_snippets: [str, ...]}, ...]
+    """
+    target_url = resolve_n8n_webhook("tier1_summarise", mode, override_url=webhook_url)
+    headers = _tender_headers()
+
+    bs = business_summary or {}
+    user_template = _load_prompt("smb_tier1_summarise_user.txt")
+    prompt_user = user_template.format(
+        url=url,
+        name_guess=bs.get("name_guess", ""),
+        category=bs.get("category", ""),
+        value_prop=bs.get("value_prop", ""),
+        target_customer=bs.get("target_customer", ""),
+        tone=bs.get("tone", ""),
+        tier1_urls="\n".join(tier1_urls or []),
+    )
+
+    payload = {
+        "payload_type": "smb_tier1_summarise",
+        "url": url,
+        "tier1_urls": tier1_urls or [],
+        "business_summary": bs,
+        "prompt_system": _load_prompt("smb_tier1_summarise_system.txt"),
+        "prompt_user": prompt_user,
     }
 
     req_timeout = (10, 180)

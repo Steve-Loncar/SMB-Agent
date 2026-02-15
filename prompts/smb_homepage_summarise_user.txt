@@ -1,0 +1,4 @@
+Business website: {url}
+
+Homepage content:
+{homepage_markdown}
