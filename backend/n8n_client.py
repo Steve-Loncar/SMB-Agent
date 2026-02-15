@@ -5,8 +5,7 @@ from typing import Any, Dict, Literal, Optional
 
 def _load_prompt(filename: str) -> str:
     """Load a prompt .txt file from the prompts/ directory."""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "prompts", filename)
-    with open(path, encoding="utf-8") as f:
+    with open(os.path.join("prompts", filename), encoding="utf-8") as f:
         return f.read().strip()
 
 
