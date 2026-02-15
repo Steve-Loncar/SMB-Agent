@@ -299,13 +299,17 @@ def call_n8n_tier1_summarise(
     *,
     url: str,
     tier1_urls: list[str],
+    tier2_urls: list[str] = None,
+    tier1_page_summaries: list[dict] = None,
     business_summary: dict,
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
     POST tier 1 URLs + business summary to n8n /SMB-tier1-summariser.
-    Returns page_summaries: [{page_url, page_title, ad_snippets: [str, ...]}, ...]
+    Also sends tier2_urls and decision prompts so the workflow can
+    optionally scrape high-value tier 2 pages.
+    Returns page_summaries + optional tier2_page_summaries + tier2_decision.
     """
     target_url = resolve_n8n_webhook("tier1_summarise", mode, override_url=webhook_url)
     headers = _tender_headers()
@@ -322,13 +326,37 @@ def call_n8n_tier1_summarise(
         tier1_urls="\n".join(tier1_urls or []),
     )
 
+    # Build a summary of existing snippets for the tier 2 decision agent
+    snippets_summary = ""
+    for ps in (tier1_page_summaries or []):
+        if isinstance(ps, dict):
+            title = ps.get("page_title", "")
+            snips = ps.get("ad_snippets", [])
+            if snips:
+                snippets_summary += f"{title}: {'; '.join(str(s) for s in snips)}\n"
+
+    decision_user_template = _load_prompt("smb_tier2_decision_user.txt")
+    decision_prompt_user = decision_user_template.format(
+        url=url,
+        name_guess=bs.get("name_guess", ""),
+        category=bs.get("category", ""),
+        value_prop=bs.get("value_prop", ""),
+        target_customer=bs.get("target_customer", ""),
+        tone=bs.get("tone", ""),
+        tier1_snippets_summary=snippets_summary or "(none yet — tier 1 extraction in progress)",
+        tier2_urls="\n".join(tier2_urls or []),
+    )
+
     payload = {
         "payload_type": "smb_tier1_summarise",
         "url": url,
         "tier1_urls": tier1_urls or [],
+        "tier2_urls": tier2_urls or [],
         "business_summary": bs,
         "prompt_system": _load_prompt("smb_tier1_summarise_system.txt"),
         "prompt_user": prompt_user,
+        "decision_prompt_system": _load_prompt("smb_tier2_decision_system.txt"),
+        "decision_prompt_user": decision_prompt_user,
     }
 
     req_timeout = (10, 180)

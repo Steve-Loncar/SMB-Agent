@@ -1,0 +1,16 @@
+Business website: {url}
+
+Business summary:
+Name: {name_guess}
+Category: {category}
+Value prop: {value_prop}
+Target customer: {target_customer}
+Tone: {tone}
+
+Ad snippets already extracted from key pages:
+{tier1_snippets_summary}
+
+Tier 2 URLs to evaluate:
+{tier2_urls}
+
+Based on what we already know from the homepage and key pages, which of these tier 2 URLs (if any) are likely to contain additional advertising material worth scraping?

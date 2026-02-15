@@ -334,6 +334,8 @@ st.session_state.setdefault("homepage_summarise_debug", None)
 st.session_state.setdefault("tier1_summarise_done", False)
 st.session_state.setdefault("tier1_summarise_debug", None)
 st.session_state.setdefault("tier1_page_summaries", [])
+st.session_state.setdefault("tier2_page_summaries", [])
+st.session_state.setdefault("tier2_decision", {})
 
 
 def _run_check_text_blobs_now(*, target_url: str) -> None:
@@ -477,6 +479,8 @@ with st.sidebar:
         st.session_state["tier1_summarise_done"] = False
         st.session_state["tier1_summarise_debug"] = None
         st.session_state["tier1_page_summaries"] = []
+        st.session_state["tier2_page_summaries"] = []
+        st.session_state["tier2_decision"] = {}
         st.switch_page("pages/01_home.py")
 
 target_url = st.session_state.get("target_url", "")
@@ -666,16 +670,19 @@ if status == "summarising" and not st.session_state.get("tier1_summarise_done", 
     tier1_urls = pack.get("tier1_urls", []) or []
     bs = st.session_state.get("business_summary", {}) or {}
 
+    tier2_urls = pack.get("tier2_urls", []) or []
+
     with st.spinner("Reviewing your key pages for advertising material..."):
         t1_debug = call_n8n_tier1_summarise(
             url=target_url,
             tier1_urls=tier1_urls,
+            tier2_urls=tier2_urls,
             business_summary=bs,
             mode=st.session_state.get("n8n_mode", "TEST"),
         )
     st.session_state["tier1_summarise_debug"] = t1_debug
 
-    # Hydrate tier1_page_summaries from response
+    # Hydrate tier1_page_summaries + optional tier2 results from response
     resp_json = t1_debug.get("_n8n_response_json")
     try:
         if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
@@ -684,6 +691,13 @@ if status == "summarising" and not st.session_state.get("tier1_summarise_done", 
             ps = resp_json.get("page_summaries")
             if isinstance(ps, list):
                 st.session_state["tier1_page_summaries"] = ps
+            # Tier 2 results (if the decision agent chose to scrape)
+            t2ps = resp_json.get("tier2_page_summaries")
+            if isinstance(t2ps, list) and t2ps:
+                st.session_state["tier2_page_summaries"] = t2ps
+            t2d = resp_json.get("tier2_decision")
+            if isinstance(t2d, dict):
+                st.session_state["tier2_decision"] = t2d
     except Exception:
         pass
 
@@ -843,6 +857,35 @@ if isinstance(_page_summaries, list) and _page_summaries:
             f'</div>'
         )
         st.markdown(card_html, unsafe_allow_html=True)
+
+# --- Tier 2 decision + results ---
+_t2_decision = st.session_state.get("tier2_decision", {})
+_t2_summaries = st.session_state.get("tier2_page_summaries", [])
+if isinstance(_t2_decision, dict) and _t2_decision:
+    st.divider()
+    if _t2_decision.get("should_scrape") and isinstance(_t2_summaries, list) and _t2_summaries:
+        st.subheader("Additional page highlights")
+        st.caption(f"Our agent decided to review deeper pages: {_t2_decision.get('reasoning', '')}")
+        st.markdown(_highlight_css, unsafe_allow_html=True)
+        for ps in _t2_summaries:
+            if not isinstance(ps, dict):
+                continue
+            p_title = ps.get("page_title", "")
+            p_url = ps.get("page_url", "")
+            snippets = ps.get("ad_snippets", [])
+            if not isinstance(snippets, list):
+                snippets = []
+            snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
+            card_html = (
+                f'<div class="highlight-card">'
+                f'<div class="page-title">{p_title}</div>'
+                f'<div class="page-url"><a href="{p_url}" target="_blank">{p_url}</a></div>'
+                f'<ul>{snippet_html or "<li>No snippets extracted.</li>"}</ul>'
+                f'</div>'
+            )
+            st.markdown(card_html, unsafe_allow_html=True)
+    else:
+        st.caption(f"Deeper pages reviewed — none needed. {_t2_decision.get('reasoning', '')}")
 
 st.divider()
 
