@@ -1,0 +1,22 @@
+Client URL:
+{url}
+
+Business summary (derived from homepage + snippets):
+{business_summary_json}
+
+Homepage markdown (may be truncated):
+{homepage_markdown}
+
+Tier page snippets (Tier 1 + Tier 2 if available):
+{page_snippets}
+
+Available image URLs (may be empty):
+{image_urls}
+
+Task:
+1) Propose 3–5 campaign platforms (each a distinct message angle).
+2) For each platform, produce 2–4 poster concepts.
+3) Ground each platform in evidence (quote or paraphrase snippets; do not invent claims).
+4) Explain why each platform works for OOH and why it fits the brand tone.
+
+Output JSON only in the required schema.

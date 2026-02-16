@@ -784,13 +784,33 @@ if status == "summarising" and not st.session_state.get("ads_autorun_done", Fals
         st.session_state["scraped_text"] = txt
         st.session_state["scraped_images"] = urls
 
+    # Prefer homepage_markdown from scrape-pack V2 payload if available
+    homepage_md = st.session_state.get("homepage_markdown") or ""
+    sp = st.session_state.get("scrape_pack")
+    if not homepage_md and isinstance(sp, dict):
+        homepage_md = sp.get("homepage_markdown") or ""
+        if homepage_md:
+            st.session_state["homepage_markdown"] = homepage_md
+
+    # Combine tier1 + tier2 snippets (these exist if tier1_summarise ran)
+    all_page_summaries = []
+    t1 = st.session_state.get("tier1_page_summaries") or []
+    t2 = st.session_state.get("tier2_page_summaries") or []
+    if isinstance(t1, list):
+        all_page_summaries.extend([x for x in t1 if isinstance(x, dict)])
+    if isinstance(t2, list):
+        all_page_summaries.extend([x for x in t2 if isinstance(x, dict)])
+
     can_autorun = bool(st.session_state.get("scraped_text"))
     if can_autorun:
         with st.spinner("Creating your campaign concepts..."):
             debug_result = call_n8n_generate_ads(
+                url=target_url,
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
-                url=target_url,
+                homepage_markdown=homepage_md,
+                page_summaries=all_page_summaries,
+                business_summary=st.session_state.get("business_summary") or {},
                 mode=st.session_state.get("n8n_mode", "TEST"),
             )
         st.session_state["ads_debug"] = debug_result

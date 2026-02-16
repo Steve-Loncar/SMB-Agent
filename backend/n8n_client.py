@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 from typing import Any, Dict, Literal, Optional
@@ -90,10 +91,13 @@ def _tender_headers() -> dict:
 
 
 def call_n8n_generate_ads(
-    scraped_text: str,
-    image_urls: list[str],
-    url: str,
     *,
+    url: str,
+    scraped_text: str = "",
+    image_urls: list[str] | None = None,
+    homepage_markdown: str = "",
+    page_summaries: list[dict] | None = None,
+    business_summary: dict | None = None,
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
@@ -111,24 +115,52 @@ def call_n8n_generate_ads(
     # 1) Decide URL from single source of truth
     target_url = resolve_n8n_webhook("generate_ads", mode, override_url=webhook_url)
 
-    # 2) Build a flat, boring payload
+    # Format page snippets into a readable block (same pattern as homepage_summarise)
+    snippets_text = ""
+    for ps in (page_summaries or []):
+        if not isinstance(ps, dict):
+            continue
+        title = ps.get("page_title", "")
+        p_url = ps.get("page_url", "")
+        snips = ps.get("ad_snippets", [])
+        if not isinstance(snips, list):
+            snips = []
+        snip_lines = "\n".join(f"  - {s}" for s in snips if isinstance(s, str) and s.strip())
+        if title or snip_lines:
+            snippets_text += f"\n{title} ({p_url})\n{snip_lines}\n"
+
+    user_template = _load_prompt("smb_generate_ads_user.txt")
+    prompt_user = user_template.format(
+        url=url,
+        business_summary_json=json.dumps(business_summary or {}, ensure_ascii=False, indent=2),
+        homepage_markdown=(homepage_markdown or "")[:30000],
+        page_snippets=snippets_text.strip() if snippets_text.strip() else "(no tier snippets provided)",
+        image_urls=json.dumps(image_urls or [], ensure_ascii=False),
+    )
+
     payload = {
-        "payload_type": "smb_ad_agent_test",
+        "payload_type": "smb_generate_ads_v2",
         "url": url,
-        # IMPORTANT: match what SMB_scrape.json references in n8n ({{$json.scraped_text}})
-        # Keep it bounded to avoid huge payloads while debugging.
+        # Keep legacy fields for backward compatibility / debugging
         "scraped_text": (scraped_text or "")[:20000],
         "scraped_text_len": len(scraped_text or ""),
-        "image_count": len(image_urls or []),
+        "sample_text": (scraped_text or "")[:500],
+        # New, richer inputs
+        "homepage_markdown": (homepage_markdown or "")[:30000],
+        "page_summaries": page_summaries or [],
+        "business_summary": business_summary or {},
         "image_urls": image_urls or [],
-        "sample_text": (scraped_text or "")[:500],  # keep for quick inspection
+        "image_count": len(image_urls or []),
+        # Prompts (consistent with other workflows)
+        "prompt_system": _load_prompt("smb_generate_ads_system.txt"),
+        "prompt_user": prompt_user,
     }
 
     # EXACT Tender-style headers (no Accept)
     headers = _tender_headers()
 
     # EXACT Tender-style timeout shape: (connect, read)
-    req_timeout = (10, 60)
+    req_timeout = (10, 180)
     resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
     # Build result with debug fields first
