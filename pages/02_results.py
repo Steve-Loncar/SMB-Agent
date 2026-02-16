@@ -615,12 +615,6 @@ if status == "queued":
                 ]
 
             st.session_state["scrape_status"] = "scraped"
-
-            # OPTIONAL / REQUESTED: run the AI 2nd pass immediately after scrape-pack returns
-            # (still allows manual re-run via sidebar button without re-scraping).
-            if not st.session_state.get("check_text_blobs_autorun_done", False):
-                _run_check_text_blobs_now(target_url=target_url)
-
             st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
