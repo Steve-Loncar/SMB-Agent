@@ -1,0 +1,2569 @@
+{
+  "id": "bFnqPWlHETdyqL82",
+  "name": "write_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d107082a-0829-455a-afc3-675865ef8d02",
+              "leftValue": "={{ $json.headers['x-webhook-secret'] }}",
+              "rightValue": "WIBBLE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        352
+      ],
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"unauthorized\",\n  \"error\": \"Invalid or missing X-Webhook-Secret header\",\n  \"received_secret\": \"={{$json['headers']['x-webhook-secret'] || 'none'}}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        160,
+        640
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        608,
+        448
+      ],
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "write_agent",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        352
+      ],
+      "name": "Webhook1",
+      "webhookId": "df5ae05f-fd36-48d4-a1ba-907349816ba4"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2113893541,
+          "mode": "list",
+          "cachedResultName": "Nodes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=2113893541"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "node_id": "={{ $json.node_id }}",
+            "path": "={{ $json.path }}",
+            "display_name": "={{ $json.display_name }}",
+            "level": "={{ $json.level }}",
+            "parent_id": "={{ $json.parent_id }}",
+            "segment_fy15_revenue_usd_bn": "={{ $json.segment_fy15_revenue_usd_bn }}",
+            "segment_fy20_revenue_usd_bn": "={{ $json.segment_fy20_revenue_usd_bn }}",
+            "segment_fy21_revenue_usd_bn": "={{ $json.segment_fy21_revenue_usd_bn }}",
+            "segment_fy22_revenue_usd_bn": "={{ $json.segment_fy22_revenue_usd_bn }}",
+            "segment_fy23_revenue_usd_bn": "={{ $json.segment_fy23_revenue_usd_bn }}",
+            "segment_fy24_revenue_usd_bn": "={{ $json.segment_fy24_revenue_usd_bn }}",
+            "segment_fy25_revenue_usd_bn": "={{ $json.segment_fy25_revenue_usd_bn }}",
+            "segment_fy15_ebitda_usd_bn": "={{ $json.segment_fy15_ebitda_usd_bn }}",
+            "segment_fy20_ebitda_usd_bn": "={{ $json.segment_fy20_ebitda_usd_bn }}",
+            "segment_fy21_ebitda_usd_bn": "={{ $json.segment_fy21_ebitda_usd_bn }}",
+            "segment_fy22_ebitda_usd_bn": "={{ $json.segment_fy22_ebitda_usd_bn }}",
+            "segment_fy23_ebitda_usd_bn": "={{ $json.segment_fy23_ebitda_usd_bn }}",
+            "segment_fy24_ebitda_usd_bn": "={{ $json.segment_fy24_ebitda_usd_bn }}",
+            "segment_fy25_ebitda_usd_bn": "={{ $json.segment_fy25_ebitda_usd_bn }}",
+            "segment_fy15_ebitda_margin_pct": "={{ $json.segment_fy15_ebitda_margin_pct }}",
+            "segment_fy20_ebitda_margin_pct": "={{ $json.segment_fy20_ebitda_margin_pct }}",
+            "segment_fy21_ebitda_margin_pct": "={{ $json.segment_fy21_ebitda_margin_pct }}",
+            "segment_fy22_ebitda_margin_pct": "={{ $json.segment_fy22_ebitda_margin_pct }}",
+            "segment_fy23_ebitda_margin_pct": "={{ $json.segment_fy23_ebitda_margin_pct }}",
+            "segment_fy24_ebitda_margin_pct": "={{ $json.segment_fy24_ebitda_margin_pct }}",
+            "segment_fy25_ebitda_margin_pct": "={{ $json.segment_fy25_ebitda_margin_pct }}",
+            "financial_commentary": "={{ $json.financial_commentary }}",
+            "financial_sources": "={{ $json.financial_sources }}",
+            "player_commentary": "={{ $json.player_commentary }}",
+            "player_sources": "={{ $json.player_sources }}",
+            "segment_fy16_revenue_usd_bn": "={{ $json.segment_fy16_revenue_usd_bn }}",
+            "segment_fy17_revenue_usd_bn": "={{ $json.segment_fy17_revenue_usd_bn }}",
+            "segment_fy18_revenue_usd_bn": "={{ $json.segment_fy18_revenue_usd_bn }}",
+            "segment_fy19_revenue_usd_bn": "={{ $json.segment_fy19_revenue_usd_bn }}",
+            "segment_fy16_ebitda_usd_bn": "={{ $json.segment_fy16_ebitda_usd_bn }}",
+            "segment_fy17_ebitda_usd_bn": "={{ $json.segment_fy17_ebitda_usd_bn }}",
+            "segment_fy18_ebitda_usd_bn": "={{ $json.segment_fy18_ebitda_usd_bn }}",
+            "segment_fy19_ebitda_usd_bn": "={{ $json.segment_fy19_ebitda_usd_bn }}",
+            "segment_fy16_ebitda_margin_pct": "={{ $json.segment_fy16_ebitda_margin_pct }}",
+            "segment_fy17_ebitda_margin_pct": "={{ $json.segment_fy17_ebitda_margin_pct }}",
+            "segment_fy18_ebitda_margin_pct": "={{ $json.segment_fy18_ebitda_margin_pct }}",
+            "segment_fy19_ebitda_margin_pct": "={{ $json.segment_fy19_ebitda_margin_pct }}",
+            "proxy_commentary": "={{ $json.proxy_commentary }}",
+            "methodology_summary": "={{ $json.methodology_summary }}",
+            "scope_context": "={{ $json.scope_context }}",
+            "extra_node_context": "={{ $json.extra_node_context }}",
+            "taxonomy_reference": "={{ $json.taxonomy_reference }}",
+            "source_count_financial": "={{ $json.source_count_financial }}",
+            "source_count_player": "={{ $json.source_count_player }}",
+            "confidence_overall": "={{ $json.confidence_overall }}",
+            "reviewer": "={{ $json.reviewer }}",
+            "model_name": "={{ $json.model_name }}",
+            "temperature": "={{ $json.temperature }}",
+            "max_tokens": "={{ $json.max_tokens }}",
+            "query_depth": "={{ $json.query_depth }}",
+            "token_input": "={{ $json.token_input }}",
+            "token_output": "={{ $json.token_output }}",
+            "token_cost_usd": "={{ $json.token_cost_usd }}",
+            "latency_sec": "={{ $json.latency_sec }}",
+            "prompt_hash": "={{ $json.prompt_hash }}",
+            "context_hash": "={{ $json.context_hash }}",
+            "execution_env": "={{ $json.execution_env }}",
+            "timestamp_utc": "={{ $json.timestamp_utc }}",
+            "run_id": "={{ $json.run_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node_id",
+              "displayName": "node_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "path",
+              "displayName": "path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "display_name",
+              "displayName": "display_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy15_revenue_usd_bn",
+              "displayName": "segment_fy15_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy16_revenue_usd_bn",
+              "displayName": "segment_fy16_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy17_revenue_usd_bn",
+              "displayName": "segment_fy17_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy18_revenue_usd_bn",
+              "displayName": "segment_fy18_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy19_revenue_usd_bn",
+              "displayName": "segment_fy19_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy20_revenue_usd_bn",
+              "displayName": "segment_fy20_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy21_revenue_usd_bn",
+              "displayName": "segment_fy21_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy22_revenue_usd_bn",
+              "displayName": "segment_fy22_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy23_revenue_usd_bn",
+              "displayName": "segment_fy23_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy24_revenue_usd_bn",
+              "displayName": "segment_fy24_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy25_revenue_usd_bn",
+              "displayName": "segment_fy25_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy15_ebitda_usd_bn",
+              "displayName": "segment_fy15_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy16_ebitda_usd_bn",
+              "displayName": "segment_fy16_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy17_ebitda_usd_bn",
+              "displayName": "segment_fy17_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy18_ebitda_usd_bn",
+              "displayName": "segment_fy18_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy19_ebitda_usd_bn",
+              "displayName": "segment_fy19_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy20_ebitda_usd_bn",
+              "displayName": "segment_fy20_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy21_ebitda_usd_bn",
+              "displayName": "segment_fy21_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy22_ebitda_usd_bn",
+              "displayName": "segment_fy22_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy23_ebitda_usd_bn",
+              "displayName": "segment_fy23_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy24_ebitda_usd_bn",
+              "displayName": "segment_fy24_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy25_ebitda_usd_bn",
+              "displayName": "segment_fy25_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy15_ebitda_margin_pct",
+              "displayName": "segment_fy15_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy16_ebitda_margin_pct",
+              "displayName": "segment_fy16_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy17_ebitda_margin_pct",
+              "displayName": "segment_fy17_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy18_ebitda_margin_pct",
+              "displayName": "segment_fy18_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy19_ebitda_margin_pct",
+              "displayName": "segment_fy19_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "segment_fy20_ebitda_margin_pct",
+              "displayName": "segment_fy20_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy21_ebitda_margin_pct",
+              "displayName": "segment_fy21_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy22_ebitda_margin_pct",
+              "displayName": "segment_fy22_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy23_ebitda_margin_pct",
+              "displayName": "segment_fy23_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy24_ebitda_margin_pct",
+              "displayName": "segment_fy24_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_fy25_ebitda_margin_pct",
+              "displayName": "segment_fy25_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "financial_commentary",
+              "displayName": "financial_commentary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "financial_sources",
+              "displayName": "financial_sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_commentary",
+              "displayName": "player_commentary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_sources",
+              "displayName": "player_sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_commentary",
+              "displayName": "proxy_commentary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "methodology_summary",
+              "displayName": "methodology_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scope_context",
+              "displayName": "scope_context",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "extra_node_context",
+              "displayName": "extra_node_context",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "taxonomy_reference",
+              "displayName": "taxonomy_reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_count_financial",
+              "displayName": "source_count_financial",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_count_player",
+              "displayName": "source_count_player",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence_overall",
+              "displayName": "confidence_overall",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reviewer",
+              "displayName": "reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "model_name",
+              "displayName": "model_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "temperature",
+              "displayName": "temperature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "max_tokens",
+              "displayName": "max_tokens",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "query_depth",
+              "displayName": "query_depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "token_input",
+              "displayName": "token_input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "token_output",
+              "displayName": "token_output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "token_cost_usd",
+              "displayName": "token_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "latency_sec",
+              "displayName": "latency_sec",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prompt_hash",
+              "displayName": "prompt_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "context_hash",
+              "displayName": "context_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_env",
+              "displayName": "execution_env",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp_utc",
+              "displayName": "timestamp_utc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy00_revenue_usd_bn",
+              "displayName": "segment_fy00_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy05_revenue_usd_bn",
+              "displayName": "segment_fy05_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy10_revenue_usd_bn",
+              "displayName": "segment_fy10_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy00_ebitda_usd_bn",
+              "displayName": "segment_fy00_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy05_ebitda_usd_bn",
+              "displayName": "segment_fy05_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy10_ebitda_usd_bn",
+              "displayName": "segment_fy10_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy00_ebitda_margin_pct",
+              "displayName": "segment_fy00_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy05_ebitda_margin_pct",
+              "displayName": "segment_fy05_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "segment_fy10_ebitda_margin_pct",
+              "displayName": "segment_fy10_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        448
+      ],
+      "name": "Append row in NODES sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "527afd56-a5e4-4d91-a31f-3a65f0f2598d",
+              "name": "node_id",
+              "value": "={{ $json.body.nodes_row.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "de38e787-ad55-4871-80ec-dacb4119a529",
+              "name": "path",
+              "value": "={{ $json.body.nodes_row.path }}",
+              "type": "string"
+            },
+            {
+              "id": "631c9dde-df28-42dc-ae71-12ca23f63d4e",
+              "name": "display_name",
+              "value": "={{ $json.body.nodes_row.display_name }}",
+              "type": "string"
+            },
+            {
+              "id": "8a6977b4-4cd4-4a13-989b-911c1e9e29a6",
+              "name": "level",
+              "value": "={{ $json.body.nodes_row.level }}",
+              "type": "string"
+            },
+            {
+              "id": "4a290a67-d670-4ed9-a088-6e06324cd98a",
+              "name": "parent_id",
+              "value": "={{ $json.body.nodes_row.parent_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d6b8d4e7-5149-4df9-8faf-ce964d88680a",
+              "name": "segment_fy15_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy15_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "fdafd6b4-01b6-4b8b-8ff6-f44e8ef95b4d",
+              "name": "segment_fy16_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy16_revenue_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "e67f6a7d-b905-4457-a507-e55321e74594",
+              "name": "segment_fy17_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy17_revenue_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "20a4e339-4237-4ae4-a5b4-fd04959a2383",
+              "name": "segment_fy18_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy18_revenue_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "33e8f1a5-4aa5-4cee-b01f-5fd7f7dc7769",
+              "name": "segment_fy19_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy19_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "7f4a8502-c0a3-4aa2-bd79-e9d05ad9fb9e",
+              "name": "segment_fy20_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy20_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "2719d33a-57ec-4be8-9225-2e785e5ac5a3",
+              "name": "segment_fy21_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy21_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "309394c0-0097-4875-806e-2b8d2d58870e",
+              "name": "segment_fy22_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy22_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "5201c51d-0469-427f-aa1c-23a101713979",
+              "name": "segment_fy23_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy23_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "b3deb6bd-9604-4367-936b-05fa3a53aca3",
+              "name": "segment_fy24_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy24_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "fb8921d3-35ff-41c6-834d-7c8d1088a697",
+              "name": "segment_fy25_revenue_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy25_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "8fa05ca7-1ed2-4165-8b2c-af89785d1ab1",
+              "name": "segment_fy15_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy15_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "b82b0a85-cbe4-44e0-9e35-ec11cc199395",
+              "name": "segment_fy16_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy16_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "76e5ef10-8032-4b10-a733-c22991a605f0",
+              "name": "segment_fy17_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy17_ebitda_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "0a0f6110-8f92-499e-a427-1d4af05dc61f",
+              "name": "segment_fy18_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy18_ebitda_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "3b48f322-efcc-47a0-b46f-c085c08ada12",
+              "name": "segment_fy19_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy19_ebitda_usd_bn }}",
+              "type": "string"
+            },
+            {
+              "id": "3696b7cf-5a79-4823-9c32-1803cb85d02d",
+              "name": "segment_fy20_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy20_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "dcb41202-d563-4ade-802b-de03c6de119e",
+              "name": "segment_fy21_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy21_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "0da9778c-a2a3-4f38-8b41-4cf8b19f9ed7",
+              "name": "segment_fy22_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy22_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "a9fd9145-3bc6-49a6-9fe9-5a04c35ce23a",
+              "name": "segment_fy23_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy23_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "f28277c5-6b20-41eb-813b-ddc37502cc98",
+              "name": "segment_fy24_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy24_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "43c50e54-5a6f-4e3c-81ef-6179ac1eec5a",
+              "name": "segment_fy25_ebitda_usd_bn",
+              "value": "={{ $json.body.nodes_row.segment_fy25_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "58a24956-ab8f-4635-99a6-842494541a67",
+              "name": "segment_fy15_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy15_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "8bec83ee-3770-4921-937d-5781d4da9172",
+              "name": "segment_fy16_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy16_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "b18a98b8-4f74-4d7c-a991-fcc54508c0e6",
+              "name": "segment_fy17_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy17_ebitda_margin_pct }}",
+              "type": "string"
+            },
+            {
+              "id": "af8d716a-9ff7-4674-94ce-38e5ea514126",
+              "name": "segment_fy18_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy18_ebitda_margin_pct }}",
+              "type": "string"
+            },
+            {
+              "id": "94577bf1-8caf-46f1-b480-f6ce9dcd0f3f",
+              "name": "segment_fy19_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy19_ebitda_margin_pct }}",
+              "type": "string"
+            },
+            {
+              "id": "74241856-012d-4389-bf80-a90e45de9dc3",
+              "name": "segment_fy20_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy20_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "58ea3365-984b-45be-a8a9-d943bd89cc99",
+              "name": "segment_fy21_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy21_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "6e96f869-f54a-415d-aef4-6aaec3fc0c9d",
+              "name": "segment_fy22_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy22_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "22c30372-217e-4aae-be02-37645bf6147c",
+              "name": "segment_fy23_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy23_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "ee46582d-5608-431f-9006-78a4aa3144c7",
+              "name": "segment_fy24_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy24_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "435ee94e-c2cf-421c-b4b8-1de6170a8c36",
+              "name": "segment_fy25_ebitda_margin_pct",
+              "value": "={{ $json.body.nodes_row.segment_fy25_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "63db29bf-06c8-45ef-86b3-3aed7e60a208",
+              "name": "financial_commentary",
+              "value": "={{ $json.body.nodes_row.financial_commentary }}",
+              "type": "string"
+            },
+            {
+              "id": "a4b3757a-5c45-427a-ada6-fc565ab4c2f0",
+              "name": "financial_sources",
+              "value": "={{ $json.body.nodes_row.financial_sources }}",
+              "type": "string"
+            },
+            {
+              "id": "838276cc-ddb4-43f4-96dc-0214cc53c519",
+              "name": "player_commentary",
+              "value": "={{ $json.body.nodes_row.player_commentary }}",
+              "type": "string"
+            },
+            {
+              "id": "2c4c7e31-b358-4a14-b371-afe64d6393b3",
+              "name": "player_sources",
+              "value": "={{ $json.body.nodes_row.player_sources }}",
+              "type": "string"
+            },
+            {
+              "id": "ccc51685-bc64-413a-b259-97643c406ac7",
+              "name": "proxy_commentary",
+              "value": "={{ $json.body.nodes_row.proxy_commentary }}",
+              "type": "string"
+            },
+            {
+              "id": "7a9c5bdf-bb01-4e03-8cf5-7800e9011f8c",
+              "name": "methodology_summary",
+              "value": "={{ $json.body.nodes_row.methodology_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "79f2ac81-2702-4d61-858d-ccdc62beb699",
+              "name": "scope_context",
+              "value": "={{ $json.body.nodes_row.scope_context }}",
+              "type": "string"
+            },
+            {
+              "id": "17cb4492-dedf-4cc2-9017-97f531fbd4af",
+              "name": "extra_node_context",
+              "value": "={{ $json.body.nodes_row.extra_node_context }}",
+              "type": "string"
+            },
+            {
+              "id": "ff534221-58ed-4fc5-bd59-9806de851d41",
+              "name": "taxonomy_reference",
+              "value": "={{ $json.body.nodes_row.taxonomy_reference }}",
+              "type": "string"
+            },
+            {
+              "id": "22ba7531-f444-4f8d-9fd6-912532283cbd",
+              "name": "source_count_financial",
+              "value": "={{ $json.body.nodes_row.source_count_financial }}",
+              "type": "number"
+            },
+            {
+              "id": "92ee6e2b-efd7-49eb-8494-0ea546d08da2",
+              "name": "source_count_player",
+              "value": "={{ $json.body.nodes_row.source_count_player }}",
+              "type": "number"
+            },
+            {
+              "id": "6a784842-b171-4e21-a277-ac13cd04360b",
+              "name": "confidence_overall",
+              "value": "={{ $json.body.nodes_row.confidence_overall }}",
+              "type": "number"
+            },
+            {
+              "id": "a838dbca-bd70-47e3-ada3-3a0ce638a3e4",
+              "name": "reviewer",
+              "value": "={{ $json.body.nodes_row.reviewer }}",
+              "type": "string"
+            },
+            {
+              "id": "7b2102f8-69be-4528-a0c5-b67124e81428",
+              "name": "model_name",
+              "value": "={{ $json.body.nodes_row.model_name }}",
+              "type": "string"
+            },
+            {
+              "id": "cb730495-30d4-4532-bd64-65bf0d8fef62",
+              "name": "temperature",
+              "value": "={{ $json.body.nodes_row.temperature }}",
+              "type": "number"
+            },
+            {
+              "id": "f189dc0f-3898-4d63-a190-003592dbdfff",
+              "name": "max_tokens",
+              "value": "={{ $json.body.nodes_row.max_tokens }}",
+              "type": "number"
+            },
+            {
+              "id": "b0af4c7e-8de4-44ee-b8d9-06ce2b90fc34",
+              "name": "query_depth",
+              "value": "={{ $json.body.nodes_row.query_depth }}",
+              "type": "string"
+            },
+            {
+              "id": "4970134a-d91c-4e9f-bc04-dc1bca327247",
+              "name": "token_input",
+              "value": "={{ $json.body.nodes_row.token_input }}",
+              "type": "string"
+            },
+            {
+              "id": "163b69a0-ab25-486a-982d-c124645b71bc",
+              "name": "token_output",
+              "value": "={{ $json.body.nodes_row.token_output }}",
+              "type": "string"
+            },
+            {
+              "id": "afd02ef6-9a35-439a-9ed3-608827d8b844",
+              "name": "token_cost_usd",
+              "value": "={{ $json.body.nodes_row.token_cost_usd }}",
+              "type": "string"
+            },
+            {
+              "id": "7f53b271-3404-4a3d-ba69-a8023ac6b4d1",
+              "name": "latency_sec",
+              "value": "={{ $json.body.nodes_row.latency_sec }}",
+              "type": "string"
+            },
+            {
+              "id": "471a383e-9911-47ee-bcf9-6784508a5922",
+              "name": "prompt_hash",
+              "value": "={{ $json.body.nodes_row.prompt_hash }}",
+              "type": "string"
+            },
+            {
+              "id": "ba0600ad-867b-43d1-b35f-7aba8be4003a",
+              "name": "context_hash",
+              "value": "={{ $json.body.nodes_row.context_hash }}",
+              "type": "string"
+            },
+            {
+              "id": "581b3454-9997-4876-b837-53f0c3cdd748",
+              "name": "execution_env",
+              "value": "={{ $json.body.nodes_row.execution_env }}",
+              "type": "string"
+            },
+            {
+              "id": "7852342c-351f-417d-a401-045f9c3b2c22",
+              "name": "timestamp_utc",
+              "value": "={{ $json.body.nodes_row.timestamp_utc }}",
+              "type": "string"
+            },
+            {
+              "id": "114a4c0b-f941-4b6b-863e-9fc2f8bd2342",
+              "name": "run_id",
+              "value": "={{ $json.body.nodes_row.run_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        448
+      ],
+      "name": "Edit Fields NODES"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6eba30f5-fe0b-43e3-a293-a0b997681358",
+              "name": "players",
+              "value": "={{ $json.body.players_rows }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        256
+      ],
+      "name": "Set Array PLAYERS"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1511770275,
+          "mode": "list",
+          "cachedResultName": "Players",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=1511770275"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "node_id": "={{ $json.node_id }}",
+            "path": "={{ $json.path }}",
+            "rank": "={{ $json.rank }}",
+            "name": "={{ $json.name }}",
+            "country": "={{ $json.country }}",
+            "type": "={{ $json.type }}",
+            "player_fy23_revenue_usd_bn": "={{ $json.player_fy23_revenue_usd_bn }}",
+            "player_fy24_revenue_usd_bn": "={{ $json.player_fy24_revenue_usd_bn }}",
+            "player_fy25_revenue_usd_bn": "={{ $json.player_fy25_revenue_usd_bn }}",
+            "player_fy23_ebitda_usd_bn": "={{ $json.player_fy23_ebitda_usd_bn }}",
+            "player_fy24_ebitda_usd_bn": "={{ $json.player_fy24_ebitda_usd_bn }}",
+            "player_fy25_ebitda_usd_bn": "={{ $json.player_fy25_ebitda_usd_bn }}",
+            "player_fy23_ebitda_margin_pct": "={{ $json.player_fy23_ebitda_margin_pct }}",
+            "player_fy24_ebitda_margin_pct": "={{ $json.player_fy24_ebitda_margin_pct }}",
+            "player_fy25_ebitda_margin_pct": "={{ $json.player_fy25_ebitda_margin_pct }}",
+            "confidence_score": "={{ $json.confidence_score }}",
+            "attribution_basis": "={{ $json.attribution_basis }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node_id",
+              "displayName": "node_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "path",
+              "displayName": "path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rank",
+              "displayName": "rank",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy23_revenue_usd_bn",
+              "displayName": "player_fy23_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy24_revenue_usd_bn",
+              "displayName": "player_fy24_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy25_revenue_usd_bn",
+              "displayName": "player_fy25_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy23_ebitda_usd_bn",
+              "displayName": "player_fy23_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy24_ebitda_usd_bn",
+              "displayName": "player_fy24_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy25_ebitda_usd_bn",
+              "displayName": "player_fy25_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy23_ebitda_margin_pct",
+              "displayName": "player_fy23_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy24_ebitda_margin_pct",
+              "displayName": "player_fy24_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "player_fy25_ebitda_margin_pct",
+              "displayName": "player_fy25_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence_score",
+              "displayName": "confidence_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attribution_basis",
+              "displayName": "attribution_basis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        256
+      ],
+      "name": "Append row in PLAYERS sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b4b3ad9c-a3c4-491e-90a0-d4a424a4486b",
+              "name": "proxies",
+              "value": "={{ $json.body.proxies_rows }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        64
+      ],
+      "name": "Set Array PROXIES"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ec7599d-bd78-4e1c-a0e3-afde15fd8c40",
+              "name": "node_id",
+              "value": "={{ $json.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1c906387-21c0-464a-a24f-af8bef7ace5b",
+              "name": "path",
+              "value": "={{ $json.path }}",
+              "type": "string"
+            },
+            {
+              "id": "45e4fb3f-21e8-4439-9b44-2985ee2fad37",
+              "name": "rank",
+              "value": "={{ $json.rank }}",
+              "type": "number"
+            },
+            {
+              "id": "8e890955-7b24-4d50-8a90-7c6defc25875",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4d268c92-9324-4b12-8c30-7681a7b037c9",
+              "name": "country",
+              "value": "={{ $json.country }}",
+              "type": "string"
+            },
+            {
+              "id": "012fa09f-87f3-4b17-98c5-e54303ce585f",
+              "name": "type",
+              "value": "={{ $json.type }}",
+              "type": "string"
+            },
+            {
+              "id": "ff0962e6-7d50-458d-89df-9bd9d5bb3f54",
+              "name": "player_fy23_revenue_usd_bn",
+              "value": "={{ $json.player_fy23_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "271d06c8-47e2-4370-93fa-741d53c4339b",
+              "name": "player_fy24_revenue_usd_bn",
+              "value": "={{ $json.player_fy24_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "c73786f3-d5b5-4d86-8090-d069493a4444",
+              "name": "player_fy25_revenue_usd_bn",
+              "value": "={{ $json.player_fy25_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "c4e29c15-bee9-4b19-a520-8b08c9fddf79",
+              "name": "player_fy23_ebitda_usd_bn",
+              "value": "={{ $json.player_fy23_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "adffc167-931f-4548-b713-d031d27c8a1d",
+              "name": "player_fy24_ebitda_usd_bn",
+              "value": "={{ $json.player_fy24_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "40136fd5-7c5f-4b35-a5e4-8fe775dd7159",
+              "name": "player_fy25_ebitda_usd_bn",
+              "value": "={{ $json.player_fy25_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "7dbd7b5c-6d9a-40d3-a2cf-f0af273fb18e",
+              "name": "player_fy23_ebitda_margin_pct",
+              "value": "={{ $json.player_fy23_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "cd593799-6e4f-4517-a5f1-80971d86cb00",
+              "name": "player_fy24_ebitda_margin_pct",
+              "value": "={{ $json.player_fy24_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "3ffeba1c-eb16-4bc6-810a-650536eba920",
+              "name": "player_fy25_ebitda_margin_pct",
+              "value": "={{ $json.player_fy25_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "ab885aa2-618f-45ff-a0ab-2708e3d3eb91",
+              "name": "confidence_score",
+              "value": "={{ $json.confidence_score }}",
+              "type": "number"
+            },
+            {
+              "id": "904eb148-1179-4e5d-96d6-b7e0fe5ab62a",
+              "name": "attribution_basis",
+              "value": "={{ $json.attribution_basis }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        256
+      ],
+      "name": "match fields to column names"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ec7599d-bd78-4e1c-a0e3-afde15fd8c40",
+              "name": "node_id",
+              "value": "={{ $json.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8e890955-7b24-4d50-8a90-7c6defc25875",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "4d268c92-9324-4b12-8c30-7681a7b037c9",
+              "name": "country",
+              "value": "={{ $json.country }}",
+              "type": "string"
+            },
+            {
+              "id": "012fa09f-87f3-4b17-98c5-e54303ce585f",
+              "name": "type",
+              "value": "={{ $json.type }}",
+              "type": "string"
+            },
+            {
+              "id": "20337b9b-9fd0-4f26-8000-f690dead2b44",
+              "name": "proxy_reason",
+              "value": "={{ $json.proxy_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "7e652cad-500f-44ef-949c-ea6a4dcfaaac",
+              "name": "proxy_fy23_revenue_usd_bn",
+              "value": "={{ $json.proxy_fy23_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "ef834a74-bb5b-4bf4-ba99-620295edaf45",
+              "name": "proxy_fy24_revenue_usd_bn",
+              "value": "={{ $json.proxy_fy24_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "e64086d8-84f0-45ca-8135-4f1b4e0f8517",
+              "name": "proxy_fy25_revenue_usd_bn",
+              "value": "={{ $json.proxy_fy25_revenue_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "483c4d65-2a5b-4ff8-91f8-fe16ad8613a4",
+              "name": "proxy_fy23_ebitda_usd_bn",
+              "value": "={{ $json.proxy_fy23_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "dca6315b-d675-4732-ad6b-e83f4ab307af",
+              "name": "proxy_fy25_ebitda_usd_bn",
+              "value": "={{ $json.proxy_fy25_ebitda_usd_bn }}",
+              "type": "number"
+            },
+            {
+              "id": "3c9d5d49-e91d-40b1-9310-59f81b839f80",
+              "name": "proxy_fy23_ebitda_margin_pct",
+              "value": "={{ $json.proxy_fy23_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "94248406-a786-42b9-ae60-7cda12896cf9",
+              "name": "proxy_fy24_ebitda_margin_pct",
+              "value": "={{ $json.proxy_fy24_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "f8f8763e-8de0-4c57-a88e-862a92368092",
+              "name": "proxy_fy25_ebitda_margin_pct",
+              "value": "={{ $json.proxy_fy25_ebitda_margin_pct }}",
+              "type": "number"
+            },
+            {
+              "id": "baabfb9e-fb81-4923-a80a-f3ef40891aee",
+              "name": "confidence_score",
+              "value": "={{ $json.confidence_score }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        64
+      ],
+      "name": "match fields to column names1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 76418493,
+          "mode": "list",
+          "cachedResultName": "Proxies",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=76418493"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "node_id": "={{ $json.node_id }}",
+            "name": "={{ $json.name }}",
+            "country": "={{ $json.country }}",
+            "type": "={{ $json.type }}",
+            "proxy_reason": "={{ $json.proxy_reason }}",
+            "proxy_fy23_revenue_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy23_revenue_usd_bn }}",
+            "proxy_fy24_revenue_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy24_revenue_usd_bn }}",
+            "proxy_fy25_revenue_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy25_revenue_usd_bn }}",
+            "proxy_fy23_ebitda_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy23_ebitda_usd_bn }}",
+            "proxy_fy24_ebitda_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy24_ebitda_usd_bn }}",
+            "proxy_fy25_ebitda_usd_bn": "={{ $('Split PROXIES').item.json.proxy_fy25_ebitda_usd_bn }}",
+            "proxy_fy23_ebitda_margin_pct": "={{ $('Split PROXIES').item.json.proxy_fy23_ebitda_margin_pct }}",
+            "proxy_fy24_ebitda_margin_pct": "={{ $('Split PROXIES').item.json.proxy_fy24_ebitda_margin_pct }}",
+            "proxy_fy25_ebitda_margin_pct": "={{ $('Split PROXIES').item.json.proxy_fy25_ebitda_margin_pct }}",
+            "confidence_score": "={{ $('Split PROXIES').item.json.confidence_score }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "node_id",
+              "displayName": "node_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_reason",
+              "displayName": "proxy_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy23_revenue_usd_bn",
+              "displayName": "proxy_fy23_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy24_revenue_usd_bn",
+              "displayName": "proxy_fy24_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy25_revenue_usd_bn",
+              "displayName": "proxy_fy25_revenue_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy23_ebitda_usd_bn",
+              "displayName": "proxy_fy23_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy24_ebitda_usd_bn",
+              "displayName": "proxy_fy24_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy25_ebitda_usd_bn",
+              "displayName": "proxy_fy25_ebitda_usd_bn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy23_ebitda_margin_pct",
+              "displayName": "proxy_fy23_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy24_ebitda_margin_pct",
+              "displayName": "proxy_fy24_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proxy_fy25_ebitda_margin_pct",
+              "displayName": "proxy_fy25_ebitda_margin_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence_score",
+              "displayName": "confidence_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        64
+      ],
+      "name": "Append row in PROXIES sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "becefc8b-e1b4-4ddb-b8f6-cf49a9966c74",
+              "name": "evidence_list",
+              "value": "={{ $json.body.evidence_rows }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -96
+      ],
+      "name": "Set Array EVIDENCE"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "proxies",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        384,
+        64
+      ],
+      "name": "Split PROXIES"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "players",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        384,
+        256
+      ],
+      "name": "Split Out PLAYERS"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "evidence_list",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -96
+      ],
+      "name": "Split EVIDENCE"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c71f5b5-fc78-4a1c-8ed8-79f888156dd7",
+              "name": "run_id",
+              "value": "={{ $('Webhook1').item.json.body.nodes_row.run_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0ea03532-3caf-4fdc-a709-4aa6abfedf83",
+              "name": "node_id",
+              "value": "={{ $json.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b1100c34-c1ae-4578-b51e-944a61ab4d06",
+              "name": "evidence_id",
+              "value": "={{ $json.evidence_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8966a9f2-b312-428c-8e6f-b822a2d30407",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "fe24dc70-4735-4a6c-8cf1-db9cb3f3d329",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "4cf5559d-c935-43fc-acf4-5b2e70544b4f",
+              "name": "type",
+              "value": "={{ $json.type }}",
+              "type": "string"
+            },
+            {
+              "id": "2beec885-603d-4114-833b-4fb76cdd6220",
+              "name": "snippet",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "ce40dfa7-e6e2-423d-b34b-dadc35acbcc0",
+              "name": "confidence_score",
+              "value": "={{ $json.confidence_score }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        -96
+      ],
+      "name": "match fields to column names2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 581569137,
+          "mode": "list",
+          "cachedResultName": "Evidence",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=581569137"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "node_id": "={{ $json.node_id }}",
+            "evidence_id": "={{ $json.evidence_id }}",
+            "title": "={{ $json.title }}",
+            "url": "={{ $json.url }}",
+            "type": "={{ $json.type }}",
+            "snippet": "={{ $json.snippet }}",
+            "confidence_score": "={{ $json.confidence_score }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "node_id",
+              "displayName": "node_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evidence_id",
+              "displayName": "evidence_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "snippet",
+              "displayName": "snippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence_score",
+              "displayName": "confidence_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        -96
+      ],
+      "name": "Append row in EVIDENCE sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6c71f5b5-fc78-4a1c-8ed8-79f888156dd7",
+              "name": "run_id",
+              "value": "={{ $('Webhook1').item.json.body.nodes_row.run_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0ea03532-3caf-4fdc-a709-4aa6abfedf83",
+              "name": "node_id",
+              "value": "={{ $json.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "24a3dcff-9ea7-47ca-8715-05d5cbd783ab",
+              "name": "field",
+              "value": "={{ $json.field }}",
+              "type": "string"
+            },
+            {
+              "id": "47f47ef3-fab8-4fe3-a28e-18f352b856ca",
+              "name": "supported_by",
+              "value": "={{ $json.supported_by }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        -240
+      ],
+      "name": "match fields to column names3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "becefc8b-e1b4-4ddb-b8f6-cf49a9966c74",
+              "name": "evidence_map",
+              "value": "={{ $json.body.evidence_map_rows }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -240
+      ],
+      "name": "Set Array EVIDENCE MAP"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "evidence_map",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -240
+      ],
+      "name": "Split EVIDENCE MAP"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1043555364,
+          "mode": "list",
+          "cachedResultName": "Evidence_Map",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=1043555364"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}",
+            "node_id": "={{ $json.node_id }}",
+            "field": "={{ $json.field }}",
+            "supported_by": "={{ $json.supported_by }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "node_id",
+              "displayName": "node_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "field",
+              "displayName": "field",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supported_by",
+              "displayName": "supported_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        -240
+      ],
+      "name": "Append row in EVIDENCE MAP sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields NODES",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Array PLAYERS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Array PROXIES",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Array EVIDENCE",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Set Array EVIDENCE MAP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in NODES sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields NODES": {
+      "main": [
+        [
+          {
+            "node": "Append row in NODES sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Array PLAYERS": {
+      "main": [
+        [
+          {
+            "node": "Split Out PLAYERS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Array PROXIES": {
+      "main": [
+        [
+          {
+            "node": "Split PROXIES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "match fields to column names": {
+      "main": [
+        [
+          {
+            "node": "Append row in PLAYERS sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "match fields to column names1": {
+      "main": [
+        [
+          {
+            "node": "Append row in PROXIES sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split PROXIES": {
+      "main": [
+        [
+          {
+            "node": "match fields to column names1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out PLAYERS": {
+      "main": [
+        [
+          {
+            "node": "match fields to column names",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Array EVIDENCE": {
+      "main": [
+        [
+          {
+            "node": "Split EVIDENCE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split EVIDENCE": {
+      "main": [
+        [
+          {
+            "node": "match fields to column names2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "match fields to column names2": {
+      "main": [
+        [
+          {
+            "node": "Append row in EVIDENCE sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "match fields to column names3": {
+      "main": [
+        [
+          {
+            "node": "Append row in EVIDENCE MAP sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Array EVIDENCE MAP": {
+      "main": [
+        [
+          {
+            "node": "Split EVIDENCE MAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split EVIDENCE MAP": {
+      "main": [
+        [
+          {
+            "node": "match fields to column names3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}

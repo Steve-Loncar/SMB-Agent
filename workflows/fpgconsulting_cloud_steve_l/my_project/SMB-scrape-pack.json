@@ -1,0 +1,627 @@
+{
+  "id": "MOC3yN0C7ke04nM4",
+  "name": "SMB-scrape-pack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scrape-pack",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        3616,
+        880
+      ],
+      "name": "Webhook",
+      "webhookId": "8f48c91d-fd36-44fb-8f81-35cbf52dec3f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0ad2736-0bbd-4552-907f-80f7547b7284",
+              "name": "url",
+              "value": "={{ $json.body?.url ?? $json.url ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "53782b23-ba50-4857-b1fa-53e491fb7063",
+              "name": "max_pages",
+              "value": "={{ $json.body?.max_pages ?? $json.max_pages ?? 3 }}",
+              "type": "string"
+            },
+            {
+              "id": "fe1861c1-f02c-4e65-aaca-8fbe80016ecf",
+              "name": "depth",
+              "value": "={{ $json.body?.depth ?? $json.depth ?? \"homepage_plus\" }}",
+              "type": "string"
+            },
+            {
+              "id": "69e35f08-45bb-41ed-976b-974e3967ce32",
+              "name": "payload_type",
+              "value": "={{ $json.body?.payload_type ?? $json.payload_type ?? \"smb_scrape_pack\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4064,
+        880
+      ],
+      "name": "Normalise"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 400,
+          "responseKey": "={{ $json.error }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4960,
+        976
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56a60055-4d68-4b27-8f2e-efc508666766",
+              "name": "root_origin",
+              "value": "={{ $json.url.replace(/^https?:\\/\\//i,'').split('/')[0].toLowerCase() }}\n",
+              "type": "string"
+            },
+            {
+              "id": "7ed055d6-e7f5-46fe-8dba-cab9ebaf0b55",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4288,
+        880
+      ],
+      "name": "Root origin (canonical)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node — Run Once for All Items\n// Cloud-safe: no require(), does NOT depend on global URL being present.\n// Uses Firecrawl's `data.links` when available. Falls back to parsing markdown/html for links.\n\n// ============================================================================\n// STRING + URL PARSING (NO global URL dependency)\n// ============================================================================\n\nfunction normStr(s) {\n  return (s ?? \"\")\n    .toString()\n    .trim()\n    .replace(/[\\u200B-\\u200D\\uFEFF]/g, \"\")  // strip zero-width chars\n    .replace(/[\\u0000-\\u001F\\u007F]/g, \"\"); // strip control chars\n}\n\nfunction asArray(x) {\n  if (!x) return [];\n  return Array.isArray(x) ? x : [x];\n}\n\nfunction stripHashAny(urlStr) {\n  const s = normStr(urlStr);\n  const i = s.indexOf(\"#\");\n  return i >= 0 ? s.slice(0, i) : s;\n}\n\nfunction isBadScheme(href) {\n  const h = (href ?? \"\").toString().toLowerCase();\n  return h.startsWith(\"mailto:\") || h.startsWith(\"tel:\") || h.startsWith(\"javascript:\") || h.startsWith(\"data:\");\n}\n\n// Parse only what we need (origin/hostname/path/query) via regex.\nfunction parseHttpUrlParts(u) {\n  const s = normStr(u);\n  const m = /^(https?):\\/\\/([^\\/?#]+)(\\/[^?#]*)?(\\?[^#]*)?(#.*)?$/i.exec(s);\n  if (!m) return null;\n  const scheme = m[1].toLowerCase();\n  const hostname = m[2];\n  const pathname = m[3] || \"/\";\n  const search = m[4] || \"\";\n  const hash = m[5] || \"\";\n  const origin = `${scheme}://${hostname}`;\n  return { href: `${origin}${pathname}${search}${hash}`, origin, hostname, pathname, search, hash, scheme };\n}\n\nfunction stripTrackingParamsString(urlStr) {\n  // very small + safe: remove common tracking params; keeps other params\n  const parts = parseHttpUrlParts(urlStr);\n  if (!parts) return urlStr;\n\n  const qs = parts.search || \"\";\n  if (!qs || qs === \"?\") return `${parts.origin}${parts.pathname}`;\n\n  const raw = qs.startsWith(\"?\") ? qs.slice(1) : qs;\n  const pairs = raw.split(\"&\").filter(Boolean);\n\n  const drop = new Set([\"utm_source\",\"utm_medium\",\"utm_campaign\",\"utm_term\",\"utm_content\",\"gclid\",\"fbclid\"]);\n  const kept = [];\n  for (const p of pairs) {\n    const k = (p.split(\"=\")[0] || \"\").trim();\n    if (!drop.has(k)) kept.push(p);\n  }\n\n  const newQs = kept.length ? `?${kept.join(\"&\")}` : \"\";\n  return `${parts.origin}${parts.pathname}${newQs}`;\n}\n\nfunction canonicalizeNoURL(urlStr) {\n  const s = normStr(urlStr);\n  const parts = parseHttpUrlParts(s);\n  if (!parts) return s;\n\n  // normalize trailing slash (except root)\n  let path = parts.pathname || \"/\";\n  if (path !== \"/\" && /\\/+$/.test(path)) path = path.replace(/\\/+$/, \"\");\n\n  const rebuilt = `${parts.origin}${path}${parts.search || \"\"}`;\n  const noTrack = stripTrackingParamsString(rebuilt);\n  return noTrack;\n}\n\nfunction isAssetPath(pathname) {\n  return /\\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|rar|7z|mp4|mov|avi|mp3|wav|doc|docx|xls|xlsx|ppt|pptx|css|js)$/i.test(pathname || \"\");\n}\n\nfunction isJunkPath(path) {\n  const p = (path || \"\").toLowerCase();\n  return (\n    p.includes(\"/wp-json\") ||\n    p.includes(\"/cdn-cgi/\") ||\n    p.includes(\"/cart\") ||\n    p.includes(\"/checkout\") ||\n    p.includes(\"/login\") ||\n    p.includes(\"/account\") ||\n    p.includes(\"/privacy\") ||\n    p.includes(\"/terms\") ||\n    p.includes(\"/cookie\") ||\n    p.includes(\"/sitemap\") ||\n    p.includes(\"/feed\")\n  );\n}\n\n// Very small resolver for relative URLs if they appear (Firecrawl usually gives absolute).\nfunction resolveMaybeRelative(href, baseOrigin) {\n  const h = normStr(href);\n  const b = normStr(baseOrigin);\n\n  if (!h) return null;\n\n  // already absolute http(s)\n  if (/^https?:\\/\\//i.test(h)) return h;\n\n  // protocol-relative\n  if (h.startsWith(\"//\") && /^https?:\\/\\//i.test(b)) {\n    const base = parseHttpUrlParts(b);\n    if (!base) return null;\n    return `${base.scheme}:${h}`;\n  }\n\n  // absolute path\n  if (h.startsWith(\"/\") && /^https?:\\/\\//i.test(b)) {\n    const base = parseHttpUrlParts(b);\n    if (!base) return null;\n    return `${base.origin}${h}`;\n  }\n\n  // plain relative: just join to origin + \"/\"\n  const base = parseHttpUrlParts(b);\n  if (!base) return null;\n  const joined = `${base.origin}/${h.replace(/^\\.?\\//, \"\")}`;\n  return joined;\n}\n\nfunction takeN(arr, n) { return arr.slice(0, n); }\n\n// ============================================================================\n// SCORING / BUCKETING\n// ============================================================================\n\nconst KW = {\n  about: [\"about\",\"who-we-are\",\"our-story\",\"company\",\"team\",\"our-team\",\"meet-the-team\",\"leadership\",\"values\",\"mission\"],\n  services: [\"services\",\"service\",\"what-we-do\",\"solutions\",\"treatments\",\"repairs\",\"maintenance\",\"install\",\"installation\",\"book\",\"booking\",\"classes\",\"workshops\"],\n  shop: [\"shop\",\"store\",\"products\",\"product\",\"menu\",\"order\",\"buy\",\"catalog\",\"catalogue\",\"collection\",\"product-category\"],\n  contact: [\"contact\",\"get-in-touch\",\"reach-us\",\"find-us\",\"location\",\"locations\",\"directions\",\"call\",\"email\"],\n  proof: [\"testimonials\",\"reviews\",\"case-studies\",\"case-study\",\"portfolio\",\"projects\",\"gallery\",\"work\",\"clients\"],\n};\n\nfunction scoreUrl(urlStr) {\n  const parts = parseHttpUrlParts(urlStr);\n  if (!parts) return { score: 0, bucket: \"other\" };\n\n  const full = parts.href.toLowerCase();\n  const path = (parts.pathname || \"\").toLowerCase();\n\n  let score = 0;\n  let bucket = \"other\";\n\n  // Hard bucket rules\n  // 1. Contact page priority (highest)\n  if (path === \"/contact\" || path.startsWith(\"/contact/\")) {\n    bucket = \"contact\";\n    score += 120;\n  }\n  \n  // 2. Shop bucket (only if still 'other')\n  if (bucket === \"other\" && (path.startsWith(\"/product-category/\") || path.startsWith(\"/product/\") || path === \"/shop\" || path.startsWith(\"/shop/\"))) {\n    bucket = \"shop\";\n    score += 60;\n  } else if (path.includes(\"/our-shops\") || path.includes(\"/locations\") || path.includes(\"/find-us\")) {\n    bucket = \"contact\";\n    score += 50;\n  } else if ((path.includes(\"class\") || path.includes(\"booking\") || path.includes(\"book\")) && bucket !== \"contact\") {\n    bucket = \"services\";\n    score += 40;\n  }\n\n  const addIfMatch = (bucketName, kws, pts) => {\n    for (const k of kws) {\n      if (path.includes(k) || full.includes(`/${k}`)) {\n        score += pts;\n        if (bucket === \"other\") bucket = bucketName;\n        break;\n      }\n    }\n  };\n\n  addIfMatch(\"contact\", KW.contact, 80);\n  addIfMatch(\"services\", KW.services, 70);\n  addIfMatch(\"about\", KW.about, 60);\n  addIfMatch(\"shop\", KW.shop, 55);\n  addIfMatch(\"proof\", KW.proof, 50);\n\n  // prefer shallower URLs\n  const depth = path.split(\"/\").filter(Boolean).length;\n  score += Math.max(0, 20 - depth * 4);\n\n  // penalize lots of query params\n  const qpCount = parts.search ? parts.search.slice(1).split(\"&\").filter(Boolean).length : 0;\n  score -= Math.max(0, qpCount) * 4;\n\n  if (isJunkPath(path)) score -= 50;\n\n  return { score, bucket };\n}\n\n// ============================================================================\n// LINK EXTRACTION (PREFER firecrawlData.links)\n// ============================================================================\n\nfunction extractLinksFromMarkdown(md) {\n  const s = normStr(md);\n  if (!s) return [];\n  // markdown links: [text](url)\n  const re = /\\[[^\\]]*\\]\\(([^)]+)\\)/g;\n  const out = [];\n  let m;\n  while ((m = re.exec(s)) !== null) out.push(m[1]);\n  return out;\n}\n\nfunction extractLinksFromHtml(html) {\n  const s = normStr(html);\n  if (!s) return [];\n  const re = /href=[\"']([^\"']+)[\"']/gi;\n  const out = [];\n  let m;\n  while ((m = re.exec(s)) !== null) out.push(m[1]);\n  return out;\n}\n\n// ============================================================================\n// MAIN\n// ============================================================================\n\nconst items = $input.all();\nconst out = [];\n\nfor (const item of items) {\n  const firecrawlData = item.json?.data ?? item.json ?? {};\n  const metadata = firecrawlData.metadata ?? {};\n\n  const markdown = normStr(firecrawlData.markdown);\n  const html = normStr(firecrawlData.html);\n\n  const inputUrl =\n    normStr(metadata.url) ||\n    normStr(metadata.ogUrl) ||\n    normStr(metadata.sourceURL) ||\n    normStr(item.json?.url);\n\n  const baseParts = parseHttpUrlParts(stripHashAny(inputUrl));\n  if (!baseParts) {\n    out.push({\n      json: {\n        ok: false,\n        error: { code: \"bad_url\", message: \"Could not parse URL\", url: inputUrl },\n        debug: { inputUrl }\n      }\n    });\n    continue;\n  }\n\n  const baseOrigin = baseParts.origin;\n  const baseHostname = baseParts.hostname;\n\n  // 1) Prefer Firecrawl links output (your setup shows it returns `data.links`)\n  let rawLinks = firecrawlData.links ?? firecrawlData?.data?.links ?? [];\n  rawLinks = asArray(rawLinks);\n\n  // 2) If empty, fallback to markdown links, then html hrefs\n  let fallbackUsed = false;\n  if (rawLinks.length === 0) {\n    const mdLinks = extractLinksFromMarkdown(markdown);\n    const htmlLinks = extractLinksFromHtml(html);\n    rawLinks = [...mdLinks, ...htmlLinks];\n    fallbackUsed = true;\n  }\n\n  // Normalize, resolve (if relative), filter\n  const seen = new Set();\n  const candidates = [];\n\n  const rejected = {\n    badScheme: 0,\n    notHttp: 0,\n    couldntParse: 0,\n    originMismatch: 0,\n    asset: 0,\n    dup: 0,\n  };\n\n  for (const hrefRaw of rawLinks) {\n    const href = normStr(hrefRaw);\n    if (!href || isBadScheme(href)) { rejected.badScheme++; continue; }\n\n    const resolved = resolveMaybeRelative(href, baseOrigin);\n    if (!resolved) { rejected.notHttp++; continue; }\n\n    const parts = parseHttpUrlParts(stripHashAny(resolved));\n    if (!parts) { rejected.couldntParse++; continue; }\n\n    // same hostname only (stronger than origin when sites flip http/https in weird cases)\n    if (parts.hostname !== baseHostname) { rejected.originMismatch++; continue; }\n\n    if (isAssetPath(parts.pathname)) { rejected.asset++; continue; }\n\n    const canon = canonicalizeNoURL(parts.href);\n    if (seen.has(canon)) { rejected.dup++; continue; }\n    seen.add(canon);\n\n    const { score, bucket } = scoreUrl(canon);\n    candidates.push({ url: canon, bucket, score });\n  }\n\n  candidates.sort((a, b) => b.score - a.score);\n\n  // Build categorized_links first\n  const categorized_links = {\n    about: takeN(candidates.filter(c => c.bucket === \"about\").map(c => c.url), 2),\n    shop: takeN(candidates.filter(c => c.bucket === \"shop\").map(c => c.url), 2),\n    services: takeN(candidates.filter(c => c.bucket === \"services\").map(c => c.url), 2),\n    contact: takeN(candidates.filter(c => c.bucket === \"contact\").map(c => c.url), 1),\n    proof: takeN(candidates.filter(c => c.bucket === \"proof\").map(c => c.url), 2),\n    other: takeN(candidates.filter(c => c.bucket === \"other\").map(c => c.url), 3),\n  };\n\n  // Build tier1 intentionally from categorized_links buckets\n  const tier1 = [\n    ...categorized_links.about,\n    ...categorized_links.services,\n    ...categorized_links.contact,\n    ...categorized_links.proof,\n    ...categorized_links.shop\n  ];\n\n  // tier2 is everything else\n  const tier1Set = new Set(tier1);\n  const tier2 = candidates.filter(c => !tier1Set.has(c.url)).map(c => c.url);\n\n  out.push({\n    json: {\n      ok: true,\n      url: baseParts.href,\n      root_origin: baseHostname,\n\n      markdown,\n      metadata,\n\n      tier1,\n      tier2,\n      categorized_links,\n      all_internal_links: candidates.map(c => c.url),\n\n      // keep for downstream compatibility\n      hrefs: [...tier1, ...tier2].slice(0, 25),\n\n      debug: {\n        used_firecrawl_links: (firecrawlData.links ?? firecrawlData?.data?.links ?? []).length > 0,\n        fallback_used: fallbackUsed,\n        raw_links_count: rawLinks.length,\n        total_candidates: candidates.length,\n        rejected,\n        top10_scored: candidates.slice(0, 10),\n      }\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4960,
+        784
+      ],
+      "name": "Classify Internal Links"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.tier1 }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "summary"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 500,
+            "timeout": 60000,
+            "actions": {
+              "items": [
+                {}
+              ]
+            }
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        1200
+      ],
+      "name": "Scrape a URL and get content as markdown or other formats1",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "initial_tier1_tier2_scrape",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4064,
+        1200
+      ],
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tier1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3616,
+        560
+      ],
+      "name": "Split Out Tier1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tier2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3616,
+        1200
+      ],
+      "name": "Split Out Tier 2"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $('Root origin (canonical)').item.json.root_origin }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "links"
+                },
+                {
+                  "type": "html"
+                }
+              ]
+            },
+            "includeTags": {
+              "items": [
+                {
+                  "tag": "a"
+                }
+              ]
+            },
+            "excludeTags": {
+              "items": [
+                {
+                  "tag": "script,style,nav,footer"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 2000
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        4736,
+        784
+      ],
+      "name": "Scrape a URL (Home) and get content as markdown and links",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "26147915-9ffd-4848-8c90-ce1231732ec1",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3840,
+        880
+      ],
+      "name": "If (Secret Check)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "33ea8f0d-ad6d-40db-9add-704f138826ca",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4512,
+        880
+      ],
+      "name": "If (Have URL)"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.tier1 }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "summary"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 500,
+            "timeout": 60000,
+            "actions": {
+              "items": [
+                {}
+              ]
+            }
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        560
+      ],
+      "name": "Scrape a URL and get content as markdown or other formats",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "initial_tier1_tier2_scrape",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4064,
+        560
+      ],
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "581835a8-ec1b-4297-a271-c7692be8d535",
+              "name": "homepage_url",
+              "value": "={{ $('Root origin (canonical)').item.json.root_origin }}",
+              "type": "string"
+            },
+            {
+              "id": "51376586-b646-4f88-a788-ff924b79ad26",
+              "name": "homepage_markdown",
+              "value": "={{ $json.markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "375e0232-0baf-4c47-abfe-13723e6df817",
+              "name": "tier1_urls",
+              "value": "={{ $json.tier1 }}",
+              "type": "array"
+            },
+            {
+              "id": "f2309a94-7a19-4b04-86d1-6bdf70511497",
+              "name": "tier2_urls",
+              "value": "={{ $json.tier2 }}",
+              "type": "array"
+            },
+            {
+              "id": "bb011bad-5c09-4d12-84f4-40901785181e",
+              "name": "categorised_links",
+              "value": "={{ $json.categorized_links }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5184,
+        784
+      ],
+      "name": "build return scrape pack urls and home"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5b035c2f-79f8-4ace-abd1-efbbf1a23174",
+              "name": "error",
+              "value": "={{ { code: \"missing_required_field\", message: \"Missing required field: url\", missing_fields: [\"url\"] } }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4736,
+        976
+      ],
+      "name": "Return error no url"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        5392,
+        784
+      ],
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If (Secret Check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise": {
+      "main": [
+        [
+          {
+            "node": "Root origin (canonical)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Root origin (canonical)": {
+      "main": [
+        [
+          {
+            "node": "If (Have URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Internal Links": {
+      "main": [
+        [
+          {
+            "node": "build return scrape pack urls and home",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape a URL and get content as markdown or other formats1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        []
+      ]
+    },
+    "Split Out Tier 2": {
+      "main": [
+        [
+          {
+            "node": "Scrape a URL and get content as markdown or other formats1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape a URL (Home) and get content as markdown and links": {
+      "main": [
+        [
+          {
+            "node": "Classify Internal Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If (Secret Check)": {
+      "main": [
+        [
+          {
+            "node": "Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If (Have URL)": {
+      "main": [
+        [
+          {
+            "node": "Scrape a URL (Home) and get content as markdown and links",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return error no url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Tier1": {
+      "main": [
+        [
+          {
+            "node": "Scrape a URL and get content as markdown or other formats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape a URL and get content as markdown or other formats": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return error no url": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build return scrape pack urls and home": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}

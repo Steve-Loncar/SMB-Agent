@@ -1,0 +1,634 @@
+{
+  "id": "iyGLOQ3pdLH65meZ",
+  "name": "echo_status",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "echo_status",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -112
+      ],
+      "name": "Webhook Status",
+      "webhookId": "2f00ba2f-13dd-43e6-9cc5-74458f86c0ec"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+          "mode": "list",
+          "cachedResultName": "a_d_database_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 292662561,
+          "mode": "list",
+          "cachedResultName": "Echo_Results",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=292662561"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "run_id",
+              "lookupValue": "={{ $json.body.run_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        -112
+      ],
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "47e6a904-28c6-4ff2-b23a-c9652e36e56d",
+              "leftValue": "={{ $json.run_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -112
+      ],
+      "name": "If result found"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c317d44-16bd-4866-aff7-d8be72835ab5",
+              "name": "status",
+              "value": "pending",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        -16
+      ],
+      "name": "Set Pending"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0f00d022-c1f9-4862-9c44-a3c0c63d9de7",
+              "name": "status",
+              "value": "Completed",
+              "type": "string"
+            },
+            {
+              "id": "1dfd6fc5-7fef-4834-b83f-b327055d4c84",
+              "name": "run_id",
+              "value": "={{ $json.run_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5b446541-2e33-4c9f-8424-ed116ebb9b49",
+              "name": "llm_output_clean",
+              "value": "={{ $json.llm_output_clean }}",
+              "type": "string"
+            },
+            {
+              "id": "69e7e2d7-fa3d-43a4-91b4-69cdc0d9284f",
+              "name": "timestamp",
+              "value": "={{ $json.timestamp_utc }}",
+              "type": "string"
+            },
+            {
+              "id": "cacefe9e-8d01-41f2-b204-810ffc1970fc",
+              "name": "model",
+              "value": "={{ $json.model_name }}",
+              "type": "string"
+            },
+            {
+              "id": "5a5a5d6e-34af-4869-94cd-d7a0c0a66cf9",
+              "name": "node_id",
+              "value": "={{ $json.node_id }}",
+              "type": "string"
+            },
+            {
+              "id": "57e253fe-e05d-410e-bb11-657f10332aef",
+              "name": "cost_usd",
+              "value": "={{ $json.cost_usd }}",
+              "type": "number"
+            },
+            {
+              "id": "4afb50e6-500c-42df-abe2-40808383f575",
+              "name": "total_tokens",
+              "value": "={{ $json.total_tokens }}",
+              "type": "number"
+            },
+            {
+              "id": "e09a554c-2456-422c-bb59-98edd5331173",
+              "name": "qc_issues_detected",
+              "value": "={{ $json.qc_issues_detected }}",
+              "type": "string"
+            },
+            {
+              "id": "7987f520-90a2-405d-a71a-e453b3bace6e",
+              "name": "qc_issue_summaries",
+              "value": "={{ $json.qc_issue_summaries }}",
+              "type": "string"
+            },
+            {
+              "id": "72809a65-9101-47a3-9fc6-d0e968cbc1a9",
+              "name": "qc_rerun_recommended",
+              "value": "={{ $json.qc_rerun_recommended }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b7776bfc-31fe-4129-88d2-5873603a90d0",
+              "name": "qc_suggested_model",
+              "value": "={{ $json.qc_suggested_model }}",
+              "type": "string"
+            },
+            {
+              "id": "5ee32a47-9ea5-4c5e-b1c1-4afe86d47e6b",
+              "name": "qc_suggested_temperature",
+              "value": "={{ $json.qc_suggested_temperature }}",
+              "type": "number"
+            },
+            {
+              "id": "278f37b9-70e3-4dc1-b133-9c5c13497677",
+              "name": "qc_suggested_max_tokens",
+              "value": "={{ $json.qc_suggested_max_tokens }}",
+              "type": "number"
+            },
+            {
+              "id": "79cc41dc-a619-4741-8561-01a712f4b405",
+              "name": "qc_suggested_extra_context_append",
+              "value": "={{ $json.qc_suggested_extra_context_append }}",
+              "type": "string"
+            },
+            {
+              "id": "4b425fb6-d428-4e1b-a416-197b3eb97df1",
+              "name": "qc_recommended_actions",
+              "value": "={{ $json.qc_recommended_actions }}",
+              "type": "string"
+            },
+            {
+              "id": "4ba37d4e-0fba-4a7f-93af-336b9c432ddc",
+              "name": "citations",
+              "value": "={{ $json.citations }}",
+              "type": "string"
+            },
+            {
+              "id": "6909b9ef-6a0b-4654-b969-437a0c8ec38b",
+              "name": "debug_char_49000",
+              "value": "={{\n  (() => {\n    const s = $json.llm_output_clean || '';\n    if (s.length < 49000) {\n      return null;\n    }\n    return s.charCodeAt(48999); // 49000th character\n  })()\n}}\n",
+              "type": "string"
+            },
+            {
+              "id": "c4c749a2-4027-4aef-81aa-b9252d363eb0",
+              "name": "debug_slice_48980_49020",
+              "value": "={{\n  (() => {\n    const s = $json.llm_output_clean || '';\n    if (s.length < 49000) {\n      return s;\n    }\n    return s.substring(48980, 49020);\n  })()\n}}\n",
+              "type": "string"
+            },
+            {
+              "id": "11f2cda8-0ae6-4e35-8b88-28dbabc18e5d",
+              "name": "qc_strengths_summary",
+              "value": "={{ $json.qc_strengths_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "98fae474-c83b-4350-a21b-79c2e4bb5d19",
+              "name": "qc_optional_improvements",
+              "value": "={{ $json.qc_optional_improvements }}",
+              "type": "string"
+            },
+            {
+              "id": "f18077ae-bd22-4a85-88fa-dbfb72bc1338",
+              "name": "llm_output_table_raw",
+              "value": "={{ $json.llm_output_raw }}\n",
+              "type": "string"
+            },
+            {
+              "id": "23111083-ea3b-440e-b8a9-dc91f2a2011b",
+              "name": "llm_output_table_len",
+              "value": "={{ ($json.llm_output_raw || '').length }}\n",
+              "type": "number"
+            },
+            {
+              "id": "ab1a9d47-52f9-4b15-bae3-873e6b9c3011",
+              "name": "llm_output_source",
+              "value": "datatable_raw",
+              "type": "string"
+            },
+            {
+              "id": "73f9b94c-1dd6-4dca-89c2-1659e2bebe6c",
+              "name": "llm_output_table_tail_200",
+              "value": "={{ ($json.llm_output_raw || '').slice(-200) }}",
+              "type": "string"
+            },
+            {
+              "id": "aa01e799-ce90-4f58-be68-7aeedd2234c6",
+              "name": "llm_output_table_ends_with_brace",
+              "value": "={{ String((($json.llm_output_raw || '').trim().endsWith('}'))) }}",
+              "type": "string"
+            },
+            {
+              "id": "f69803f3-bc07-4ee0-b0e0-46c278c06878",
+              "name": "datatable_keys",
+              "value": "={{ Object.keys($json).join(\",\") }}",
+              "type": "string"
+            },
+            {
+              "id": "0a00d53c-370d-40df-b5ba-1733e380f81c",
+              "name": "datatable_value_len",
+              "value": "={{ String(($json.value || \"\").length) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        -176
+      ],
+      "name": "Set Completed"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ebdb493e-2055-4902-b7b5-431714697d97",
+              "name": "raw_text",
+              "value": "={{ $json.llm_output_raw }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -208
+      ],
+      "name": "1 - raw text in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6fa353f1-4d09-42da-bb88-0fa4521a2293",
+              "name": "think_block",
+              "value": "={{ $json.raw_text.match(/<think>[\\s\\S]*?<\\/think>/i) }}\n",
+              "type": "string"
+            },
+            {
+              "id": "1e886a4a-f2b9-4bb0-893a-411f2639cf81",
+              "name": "step2_no_think",
+              "value": "={{\n  ($json.raw_text || '').replace(/<think>[\\s\\S]*?<\\/think>/gi, '')\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        -208
+      ],
+      "name": "2 - split think"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6516e7f6-1427-4951-b9b7-d3dc0c8c5d8f",
+              "name": "step3_no_fences",
+              "value": "={{\n  (() => {\n    const s = $json.step2_no_think || '';\n    let t = s.trim();\n    t = t.replace(/^``````$/i, '$1');\n    t = t.replace(/^``````$/i, '$1');\n    return t.trim();\n  })()\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        -208
+      ],
+      "name": "3 - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44f768aa-c168-4fbe-b4d6-bf3b5b689f13",
+              "name": "llm_output_cleanA",
+              "value": "={{\n  (() => {\n    const s = $json.step3_no_fences || '';\n    const start = s.indexOf('{');\n    const end = s.lastIndexOf('}');\n    if (start === -1 || end === -1 || end <= start) {\n      return s.trim();\n    }\n    return s.substring(start, end + 1).trim();\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        -208
+      ],
+      "name": "4 - slice JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f53083f-f081-47ba-8c3e-8409fadd13ff",
+              "name": "llm_output_raw",
+              "value": "={{ $json.value || '' }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        -208
+      ],
+      "name": "Rebuild llm_output_raw"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "915535a7-ef59-4285-9814-68a945444bb2",
+              "name": "llm_output_clean",
+              "value": "={{\n  (() => {\n    const s = $json.llm_output_cleanA || '';\n    // Replace all ASCII control chars (0–31, 127) with safe equivalents\n    return s.replace(/[\\u0000-\\u001F\\u007F]/g, c => (c === '\\n' ? '\\\\n' : ' '));\n  })()\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -208
+      ],
+      "name": "delete non ascii"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "v4YINcHfEKJpsQqy",
+          "mode": "list",
+          "cachedResultName": "llm_json_store",
+          "cachedResultUrl": "/projects/FINYdRRpzfX9wIho/datatables/v4YINcHfEKJpsQqy"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "key",
+              "keyValue": "={{ $json.run_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -208
+      ],
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2256,
+        -64
+      ],
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Webhook Status": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If result found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If result found": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Set Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 - raw text in": {
+      "main": [
+        [
+          {
+            "node": "2 - split think",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2 - split think": {
+      "main": [
+        [
+          {
+            "node": "3 - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 - strip fences": {
+      "main": [
+        [
+          {
+            "node": "4 - slice JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4 - slice JSON": {
+      "main": [
+        [
+          {
+            "node": "delete non ascii",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rebuild llm_output_raw": {
+      "main": [
+        [
+          {
+            "node": "1 - raw text in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete non ascii": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Rebuild llm_output_raw",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Set Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}

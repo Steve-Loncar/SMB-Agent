@@ -1,0 +1,49 @@
+{
+  "id": "UbPgJiFcLukwEN8O",
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Run analysis",
+        "formDescription": "Go?",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Ready to Go?",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Go?"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "name": "On form submission",
+      "webhookId": "32e645d9-c22f-4ec0-8434-6780de4e2a68"
+    }
+  ],
+  "connections": {},
+  "settings": {},
+  "tags": [],
+  "active": false,
+  "projectId": "ODHwVtno5FQqgY06",
+  "projectName": "Steve Loncar <steve@fpgconsulting.co.uk>",
+  "homeProject": {
+    "id": "ODHwVtno5FQqgY06",
+    "name": "Steve Loncar <steve@fpgconsulting.co.uk>",
+    "type": "personal"
+  },
+  "isArchived": true
+}

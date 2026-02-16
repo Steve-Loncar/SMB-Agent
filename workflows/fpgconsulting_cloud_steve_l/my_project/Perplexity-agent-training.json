@@ -1,0 +1,349 @@
+{
+  "id": "2LjZ1nGAIOha00PS",
+  "name": "Perplexity-agent-training",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perplexity-agent-training",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        -416
+      ],
+      "name": "Webhook",
+      "webhookId": "f0af87e6-829a-4ab0-b362-bfe9a32bf3e0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={  \n  \"model\": \"sonar\",  \n  \"messages\": [  \n    { \"role\": \"system\", \"content\": \"You are a concise, helpful assistant.\" },  \n    { \"role\": \"user\", \"content\": \"{{$json['body']['question']}}\" }  \n  ],  \n  \"max_tokens\": {{ $json.body.max_tokens }},  \n  \"temperature\":  {{ $json.body.temperature }} \n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        16,
+        -416
+      ],
+      "name": "HTTP Request",
+      "alwaysOutputData": true,
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        464,
+        -416
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d5b9ed0a-a7a1-4c62-b522-b38e50c14cef",
+              "leftValue": "={{ $json.body.secret }}",
+              "rightValue": "SECRET",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        -416
+      ],
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{  \n  \"answer\": \"{{$node[\\\"HTTP Request\\\"].json[\\\"choices\\\"][0].message.content}}\"  \n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        16,
+        -224
+      ],
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1f832c6-4c00-4959-ad36-d7c0c7d69554",
+              "name": "answer",
+              "value": "={{ $json.body.choices[0].message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "c4f5efd2-0ddf-4bfb-a04a-5962789bf055",
+              "name": "sources",
+              "value": "={{ $json.body.citations }}",
+              "type": "array"
+            },
+            {
+              "id": "90cb0cfa-deb8-4194-9182-88a46e5918a0",
+              "name": "body.timestamp",
+              "value": "={{ $('If').item.json.body.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "045353ee-3ae1-4881-ac6f-e67f04e2dee4",
+              "name": "body.question",
+              "value": "={{ $('If').item.json.body.question }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -416
+      ],
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1OWRj4cxEnHRsHoPvxiVMZzpGn_ryRS4FLRuHb0-f5qY",
+          "mode": "list",
+          "cachedResultName": "Untitled spreadsheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OWRj4cxEnHRsHoPvxiVMZzpGn_ryRS4FLRuHb0-f5qY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OWRj4cxEnHRsHoPvxiVMZzpGn_ryRS4FLRuHb0-f5qY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{$json[\"timestamp\"] || new Date().toISOString()}} {{ $json.body.timestamp }}",
+            "answer": "={{ $json.answer }}",
+            "question": "={{ $json.body.question }}",
+            "sources_count": "={{ $json.sources ? $json.sources.length : 0 }}\n",
+            "sources_json": "={{ JSON.stringify($json.sources) }}",
+            "raw_response": "={{ JSON.stringify($json) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "question",
+              "displayName": "question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "answer",
+              "displayName": "answer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_count",
+              "displayName": "sources_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_json",
+              "displayName": "sources_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_response",
+              "displayName": "raw_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        -416
+      ],
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": false,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": true
+}

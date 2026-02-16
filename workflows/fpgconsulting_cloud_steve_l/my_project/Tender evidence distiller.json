@@ -1,0 +1,785 @@
+{
+  "id": "jJVUlUkXqesFrlpv",
+  "name": "Tender evidence distiller",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tender_evidence_distill",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        3584,
+        208
+      ],
+      "name": "Webhook Status",
+      "webhookId": "1aca84d0-85bc-43c7-b83d-928fee9b0019"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e519e141-61c8-4bb5-a88a-eb213de8774d",
+              "name": "tender_question",
+              "value": "={{ $json.body.tender_question || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "174d4bc4-f688-4b36-aa07-e095c1edf209",
+              "name": "distiller_prompt",
+              "value": "={{ $json.body.distiller_prompt }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "payload_type",
+              "value": "={{ $json.body.payload_type || \"tender_evidence_distill\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "payload_version",
+              "value": "={{ $json.body.payload_version || \"1.0\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "env_mode",
+              "value": "={{ $json.body.env_mode || \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "evidence_pack_id",
+              "value": "={{ $json.body.evidence_pack_id || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "authority_name",
+              "value": "={{ $json.body.authority_name || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "docs",
+              "value": "={{$json.body.docs || []}}",
+              "type": "array"
+            },
+            {
+              "id": "id-9",
+              "name": "doc_count",
+              "value": "={{ $json.body.doc_count || $json.body.docs.length || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "id-10",
+              "name": "docs_total_chars",
+              "value": "={{ $json.body.docs_total_chars || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "id-11",
+              "name": "client_timestamp_utc",
+              "value": "={{ $json.body.client_timestamp_utc || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "f4ec4e68-9145-485b-a7e2-1dab27cab958",
+              "name": "distill_enabled",
+              "value": "={{ $json.body.distill_enabled }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3808,
+        208
+      ],
+      "name": "Set Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "docs",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        4032,
+        208
+      ],
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eb6628d1-edd7-4d10-8894-9f2f3c37d206",
+              "name": "raw_content",
+              "value": "=\n{{ $json.body.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4480,
+        208
+      ],
+      "name": "raw content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3fc5fe5-3514-4fda-8397-5c33147e5b1b",
+              "name": "clean_json_string",
+              "value": "={{ \n  (($json.raw_content || $json.raw_model_content || '')).match(/\\{[\\s\\S]*\\}/)?.[0]?.trim() || ''\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4704,
+        208
+      ],
+      "name": "clean distilled json"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4963e2e5-18c6-4a24-93cb-fc8ca41546b4",
+              "name": "distilled_object",
+              "value": "={{ JSON.parse($json.clean_json_string) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4928,
+        208
+      ],
+      "name": "Parse json"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "docs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        5776,
+        208
+      ],
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        6208,
+        432
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "5G1BckTx7D5yVoHG",
+          "mode": "list",
+          "cachedResultName": "Distiller_status",
+          "cachedResultUrl": "/projects/FINYdRRpzfX9wIho/datatables/5G1BckTx7D5yVoHG"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evidence_pack_id": "={{ $json.evidence_pack_id }}",
+            "evidence_input_final": "={{ $json.evidence_input_final }}",
+            "doc_id": "={{ $json.doc_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "evidence_pack_id",
+              "displayName": "evidence_pack_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "evidence_input_final",
+              "displayName": "evidence_input_final",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "doc_id",
+              "displayName": "doc_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        5776,
+        -176
+      ],
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messages",
+              "value": "={{ [ { role: 'system', content: $json.distiller_prompt }, { role: 'user', content: 'You are processing ONE document from docs[] (n8n has split docs into items).\\nTreat this as the ONLY document available.\\n\\nEVIDENCE_PACK_ID: ' + ($json.evidence_pack_id || '') + '\\nAUTHORITY: ' + ($json.authority_name || '') + '\\nDISTILL_PROFILE: ' + ($json.distill_profile || 'balanced') + '\\n\\nTENDER_QUESTION:\\n' + ($json.tender_question || '') + '\\n\\nDOCUMENT_METADATA:\\n- doc_id: ' + ($json.docs.doc_id || '') + '\\n- title: ' + ($json.docs.title || $json.docs.filename || '') + '\\n- do_not_distill: ' + ($json.docs.do_not_distill ? 'true' : 'false') + '\\n\\nDOCUMENT_TEXT:\\n' + ($json.docs.text || '') + '\\n\\nSTRICT RULES:\\n- Use ONLY DOCUMENT_TEXT.\\n- Do NOT add external sources.\\n- Do NOT invent citations.\\n- Output JSON ONLY per the system schema.\\n- Because this is ONE document, your manifest must include exactly ONE document.\\n' } ] }}"
+            },
+            {
+              "name": "model",
+              "value": "sonar-pro"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{ 12000 }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ 0.1 }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4256,
+        208
+      ],
+      "name": "Evidence Distill Sonar Pro",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a45627ef-e8de-4ff3-b348-ad74c340e85d",
+              "name": "evidence_pack_id",
+              "value": "={{ $json.distilled_object.evidence_pack_id }}",
+              "type": "string"
+            },
+            {
+              "id": "3c6afd02-a81a-4a87-82df-e4cb81faa291",
+              "name": "evidence_input_final",
+              "value": "={{ $json.distilled_object.evidence_input_final }}",
+              "type": "string"
+            },
+            {
+              "id": "536214df-acec-43da-aa45-bd45cc03dd76",
+              "name": "documents",
+              "value": "={{ $json.distilled_object.pack_manifest.documents }}",
+              "type": "array"
+            },
+            {
+              "id": "3744dd73-dbcb-4556-aee2-a7d4972f0d97",
+              "name": "omissions",
+              "value": "={{ $json.distilled_object.pack_manifest.omissions }}",
+              "type": "array"
+            },
+            {
+              "id": "3d8b63b0-0aec-45eb-84f9-5fccdc87ecfa",
+              "name": "known_gaps",
+              "value": "={{ $json.distilled_object.pack_manifest.known_gaps }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5136,
+        208
+      ],
+      "name": "Tidy output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69e94542-b3d6-4393-90c2-f9e8852ce3ea",
+              "name": "doc_id",
+              "value": "={{ $json.documents.doc_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f303931d-eecf-449f-a174-91132be37cd3",
+              "name": "title",
+              "value": "={{ $json.documents.title }}",
+              "type": "string"
+            },
+            {
+              "id": "8be73b67-2d8f-4944-80d9-c823001fa81c",
+              "name": "do_not_distill",
+              "value": "={{ $json.documents.do_not_distill }}",
+              "type": "boolean"
+            },
+            {
+              "id": "d0d2d72f-0afc-4f82-8bd6-be56c5745d73",
+              "name": "included_as",
+              "value": "={{ $json.documents.included_as }}",
+              "type": "string"
+            },
+            {
+              "id": "6297a794-7ac2-4967-b3aa-88c60361f0c4",
+              "name": "evidence_pack_id",
+              "value": "={{ $json.evidence_pack_id }}",
+              "type": "string"
+            },
+            {
+              "id": "bc31daf9-3fe5-46d6-b889-45bc6605b6d7",
+              "name": "evidence_input_final",
+              "value": "={{ $json.evidence_input_final }}",
+              "type": "string"
+            },
+            {
+              "id": "559938dd-2d0c-49c3-b6ed-e4a65d6200a5",
+              "name": "omissions",
+              "value": "={{ $json.omissions }}",
+              "type": "array"
+            },
+            {
+              "id": "f5aa16af-59b6-4cd9-a8fa-b12037b66c32",
+              "name": "known_gaps",
+              "value": "={{ $json.known_gaps }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5552,
+        208
+      ],
+      "name": "Flatten"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jQRLYRCt9B7yz1u1TmXmWUOkD5yISQBnoi4stQpv2J0",
+          "mode": "list",
+          "cachedResultName": "Tender_Evidence_Status",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jQRLYRCt9B7yz1u1TmXmWUOkD5yISQBnoi4stQpv2J0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "evidence_results",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jQRLYRCt9B7yz1u1TmXmWUOkD5yISQBnoi4stQpv2J0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "evidence_pack_id": "={{ $json.evidence_pack_id }}",
+            "doc_id": "={{ $json.doc_id }}",
+            "title": "={{ $json.title }}",
+            "do_not_distill": "={{ $json.do_not_distill }}",
+            "included_as": "={{ $json.included_as }}",
+            "omissions": "={{ $json.omissions }}",
+            "known_gaps": "={{ $json.known_gaps }}"
+          },
+          "matchingColumns": [
+            "evidence_pack_id"
+          ],
+          "schema": [
+            {
+              "id": "evidence_pack_id",
+              "displayName": "evidence_pack_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "doc_id",
+              "displayName": "doc_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "do_not_distill",
+              "displayName": "do_not_distill",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "included_as",
+              "displayName": "included_as",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "omissions",
+              "displayName": "omissions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "known_gaps",
+              "displayName": "known_gaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5776,
+        16
+      ],
+      "name": "Append rows in Tender_Evidence_Status sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qT2xaECAtZUmEzfn",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "documents",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        5344,
+        208
+      ],
+      "name": "Split Out Documents Field"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e994982f-c6b5-4119-b4ef-61fcdc63e052",
+              "name": "evidence_pack_id",
+              "value": "={{ $json.docs[0].evidence_pack_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a690d321-cb37-417c-9939-6db0d981a293",
+              "name": "docs",
+              "value": "={{ $json.docs }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5984,
+        208
+      ],
+      "name": "build response to webhook"
+    }
+  ],
+  "connections": {
+    "Webhook Status": {
+      "main": [
+        [
+          {
+            "node": "Set Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Evidence Distill Sonar Pro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "raw content": {
+      "main": [
+        [
+          {
+            "node": "clean distilled json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean distilled json": {
+      "main": [
+        [
+          {
+            "node": "Parse json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse json": {
+      "main": [
+        [
+          {
+            "node": "Tidy output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "build response to webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidence Distill Sonar Pro": {
+      "main": [
+        [
+          {
+            "node": "raw content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tidy output": {
+      "main": [
+        [
+          {
+            "node": "Split Out Documents Field",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append rows in Tender_Evidence_Status sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Documents Field": {
+      "main": [
+        [
+          {
+            "node": "Flatten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "build response to webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}

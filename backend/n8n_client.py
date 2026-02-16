@@ -241,20 +241,36 @@ def call_n8n_homepage_summarise(
     *,
     url: str,
     homepage_markdown: str,
+    page_summaries: list[dict] | None = None,
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
-    POST homepage markdown to n8n /SMB-homepage-summarise.
+    POST homepage markdown + page snippets to n8n /SMB-homepage-summarise.
     Returns business summary (name_guess, category, value_prop, target_customer, tone).
     """
     target_url = resolve_n8n_webhook("homepage_summarise", mode, override_url=webhook_url)
     headers = _tender_headers()
 
+    # Format page snippets from tier1/tier2 summariser into a text block
+    snippets_text = ""
+    for ps in (page_summaries or []):
+        if not isinstance(ps, dict):
+            continue
+        title = ps.get("page_title", "")
+        p_url = ps.get("page_url", "")
+        snips = ps.get("ad_snippets", [])
+        if not isinstance(snips, list):
+            snips = []
+        snip_lines = "\n".join(f"  - {s}" for s in snips if isinstance(s, str) and s.strip())
+        if title or snip_lines:
+            snippets_text += f"\n{title} ({p_url})\n{snip_lines}\n"
+
     user_template = _load_prompt("smb_homepage_summarise_user.txt")
     prompt_user = user_template.format(
         url=url,
         homepage_markdown=(homepage_markdown or "")[:30000],
+        page_snippets=snippets_text.strip() if snippets_text.strip() else "(no additional pages scraped)",
     )
 
     payload = {

@@ -1,0 +1,299 @@
+{
+  "id": "ykqSvp3N92Yq6GjM",
+  "name": "SMB_homepage_summariser",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SMB-homepage-summarise",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1552,
+        64
+      ],
+      "name": "Webhook",
+      "webhookId": "2cab9d6a-e4cd-48bc-bdbe-1d3f9200e051"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $json.prompt_user\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2000,
+        64
+      ],
+      "name": "HTTP Request",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3056,
+        64
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02f5f0e7-ce7d-4d54-9da3-642ae10ba677",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2208,
+        64
+      ],
+      "name": "1 - Raw text in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b33aebe-9c95-407e-a40f-bf35430000aa",
+              "name": "no_fences",
+              "value": "={{ \n  (() => {\n    const raw = $json.raw_text || \"\";\n    const cleaned = raw\n      .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')\n      .replace(/```\\s*([\\s\\S]*?)```/i, '$1')\n      .trim();\n    return cleaned;\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2416,
+        64
+      ],
+      "name": "3 - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "991b63fb-0b0f-477f-916d-7428031bd8b8",
+              "name": "business_summary",
+              "value": "={{ $json.parsed.business_summary }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2832,
+        64
+      ],
+      "name": "Prepare response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c50cd4cd-b183-479b-b8af-f4bda17ffa93",
+              "name": "url",
+              "value": "={{ $json.body.url }}",
+              "type": "string"
+            },
+            {
+              "id": "81ffadd2-885c-42e0-8681-21780b4605c8",
+              "name": "scraped_text",
+              "value": "={{ $json.body.homepage_markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "ad585c4b-dd57-4400-950a-484c539e17b4",
+              "name": "prompt_system",
+              "value": "={{ $json.body.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "620a3e73-bfbc-42d5-83a6-fe2663aeb94a",
+              "name": "prompt_user",
+              "value": "={{ $json.body.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        64
+      ],
+      "name": "Normalise Inputs"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "564b627e-476c-4a4e-9eb4-a2ae4f477a85",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2624,
+        64
+      ],
+      "name": "parse json"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalise Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "1 - Raw text in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 - Raw text in": {
+      "main": [
+        [
+          {
+            "node": "3 - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 - strip fences": {
+      "main": [
+        [
+          {
+            "node": "parse json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise Inputs": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse json": {
+      "main": [
+        [
+          {
+            "node": "Prepare response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}

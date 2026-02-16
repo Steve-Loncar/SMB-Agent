@@ -2,3 +2,6 @@ Business website: {url}
 
 Homepage content:
 {homepage_markdown}
+
+Key page snippets (from internal pages):
+{page_snippets}

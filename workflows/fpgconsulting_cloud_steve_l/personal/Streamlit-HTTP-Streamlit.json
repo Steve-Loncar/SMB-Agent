@@ -1,0 +1,539 @@
+{
+  "id": "x0pgmGCUoEBIQRYZ",
+  "name": "Streamlit-HTTP-Streamlit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "echo_agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Webhook",
+      "webhookId": "29c0fb11-d87a-4319-ae24-d4c73f80faff"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2032,
+        128
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ab0403f9-4175-421b-894f-68425fcf97f6",
+              "leftValue": "={{ $json.headers['x-webhook-secret'] }}",
+              "rightValue": "WIBBLE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        0
+      ],
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\":\"Unauthorized\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        336,
+        160
+      ],
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ffffd7fd-4b77-4c73-8ac5-d73e0e44fc4b",
+              "name": "taxonomy_node",
+              "value": "={{ $json.body.taxonomy_node }}",
+              "type": "string"
+            },
+            {
+              "id": "e8164e5e-03d6-4d68-9bf5-537085f266b3",
+              "name": "extra_context",
+              "value": "={{ $json.body.extra_context }}",
+              "type": "string"
+            },
+            {
+              "id": "346197f7-c0f7-42d4-9b5a-09e9f0c32a0c",
+              "name": "body.required_fields",
+              "value": "={{ $json.body.required_fields }}",
+              "type": "array"
+            },
+            {
+              "id": "7f3fa2f9-74e1-4169-9541-efddca1248ee",
+              "name": "body.query_depth",
+              "value": "={{ $json.body.query_depth }}",
+              "type": "number"
+            },
+            {
+              "id": "d1779b5f-1686-47a3-af86-82b030c4ed47",
+              "name": "body.rel_depth",
+              "value": "={{ $json.body.rel_depth }}",
+              "type": "number"
+            },
+            {
+              "id": "012fe7e6-3658-4313-aaf0-5b50d9d90879",
+              "name": "=request_id",
+              "value": "={{$json[\"client_timestamp\"] || $json[\"body\"]?.[\"client_timestamp\"] || $now}}",
+              "type": "string"
+            },
+            {
+              "id": "07ad3186-7578-48c5-a68f-3cc000ca84b9",
+              "name": "body.nodes_to_query[0]",
+              "value": "={{ $json.body.nodes_to_query[0] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        0
+      ],
+      "name": "Normalise inputs"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Comtent-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($node[\"Build LLM Body\"].json.llm_request_body) }}\n",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "name": "HTTP Request",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1632,
+        0
+      ],
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "57a53c46-fb3e-4b02-a292-751975ae6a20",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        -16
+      ],
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1504,
+        304
+      ],
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "goDJYdCeJTe5i2ws",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6358c7e8-ab3c-4a34-9900-30a9ec4ebd71",
+              "name": "request_id",
+              "value": "={{ $json.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "7afe1d18-8e7e-47ae-b58f-27d02261e2fc",
+              "name": "taxonomy_node",
+              "value": "={{ $json.taxonomy_node }}",
+              "type": "string"
+            },
+            {
+              "id": "9d963f4b-05de-437f-baa1-a58800a29148",
+              "name": "body.required_fields",
+              "value": "={{ $json.body.required_fields }}",
+              "type": "array"
+            },
+            {
+              "id": "57824ab9-94b9-4a91-abe8-7050d6288b76",
+              "name": "extra_context",
+              "value": "={{ $json.extra_context }}",
+              "type": "string"
+            },
+            {
+              "id": "d31f19d9-b100-4d31-b928-782ae17b91d9",
+              "name": "body.query_depth",
+              "value": "={{ $json.body.query_depth }}",
+              "type": "number"
+            },
+            {
+              "id": "30559b43-d851-4609-84aa-1f7505662f48",
+              "name": "prompt_text",
+              "value": "=You are a strict JSON-outputting market analyst assistant. Return exactly one JSON object and nothing else. Do not include any explanation, commentary, or markup before or after the JSON.      Required JSON schema (must follow precisely):   {     \"node_id\": string | null,     \"path\": string,     \"display_name\": string,     \"level\": integer | null,     \"requested_fields\": array[string],     \"results\": {       // each requested field must appear as a key under results.       // values must be scalars, arrays or objects. If unknown, use null or [].       // numeric estimates must be numbers or null. Include units in a companion key where appropriate.       \"<field_name>\": any     },     \"evidence\": [       // array of evidence objects that support claims in results       {         \"evidence_id\": string,      // a short id matching the provided retrieved_docs id or a generated id         \"title\": string | null,         \"url\": string | null,         \"type\": string | null,      // e.g., \"press_release\",\"report\",\"news\",\"patent\"         \"snippet\": string | null,   // 1-2 sentence excerpt used as support         \"confidence_score\": number  // 0.0 - 1.0: confidence that this evidence supports the claims       }     ],     \"assertions\": [       // OPTIONAL: an array of atomic claims with explicit evidence links       {         \"claim\": string,         \"supported_by\": [ \"evidence_id\", ... ],         \"confidence\": number  // 0.0 - 1.0       }     ],     \"notes\": string | null,        // short explanation of assumptions, methodology or missing data     \"confidence\": number,          // overall confidence 0.0 - 1.0     \"timestamp\": string            // ISO-8601 UTC timestamp   }      Context (these values are injected from the workflow):   - Node display_name: {{$json[\"node_to_query\"]?.[\"display_name\"] || \"\"}}   - Node path: {{$json[\"node_to_query\"]?.[\"path\"] || \"\"}}   - Node id: {{$json[\"node_to_query\"]?.[\"node_id\"] || null}}   - Requested fields: {{$json[\"required_fields\"] || []}}   - Extra context: {{$json[\"extra_context\"] || \"(none)\"}}   - Query depth: {{$json[\"query_depth\"] || 3}}   - Retrieved documents (if any): include them as evidence; use only top-k relevant docs: {{$json[\"retrieved_docs\"] || []}}      Instructions and rules (MANDATORY — follow exactly):   1) Output exactly one JSON object that conforms to the schema above. Nothing else (no surrounding commentary, no code fences).   2) For each item in `requested_fields`, include a corresponding entry in `results`. If you cannot provide a value, set the field to `null` (for scalars) or `[]` (for arrays) and explain the reason in `notes`.   3) When you cite evidence, reference evidence objects using `evidence_id` entries under `evidence`. Evidence must be taken only from the supplied `retrieved_docs` list when present. If you generate an evidence item not present in `retrieved_docs`, set its `url` to null and mark `confidence_score` <= 0.5.   4) For each numeric estimate include units explicitly in the results value or in a companion key (e.g., `\"market_size_usd\": 1200000000, \"market_size_usd_units\":\"USD\"`). If estimate is unavailable, set to null.   5) All confidence values must be between 0.0 and 1.0. Use 0.0 to mean no confidence, 1.0 = complete confidence.   6) `timestamp` must be ISO-8601 in UTC (e.g., 2025-10-27T15:21:00Z).   7) If you must reason from retrieved documents, only use content from `retrieved_docs` and explicitly quote the supporting snippet in the `evidence.snippet` field. If you infer or synthesise beyond the retrieved_docs, mark such claims in `assertions` with `confidence` <= 0.5 and note the inference in `notes`.   8) If a requested field can be decomposed (e.g., \"market_size\" -> \"market_size_total\", \"market_size_regions\"), break it down under `results` as nested keys, but maintain the top-level requested key as present (it may be null if no single aggregate exists).   9) Provide `evidence` objects in descending order of `confidence_score`. Limit number of evidence objects to 10.   10) Do not hallucinate URLs or publications. If a claim is asserted without verifiable URL, set the corresponding `evidence.url` to null and mark `confidence_score` <= 0.3. Prefer `null` over invented values.   11) Keep responses concise and factual. Use `notes` only for methodology, assumptions, or reasons for missing data.   12) If `retrieved_docs` is empty or not provided, return best-effort answers but set `confidence` <= 0.5 and mark `notes` with: \"No retrieval evidence provided — answers are model-derived and must be verified.\"      Formatting and length constraints:   - Temperature: 0 (deterministic)   - Maximum reasoning length expected: keep `results` concise; each textual field should preferably be <= 500 words.   - Evidence snippet: max 250 characters per evidence.snippet.      Example output (must be followed for structure only — DO NOT put this example in your response):   {     \"node_id\":\"N00006\",     \"path\":\"Aerospace > Commercial Aircraft\",     \"display_name\":\"Commercial Aircraft\",     \"level\":3,     \"requested_fields\":[\"summary\",\"market_size\",\"sources\"],     \"results\":{       \"summary\":\"Commercial passenger jets are ...\",       \"market_size_usd\": 1200000000,       \"market_size_usd_units\":\"USD\"     },     \"evidence\":[       {         \"evidence_id\":\"doc1\",         \"title\":\"Global Aviation Market 2024 Report\",         \"url\":\"https://example.com/report2024.pdf\",         \"type\":\"report\",         \"snippet\":\"Global commercial aircraft market is estimated at $1.2B in 2024...\",         \"confidence_score\":0.9       }     ],     \"assertions\":[       {\"claim\":\"Market estimated at $1.2B in 2024\",\"supported_by\":[\"doc1\"],\"confidence\":0.9}     ],     \"notes\":\"Estimate taken from report doc1; regional breakdown not available in retrieved docs.\",     \"confidence\":0.88,     \"timestamp\":\"2025-10-27T15:21:00Z\"   }   ",
+              "type": "string"
+            },
+            {
+              "id": "e023264a-626d-4707-a9a2-a58c278058de",
+              "name": "node_to_query",
+              "value": "={{$json[\"body\"]?.[\"nodes_to_query\"]?.[0]",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        0
+      ],
+      "name": "Build Prompt / Request Body Part 1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40cd2e57-b81b-4b1a-8a56-81ec3a908450",
+              "name": "llm_request_body",
+              "value": "={{ \n  JSON.stringify({\n    model: \"sonar-reasoning-pro\",\n    messages: [\n      {\n        role: \"user\",\n        content: $node[\"Build Prompt / Request Body Part 1\"].json.prompt_text\n      }\n    ],\n    temperature: 0,\n    max_tokens: 1500\n  })\n}}\n\n\n",
+              "type": "object"
+            },
+            {
+              "id": "1d3798d6-eee5-4b75-b3ea-04a6b8a49585",
+              "name": "llm_meta",
+              "value": "{   \"llm_request_body\": {     \"model\": \"llama-3.1-sonar-small-128k-chat\",     \"query\": \"node_to_query — object with keys node_id, path, ...\",     \"temperature\": 0,     \"max_tokens\": 1500   },   \"llm_meta\": {     \"provider\": \"perplexity\",     \"retry_on_5xx\": true   } }",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        0
+      ],
+      "name": "Build LLM Body"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "54371f41-6d63-4b29-85a3-fb0454a0b297",
+              "name": "body",
+              "value": "={\n  \"model\": \"llama-3.1-sonar-small-128k-chat\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": $node[\"Get Prompt\"].json[\"prompt_raw\"]\n    }\n  ],\n  \"temperature\": 0,\n  \"max_tokens\": 1500\n}\n",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        0
+      ],
+      "name": "Fix Body"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b8c5820-95ae-43a3-9970-71458aa5e5bd",
+              "name": "prompt_raw",
+              "value": "={\n  \"model\": \"llama-3.1-sonar-small-128k-chat\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": $node[\"Get Prompt\"].json[\"prompt_raw\"]\n    }\n  ],\n  \"temperature\": 0,\n  \"max_tokens\": 1500\n}\n",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        0
+      ],
+      "name": "Get Prompt"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Normalise inputs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise inputs": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt / Request Body Part 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook1": {
+      "main": [
+        []
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt / Request Body Part 1": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Body": {
+      "main": [
+        [
+          {
+            "node": "Get Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix Body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Prompt": {
+      "main": [
+        [
+          {
+            "node": "Fix Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": false,
+  "projectId": "ODHwVtno5FQqgY06",
+  "projectName": "Steve Loncar <steve@fpgconsulting.co.uk>",
+  "homeProject": {
+    "id": "ODHwVtno5FQqgY06",
+    "name": "Steve Loncar <steve@fpgconsulting.co.uk>",
+    "type": "personal"
+  },
+  "isArchived": false
+}

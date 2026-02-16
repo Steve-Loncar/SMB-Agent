@@ -495,11 +495,11 @@ st.markdown("### Thank you — we're reviewing your website")
 if status in ("queued", "idle"):
     st.caption("Scanning your homepage and key internal pages.")
 elif status == "scraped":
-    st.caption("Scan complete — now analysing your homepage.")
-elif status == "summarising":
-    st.caption("Analysing your homepage...")
+    st.caption("Scan complete — now reviewing your key pages.")
 elif status == "analysing_pages":
     st.caption("Reviewing key pages for advertising material...")
+elif status == "summarising":
+    st.caption("Building your business summary...")
 elif status == "generating_ads":
     st.caption("Creating your campaign concepts...")
 elif status == "done":
@@ -565,7 +565,77 @@ if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "summarising", "anal
         )
 
     # homepage_md kept in session state for downstream; not shown to client
-    st.divider()
+
+# --- Key page highlights (snippets from tier 1/2, shown inline with URL cards) ---
+_highlight_css = """
+<style>
+.highlight-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+}
+.highlight-card .page-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; }
+.highlight-card .page-url { font-size: 0.78rem; opacity: 0.5; margin-bottom: 0.5rem; }
+.highlight-card .page-url a { color: inherit; text-decoration: none; }
+.highlight-card ul { margin: 0; padding-left: 1.2rem; }
+.highlight-card li { font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.15rem; }
+</style>
+"""
+
+_page_summaries = st.session_state.get("tier1_page_summaries", [])
+if isinstance(_page_summaries, list) and _page_summaries:
+    st.caption("Key advertising material we found on your pages:")
+    st.markdown(_highlight_css, unsafe_allow_html=True)
+
+    for ps in _page_summaries:
+        if not isinstance(ps, dict):
+            continue
+        p_title = ps.get("page_title", "")
+        p_url = ps.get("page_url", "")
+        snippets = ps.get("ad_snippets", [])
+        if not isinstance(snippets, list):
+            snippets = []
+
+        snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
+        card_html = (
+            f'<div class="highlight-card">'
+            f'<div class="page-title">{p_title}</div>'
+            f'<div class="page-url"><a href="{p_url}" target="_blank">{p_url}</a></div>'
+            f'<ul>{snippet_html or "<li>No snippets extracted.</li>"}</ul>'
+            f'</div>'
+        )
+        st.markdown(card_html, unsafe_allow_html=True)
+
+# --- Tier 2 decision + results ---
+_t2_decision = st.session_state.get("tier2_decision", {})
+_t2_summaries = st.session_state.get("tier2_page_summaries", [])
+if isinstance(_t2_decision, dict) and _t2_decision:
+    if _t2_decision.get("should_scrape") and isinstance(_t2_summaries, list) and _t2_summaries:
+        st.caption(f"Additional pages reviewed: {_t2_decision.get('reasoning', '')}")
+        st.markdown(_highlight_css, unsafe_allow_html=True)
+        for ps in _t2_summaries:
+            if not isinstance(ps, dict):
+                continue
+            p_title = ps.get("page_title", "")
+            p_url = ps.get("page_url", "")
+            snippets = ps.get("ad_snippets", [])
+            if not isinstance(snippets, list):
+                snippets = []
+            snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
+            card_html = (
+                f'<div class="highlight-card">'
+                f'<div class="page-title">{p_title}</div>'
+                f'<div class="page-url"><a href="{p_url}" target="_blank">{p_url}</a></div>'
+                f'<ul>{snippet_html or "<li>No snippets extracted.</li>"}</ul>'
+                f'</div>'
+            )
+            st.markdown(card_html, unsafe_allow_html=True)
+    else:
+        st.caption(f"Deeper pages reviewed — none needed. {_t2_decision.get('reasoning', '')}")
+
+st.divider()
 
 if status == "queued":
     with st.spinner("Scanning your website — this may take a moment..."):
@@ -628,43 +698,14 @@ if status == "error":
 # AUTO-RUN pipeline: homepage-summarise → tier1-summarise → generate-ads
 #
 
-# Step 1: Homepage summarise
-if status == "scraped" and not st.session_state.get("homepage_summarise_done", False):
-    st.session_state["scrape_status"] = "summarising"
-
-    with st.spinner("Building a first-draft summary of your business..."):
-        hp_debug = call_n8n_homepage_summarise(
-            url=target_url,
-            homepage_markdown=homepage_md,
-            mode=st.session_state.get("n8n_mode", "TEST"),
-        )
-    st.session_state["homepage_summarise_debug"] = hp_debug
-
-    # Hydrate business_summary from response
-    resp_json = hp_debug.get("_n8n_response_json")
-    try:
-        # n8n respondWith allIncomingItems wraps in a list
-        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-            resp_json = resp_json[0]
-        if isinstance(resp_json, dict):
-            bs = resp_json.get("business_summary")
-            if isinstance(bs, dict):
-                st.session_state["business_summary"] = bs
-    except Exception:
-        pass
-
-    st.session_state["homepage_summarise_done"] = True
-    st.rerun()
-
-# Step 2: Tier 1 summarise
-status = st.session_state.get("scrape_status", "idle")
-if status == "summarising" and not st.session_state.get("tier1_summarise_done", False):
+# Step 1: Tier 1 summarise (extract snippets from key pages first)
+if status == "scraped" and not st.session_state.get("tier1_summarise_done", False):
     st.session_state["scrape_status"] = "analysing_pages"
 
     tier1_urls = pack.get("tier1_urls", []) or []
-    bs = st.session_state.get("business_summary", {}) or {}
-
     tier2_urls = pack.get("tier2_urls", []) or []
+    # No business_summary yet — send empty dict; tier1 prompt doesn't depend on it heavily
+    bs = st.session_state.get("business_summary", {}) or {}
 
     with st.spinner("Reviewing your key pages for advertising material..."):
         t1_debug = call_n8n_tier1_summarise(
@@ -698,9 +739,43 @@ if status == "summarising" and not st.session_state.get("tier1_summarise_done", 
     st.session_state["tier1_summarise_done"] = True
     st.rerun()
 
-# Step 3: Generate ads (chains after tier1 summarise)
+# Step 2: Homepage summarise (now has snippets from tier1/tier2 for richer context)
 status = st.session_state.get("scrape_status", "idle")
-if status == "analysing_pages" and not st.session_state.get("ads_autorun_done", False):
+if status == "analysing_pages" and not st.session_state.get("homepage_summarise_done", False):
+    st.session_state["scrape_status"] = "summarising"
+
+    # Gather all page summaries (tier1 + tier2) for the homepage summariser
+    all_snippets = list(st.session_state.get("tier1_page_summaries", []) or [])
+    all_snippets += list(st.session_state.get("tier2_page_summaries", []) or [])
+
+    with st.spinner("Building a summary of your business..."):
+        hp_debug = call_n8n_homepage_summarise(
+            url=target_url,
+            homepage_markdown=homepage_md,
+            page_summaries=all_snippets,
+            mode=st.session_state.get("n8n_mode", "TEST"),
+        )
+    st.session_state["homepage_summarise_debug"] = hp_debug
+
+    # Hydrate business_summary from response
+    resp_json = hp_debug.get("_n8n_response_json")
+    try:
+        # n8n respondWith allIncomingItems wraps in a list
+        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            resp_json = resp_json[0]
+        if isinstance(resp_json, dict):
+            bs = resp_json.get("business_summary")
+            if isinstance(bs, dict):
+                st.session_state["business_summary"] = bs
+    except Exception:
+        pass
+
+    st.session_state["homepage_summarise_done"] = True
+    st.rerun()
+
+# Step 3: Generate ads (chains after homepage summarise)
+status = st.session_state.get("scrape_status", "idle")
+if status == "summarising" and not st.session_state.get("ads_autorun_done", False):
     st.session_state["scrape_status"] = "generating_ads"
 
     # ensure inputs exist (derive from V2 if needed)
@@ -779,7 +854,7 @@ if DEBUG_UI and check_dbg:
 st.subheader("About your business")
 bs = st.session_state.get("business_summary", {})
 if isinstance(bs, dict) and bs:
-    st.caption("From a quick scan of your homepage, here is a first-draft summary:")
+    st.caption("From a scan of your website, here is a first-draft summary:")
     st.markdown(f"**Name:** {bs.get('name_guess','')}")
     st.markdown(f"**Category:** {bs.get('category','')}")
     st.markdown(f"**Value prop:** {bs.get('value_prop','')}")
