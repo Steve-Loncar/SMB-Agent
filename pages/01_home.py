@@ -129,11 +129,24 @@ if apply_clicked:
         st.session_state["scrape_pack"] = None
         st.session_state["scrape_pack_debug"] = None
 
-        st.session_state["business_summary"] = ""
+        st.session_state["business_summary"] = {}
         st.session_state["poster_concepts"] = []
         st.session_state["poster_images"] = {}
         st.session_state["ads_autorun_done"] = False
         st.session_state["ads_debug"] = None
+
+        # Pipeline flags (must match Results page Reset button)
+        st.session_state["homepage_summarise_done"] = False
+        st.session_state["homepage_summarise_debug"] = None
+        st.session_state["tier1_summarise_done"] = False
+        st.session_state["tier1_summarise_debug"] = None
+        st.session_state["tier1_page_summaries"] = []
+        st.session_state["tier2_page_summaries"] = []
+        st.session_state["tier2_decision"] = {}
+        st.session_state["check_text_blobs_autorun_done"] = False
+        st.session_state["check_text_blobs_debug"] = None
+        st.session_state["check_text_blobs_result"] = None
+        st.session_state["scrape_pack_pack"] = None
 
         st.success("Saved. Opening Results…")
         st.switch_page("pages/02_results.py")
