@@ -323,7 +323,6 @@ def call_n8n_tier1_summarise(
         value_prop=bs.get("value_prop", ""),
         target_customer=bs.get("target_customer", ""),
         tone=bs.get("tone", ""),
-        tier1_urls="\n".join(tier1_urls or []),
     )
 
     # Build a summary of existing snippets for the tier 2 decision agent
