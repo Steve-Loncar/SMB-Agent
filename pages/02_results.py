@@ -463,6 +463,28 @@ with st.sidebar:
         _run_check_text_blobs_now(target_url=target_url)
         st.success("2nd pass complete (see Business summary section / diagnostics).")
 
+    # Manual image hunt (useful for iterating on image hunt workflow/prompts)
+    sp_local = st.session_state.get("scrape_pack") or {}
+    has_html = isinstance(sp_local, dict) and (
+        bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
+    )
+    can_run_image_hunt = bool(st.session_state.get("scrape_pack")) and has_html
+    if st.button("Run Image Hunt", disabled=not can_run_image_hunt):
+        target_url = st.session_state.get("target_url", "")
+        with st.spinner("Finding the best on-brand images and assets from your site…"):
+            dbg = call_n8n_image_hunt(
+                url=target_url,
+                scrape_pack=sp_local,
+                mode=st.session_state.get("n8n_mode", "TEST"),
+            )
+        st.session_state["image_hunt_debug"] = dbg
+        resp_json = dbg.get("_n8n_response_json")
+        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            resp_json = resp_json[0]
+        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
+        st.session_state["image_hunt_done"] = True
+        st.success("Image hunt complete (see Best images section / diagnostics).")
+
     if st.button("Reset"):
         st.session_state["target_url"] = ""
         st.session_state["scrape_status"] = "idle"
@@ -486,6 +508,9 @@ with st.sidebar:
         st.session_state["tier1_page_summaries"] = []
         st.session_state["tier2_page_summaries"] = []
         st.session_state["tier2_decision"] = {}
+        st.session_state["image_hunt_done"] = False
+        st.session_state["image_hunt_debug"] = None
+        st.session_state["visual_pack"] = None
         st.switch_page("pages/01_home.py")
 
 target_url = st.session_state.get("target_url", "")
@@ -744,37 +769,6 @@ if status == "scraped" and not st.session_state.get("tier1_summarise_done", Fals
     st.session_state["tier1_summarise_done"] = True
     st.rerun()
 
-#
-# Step 1.5: Image hunt (no recrawl) — uses scrape_pack.homepage_html + tier pages html
-#
-status = st.session_state.get("scrape_status", "idle")
-pack = _extract_pack_summary(st.session_state.get("scrape_pack") or {})
-sp_local = st.session_state.get("scrape_pack") or {}
-has_html = isinstance(sp_local, dict) and (
-    bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
-)
-
-if status == "scraped" and st.session_state.get("tier1_summarise_done", False) and not st.session_state.get("image_hunt_done", False):
-    if has_html:
-        st.session_state["scrape_status"] = "finding_images"
-        with st.spinner("Finding the best on-brand images and assets from your site…"):
-            dbg = call_n8n_image_hunt(
-                url=st.session_state.get("target_url", ""),
-                scrape_pack=sp_local,
-                mode=st.session_state.get("n8n_mode", "TEST"),
-            )
-        st.session_state["image_hunt_debug"] = dbg
-        resp_json = dbg.get("_n8n_response_json")
-        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-            resp_json = resp_json[0]
-        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
-        st.session_state["image_hunt_done"] = True
-        st.session_state["scrape_status"] = "scraped"
-        st.rerun()
-    else:
-        st.warning("Image hunt skipped: scrape-pack did not include HTML yet. Add homepage_html/tier pages html to scrape-pack payload.")
-        st.session_state["image_hunt_done"] = True
-
 # Step 2: Homepage summarise (now has snippets from tier1/tier2 for richer context)
 status = st.session_state.get("scrape_status", "idle")
 if status == "analysing_pages" and not st.session_state.get("homepage_summarise_done", False):
@@ -809,9 +803,40 @@ if status == "analysing_pages" and not st.session_state.get("homepage_summarise_
     st.session_state["homepage_summarise_done"] = True
     st.rerun()
 
-# Step 3: Generate ads (chains after homepage summarise)
+#
+# Step 3: Image hunt (no recrawl) — uses scrape_pack.homepage_html + tier pages html
+#
 status = st.session_state.get("scrape_status", "idle")
-if status == "summarising" and not st.session_state.get("ads_autorun_done", False):
+pack = _extract_pack_summary(st.session_state.get("scrape_pack") or {})
+sp_local = st.session_state.get("scrape_pack") or {}
+has_html = isinstance(sp_local, dict) and (
+    bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
+)
+
+if status == "summarising" and st.session_state.get("homepage_summarise_done", False) and not st.session_state.get("image_hunt_done", False):
+    if has_html:
+        st.session_state["scrape_status"] = "finding_images"
+        with st.spinner("Finding the best on-brand images and assets from your site…"):
+            dbg = call_n8n_image_hunt(
+                url=st.session_state.get("target_url", ""),
+                scrape_pack=sp_local,
+                mode=st.session_state.get("n8n_mode", "TEST"),
+            )
+        st.session_state["image_hunt_debug"] = dbg
+        resp_json = dbg.get("_n8n_response_json")
+        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            resp_json = resp_json[0]
+        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
+        st.session_state["image_hunt_done"] = True
+        st.session_state["scrape_status"] = "summarising"
+        st.rerun()
+    else:
+        st.warning("Image hunt skipped: scrape-pack did not include HTML yet. Add homepage_html/tier pages html to scrape-pack payload.")
+        st.session_state["image_hunt_done"] = True
+
+# Step 4: Generate ads (chains after homepage summarise + image hunt)
+status = st.session_state.get("scrape_status", "idle")
+if status == "summarising" and st.session_state.get("image_hunt_done", False) and not st.session_state.get("ads_autorun_done", False):
     st.session_state["scrape_status"] = "generating_ads"
 
     # ensure inputs exist (derive from V2 if needed)
