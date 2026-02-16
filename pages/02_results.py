@@ -14,6 +14,7 @@ from backend.n8n_client import (
     call_n8n_generate_ads,
     call_n8n_check_text_blobs,
     call_n8n_generate_image,
+    call_n8n_image_hunt,
     call_n8n_scrape_pack,
     call_n8n_homepage_summarise,
     call_n8n_tier1_summarise,
@@ -337,6 +338,9 @@ st.session_state.setdefault("tier1_page_summaries", [])
 st.session_state.setdefault("tier2_page_summaries", [])
 st.session_state.setdefault("tier2_decision", {})
 
+st.session_state.setdefault("image_hunt_done", False)
+st.session_state.setdefault("image_hunt_debug", None)
+st.session_state.setdefault("visual_pack", None)
 
 def _run_check_text_blobs_now(*, target_url: str) -> None:
     """Run the 2nd-pass workflow using the currently loaded scrape_pack (no re-scrape)."""
@@ -376,6 +380,7 @@ with st.sidebar:
     st.caption(f"Check text blobs: `{resolve_n8n_webhook('check_text_blobs', mode)}`")
     st.caption(f"Homepage summarise: `{resolve_n8n_webhook('homepage_summarise', mode)}`")
     st.caption(f"Tier 1 summarise: `{resolve_n8n_webhook('tier1_summarise', mode)}`")
+    st.caption(f"Image hunt: `{resolve_n8n_webhook('image_hunt', mode)}`")
 
     st.subheader("Run status")
     st.write(f"**{status}**")
@@ -739,6 +744,37 @@ if status == "scraped" and not st.session_state.get("tier1_summarise_done", Fals
     st.session_state["tier1_summarise_done"] = True
     st.rerun()
 
+#
+# Step 1.5: Image hunt (no recrawl) — uses scrape_pack.homepage_html + tier pages html
+#
+status = st.session_state.get("scrape_status", "idle")
+pack = _extract_pack_summary(st.session_state.get("scrape_pack") or {})
+sp_local = st.session_state.get("scrape_pack") or {}
+has_html = isinstance(sp_local, dict) and (
+    bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
+)
+
+if status == "scraped" and st.session_state.get("tier1_summarise_done", False) and not st.session_state.get("image_hunt_done", False):
+    if has_html:
+        st.session_state["scrape_status"] = "finding_images"
+        with st.spinner("Finding the best on-brand images and assets from your site…"):
+            dbg = call_n8n_image_hunt(
+                url=st.session_state.get("target_url", ""),
+                scrape_pack=sp_local,
+                mode=st.session_state.get("n8n_mode", "TEST"),
+            )
+        st.session_state["image_hunt_debug"] = dbg
+        resp_json = dbg.get("_n8n_response_json")
+        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            resp_json = resp_json[0]
+        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
+        st.session_state["image_hunt_done"] = True
+        st.session_state["scrape_status"] = "scraped"
+        st.rerun()
+    else:
+        st.warning("Image hunt skipped: scrape-pack did not include HTML yet. Add homepage_html/tier pages html to scrape-pack payload.")
+        st.session_state["image_hunt_done"] = True
+
 # Step 2: Homepage summarise (now has snippets from tier1/tier2 for richer context)
 status = st.session_state.get("scrape_status", "idle")
 if status == "analysing_pages" and not st.session_state.get("homepage_summarise_done", False):
@@ -903,50 +939,6 @@ if DEBUG_UI and ads_dbg:
         st.json(ads_dbg.get("_debug_payload_sent", {}))
         st.json(ads_dbg.get("_n8n_response_json", {}))
 
-# --- Key page highlights (tier 1 summaries) ---
-_page_summaries = st.session_state.get("tier1_page_summaries", [])
-if isinstance(_page_summaries, list) and _page_summaries:
-    st.divider()
-    st.subheader("Key page highlights")
-    st.caption("The most relevant advertising material from your key pages:")
-
-    _highlight_css = """
-    <style>
-    .highlight-card {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 8px;
-        padding: 1rem 1.2rem;
-        margin-bottom: 0.75rem;
-    }
-    .highlight-card .page-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; }
-    .highlight-card .page-url { font-size: 0.78rem; opacity: 0.5; margin-bottom: 0.5rem; }
-    .highlight-card .page-url a { color: inherit; text-decoration: none; }
-    .highlight-card ul { margin: 0; padding-left: 1.2rem; }
-    .highlight-card li { font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.15rem; }
-    </style>
-    """
-    st.markdown(_highlight_css, unsafe_allow_html=True)
-
-    for ps in _page_summaries:
-        if not isinstance(ps, dict):
-            continue
-        p_title = ps.get("page_title", "")
-        p_url = ps.get("page_url", "")
-        snippets = ps.get("ad_snippets", [])
-        if not isinstance(snippets, list):
-            snippets = []
-
-        snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
-        card_html = (
-            f'<div class="highlight-card">'
-            f'<div class="page-title">{p_title}</div>'
-            f'<div class="page-url"><a href="{p_url}" target="_blank">{p_url}</a></div>'
-            f'<ul>{snippet_html or "<li>No snippets extracted.</li>"}</ul>'
-            f'</div>'
-        )
-        st.markdown(card_html, unsafe_allow_html=True)
-
 # --- Tier 2 decision + results ---
 _t2_decision = st.session_state.get("tier2_decision", {})
 _t2_summaries = st.session_state.get("tier2_page_summaries", [])
@@ -975,6 +967,24 @@ if isinstance(_t2_decision, dict) and _t2_decision:
             st.markdown(card_html, unsafe_allow_html=True)
     else:
         st.caption(f"Deeper pages reviewed — none needed. {_t2_decision.get('reasoning', '')}")
+
+# --- Best images and brand assets found ---
+st.divider()
+st.header("Best images and brand assets found")
+vp = st.session_state.get("visual_pack") or {}
+imgs = vp.get("images") if isinstance(vp, dict) else []
+if isinstance(imgs, list) and imgs:
+    for im in imgs[:12]:
+        if not isinstance(im, dict):
+            continue
+        url = im.get("url", "")
+        if url:
+            use_txt = im.get("use", "")
+            source_txt = im.get("source_page", "")
+            caption_txt = f"{use_txt} — {source_txt}"
+            st.image(url, caption=caption_txt, use_container_width=True)
+else:
+    st.caption("No visual pack yet (or no images returned).")
 
 st.divider()
 

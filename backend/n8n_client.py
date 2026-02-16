@@ -11,7 +11,7 @@ def _load_prompt(filename: str) -> str:
 
 
 Mode = Literal["TEST", "LIVE"]
-Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise"]
+Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise", "image_hunt"]
 
 
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
@@ -47,6 +47,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
             ("homepage_summarise", "LIVE"): "N8N_HOMEPAGE_SUMMARISE_URL_LIVE",
             ("tier1_summarise", "TEST"): "N8N_TIER1_SUMMARISE_URL_TEST",
             ("tier1_summarise", "LIVE"): "N8N_TIER1_SUMMARISE_URL_LIVE",
+            ("image_hunt", "TEST"): "N8N_IMAGE_HUNT_URL_TEST",
+            ("image_hunt", "LIVE"): "N8N_IMAGE_HUNT_URL_LIVE",
         }
         env_key = env_map[(endpoint, mode)]
         explicit = (os.getenv(env_key) or "").strip()
@@ -67,6 +69,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
                 ("homepage_summarise", "LIVE"): "/webhook/SMB-homepage-summarise",
                 ("tier1_summarise", "TEST"): "/webhook-test/SMB-tier1-summariser",
                 ("tier1_summarise", "LIVE"): "/webhook/SMB-tier1-summariser",
+                ("image_hunt", "TEST"): "/webhook-test/SMB-image-hunt",
+                ("image_hunt", "LIVE"): "/webhook/SMB-image-hunt",
             }
             target_url = base + paths[(endpoint, mode)]
 
@@ -407,6 +411,56 @@ def call_n8n_tier1_summarise(
     }
 
     req_timeout = (10, 180)
+    resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
+
+    result: Dict[str, Any] = {}
+    result["_debug_target_url"] = target_url
+    result["_debug_payload_sent"] = payload
+    result["_debug_http_status"] = resp.status_code
+    result["_debug_final_url"] = resp.url
+    result["_debug_resp_headers"] = dict(resp.headers)
+    result["_debug_resp_content_type"] = resp.headers.get("content-type", "")
+    result["_debug_resp_text_snippet"] = (resp.text or "")[:400]
+
+    if resp.status_code != 200:
+        ct = resp.headers.get("Content-Type", "")
+        body = (resp.text or "")
+        result["_error"] = (
+            f"n8n returned HTTP {resp.status_code} (Content-Type: {ct}, body_len: {len(body)}): "
+            f"{body[:800]}"
+        )
+        return result
+
+    try:
+        if (resp.text or "").strip():
+            result["_n8n_response_json"] = resp.json()
+    except Exception:
+        pass
+
+    return result
+
+
+def call_n8n_image_hunt(
+    *,
+    url: str,
+    scrape_pack: dict,
+    mode: Mode = "TEST",
+    webhook_url: Optional[str] = None,
+) -> dict:
+    """
+    POST scrape_pack (containing homepage_html + tier pages html) to n8n /SMB-image-hunt.
+    Returns a visual_pack with extracted image URLs, metadata, and suggested usage.
+    """
+    target_url = resolve_n8n_webhook("image_hunt", mode, override_url=webhook_url)
+    headers = _tender_headers()
+
+    payload = {
+        "payload_type": "smb_image_hunt",
+        "url": url,
+        "scrape_pack": scrape_pack,
+    }
+
+    req_timeout = (10, 120)
     resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
     result: Dict[str, Any] = {}

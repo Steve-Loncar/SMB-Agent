@@ -117,86 +117,6 @@
     {
       "parameters": {
         "operation": "scrape",
-        "url": "={{ $json.tier1 }}",
-        "scrapeOptions": {
-          "options": {
-            "formats": {
-              "format": [
-                {},
-                {
-                  "type": "summary"
-                }
-              ]
-            },
-            "headers": {},
-            "waitFor": 500,
-            "timeout": 60000,
-            "actions": {
-              "items": [
-                {}
-              ]
-            }
-          }
-        },
-        "requestOptions": {}
-      },
-      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
-      "typeVersion": 1,
-      "position": [
-        3840,
-        1200
-      ],
-      "name": "Scrape a URL and get content as markdown or other formats1",
-      "credentials": {
-        "firecrawlApi": {
-          "id": "ZQyTJh6WCDYvojwI",
-          "name": "Firecrawl account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "aggregate": "aggregateAllItemData",
-        "destinationFieldName": "initial_tier1_tier2_scrape",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        4064,
-        1200
-      ],
-      "name": "Aggregate"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "tier1",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        3616,
-        560
-      ],
-      "name": "Split Out Tier1"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "tier2",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        3616,
-        1200
-      ],
-      "name": "Split Out Tier 2"
-    },
-    {
-      "parameters": {
-        "operation": "scrape",
         "url": "={{ $('Root origin (canonical)').item.json.root_origin }}",
         "scrapeOptions": {
           "options": {
@@ -310,60 +230,6 @@
         880
       ],
       "name": "If (Have URL)"
-    },
-    {
-      "parameters": {
-        "operation": "scrape",
-        "url": "={{ $json.tier1 }}",
-        "scrapeOptions": {
-          "options": {
-            "formats": {
-              "format": [
-                {},
-                {
-                  "type": "summary"
-                }
-              ]
-            },
-            "headers": {},
-            "waitFor": 500,
-            "timeout": 60000,
-            "actions": {
-              "items": [
-                {}
-              ]
-            }
-          }
-        },
-        "requestOptions": {}
-      },
-      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
-      "typeVersion": 1,
-      "position": [
-        3840,
-        560
-      ],
-      "name": "Scrape a URL and get content as markdown or other formats",
-      "credentials": {
-        "firecrawlApi": {
-          "id": "ZQyTJh6WCDYvojwI",
-          "name": "Firecrawl account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "aggregate": "aggregateAllItemData",
-        "destinationFieldName": "initial_tier1_tier2_scrape",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [
-        4064,
-        560
-      ],
-      "name": "Aggregate1"
     },
     {
       "parameters": {
@@ -494,33 +360,6 @@
         ]
       ]
     },
-    "Scrape a URL and get content as markdown or other formats1": {
-      "main": [
-        [
-          {
-            "node": "Aggregate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate": {
-      "main": [
-        []
-      ]
-    },
-    "Split Out Tier 2": {
-      "main": [
-        [
-          {
-            "node": "Scrape a URL and get content as markdown or other formats1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Scrape a URL (Home) and get content as markdown and links": {
       "main": [
         [
@@ -562,28 +401,6 @@
         [
           {
             "node": "Return error no url",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Out Tier1": {
-      "main": [
-        [
-          {
-            "node": "Scrape a URL and get content as markdown or other formats",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Scrape a URL and get content as markdown or other formats": {
-      "main": [
-        [
-          {
-            "node": "Aggregate1",
             "type": "main",
             "index": 0
           }
