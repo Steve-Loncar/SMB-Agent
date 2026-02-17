@@ -6,7 +6,7 @@ from backend.n8n_client import resolve_n8n_webhook
 
 st.set_page_config(
     page_title="SMB Ad Agent",
-    page_icon="🛰️",
+    page_icon="🌐",
     layout="wide",
     initial_sidebar_state="collapsed",
 )

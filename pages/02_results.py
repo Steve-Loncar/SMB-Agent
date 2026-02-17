@@ -828,6 +828,109 @@ if status == "analysing_pages" and not st.session_state.get("homepage_summarise_
     st.rerun()
 
 #
+# CAROUSEL DISPLAY — Always show candidate images with contextual messaging
+#
+_raw_candidates = st.session_state.get("asset_candidates", [])
+_image_hunt_done = st.session_state.get("image_hunt_done", False)
+
+if isinstance(_raw_candidates, list) and _raw_candidates:
+    # Different header based on whether image hunt has completed
+    if not _image_hunt_done:
+        st.header("Reviewing your images...")
+        st.markdown("""
+        Our AI is carefully analyzing your website's visual assets to find the best **hero images** and **brand elements** 
+        that align with what we've learned about your business.
+        
+        We're looking for:
+        - **Hero/Feature Images** – High-impact visuals that showcase your products, services, or brand personality
+        - **Brand Logos** – Your company mark and any partner/certification logos
+        - **Brand Colors & Patterns** – Visual cues that define your aesthetic
+        - **Supporting Graphics** – Icons, illustrations, or design elements that reinforce your messaging
+        """)
+    else:
+        st.header("All candidate images from your site")
+        st.markdown("""
+        Here's the complete collection of images we extracted from your website. Our AI analyzed all of these 
+        to select the best matches for your campaign themes — see the curated selection below.
+        """)
+
+    # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
+    _preview_urls = []
+    for c in _raw_candidates:
+        if not isinstance(c, dict):
+            continue
+        u = c.get("url", "")
+        if not u or not isinstance(u, str):
+            continue
+        if u.startswith("data:") or u == "__INLINE_SVG__":
+            continue
+        kind = (c.get("kind") or "").lower()
+        if kind == "svg_inline":
+            continue
+        _preview_urls.append(u)
+
+    # Show carousel of images with auto-scroll
+    if _preview_urls:
+        if not _image_hunt_done:
+            st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – smooth auto-scrolling preview:")
+        else:
+            st.markdown(f"**{len(_preview_urls)} candidate images discovered:**")
+        
+        # Initialize carousel state if needed
+        if "image_carousel_index" not in st.session_state:
+            st.session_state["image_carousel_index"] = 0
+        if "image_carousel_timer" not in st.session_state:
+            st.session_state["image_carousel_timer"] = 0
+        
+        # Auto-advance carousel every 2 seconds for smooth continuous scroll (only if still processing)
+        if not _image_hunt_done:
+            import time
+            current_time = time.time()
+            if current_time - st.session_state["image_carousel_timer"] > 2.0:
+                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
+                st.session_state["image_carousel_timer"] = current_time
+                st.rerun()
+        
+        # Show 3 images in a row, smoothly scrolling through all available
+        carousel_cols = st.columns(3)
+        _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
+        
+        for col_idx, col in enumerate(carousel_cols):
+            _image_idx = (_start_idx + col_idx) % len(_preview_urls)
+            _url = _preview_urls[_image_idx]
+            with col:
+                try:
+                    st.image(_url, use_container_width=True)
+                    st.caption(f"Image {_image_idx + 1}/{len(_preview_urls)}")
+                except Exception:
+                    st.info("Image preview unavailable")
+        
+        # Show manual controls (less prominent)
+        with st.expander("Browse manually"):
+            import time
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("Previous", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 1) % len(_preview_urls)
+                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.rerun()
+            with col2:
+                if st.button("Next", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
+                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.rerun()
+    
+    # Divider + transition text when image hunt completes
+    if _image_hunt_done:
+        st.divider()
+        st.markdown("""
+        ### Our AI's Selection
+        
+        From the candidates above, our AI identified the best matches for your campaign. 
+        These selections align with your brand, themes, and advertising goals.
+        """)
+
+#
 # Step 3: Image hunt — uses asset_candidates from tier1_summarise
 #
 status = st.session_state.get("scrape_status", "idle")
@@ -1003,95 +1106,14 @@ if DEBUG_UI and ads_dbg:
         st.json(ads_dbg.get("_n8n_response_json", {}))
 
 # --- Best images and brand assets found ---
-st.divider()
 vp = st.session_state.get("visual_pack") or {}
 _vp_imgs = vp.get("images") if isinstance(vp, dict) else []
 _vp_logos = vp.get("logos") if isinstance(vp, dict) else []
 _vp_brand = vp.get("brand") if isinstance(vp, dict) else {}
-_raw_candidates = st.session_state.get("asset_candidates", [])
-_image_hunt_done = st.session_state.get("image_hunt_done", False)
-
-# --- Thumbnail preview: show raw candidates while image hunt is pending/running ---
-if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidates:
-    st.header("🔍 Reviewing your images...")
-    
-    # Engaging context about what we're doing
-    st.markdown("""
-    Our AI is carefully analyzing your website's visual assets to find the best **hero images** and **brand elements** 
-    that align with what we've learned about your business.
-    
-    We're looking for:
-    - **Hero/Feature Images** – High-impact visuals that showcase your products, services, or brand personality
-    - **Brand Logos** – Your company mark and any partner/certification logos
-    - **Brand Colors & Patterns** – Visual cues that define your aesthetic
-    - **Supporting Graphics** – Icons, illustrations, or design elements that reinforce your messaging
-    """)
-
-    # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
-    _preview_urls = []
-    for c in _raw_candidates:
-        if not isinstance(c, dict):
-            continue
-        u = c.get("url", "")
-        if not u or not isinstance(u, str):
-            continue
-        if u.startswith("data:") or u == "__INLINE_SVG__":
-            continue
-        kind = (c.get("kind") or "").lower()
-        if kind == "svg_inline":
-            continue
-        _preview_urls.append(u)
-
-    # Show carousel of images with auto-scroll
-    if _preview_urls:
-        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – smooth auto-scrolling preview:")
-        
-        # Initialize carousel state if needed
-        if "image_carousel_index" not in st.session_state:
-            st.session_state["image_carousel_index"] = 0
-        if "image_carousel_timer" not in st.session_state:
-            st.session_state["image_carousel_timer"] = 0
-        
-        # Auto-advance carousel every 2 seconds for smooth continuous scroll
-        import time
-        current_time = time.time()
-        if current_time - st.session_state["image_carousel_timer"] > 2.0:
-            st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-            st.session_state["image_carousel_timer"] = current_time
-            st.rerun()
-        
-        # Show 3 images in a row, smoothly scrolling through all available
-        carousel_cols = st.columns(3)
-        _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
-        
-        for col_idx, col in enumerate(carousel_cols):
-            _image_idx = (_start_idx + col_idx) % len(_preview_urls)
-            _url = _preview_urls[_image_idx]
-            with col:
-                try:
-                    st.image(_url, use_container_width=True)
-                    st.caption(f"Image {_image_idx + 1}/{len(_preview_urls)}")
-                except Exception:
-                    st.info("Image preview unavailable")
-        
-        # Show manual controls (less prominent)
-        with st.expander("📌 Pause and browse manually"):
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("⬅️ Previous", use_container_width=True):
-                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 1) % len(_preview_urls)
-                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
-                    st.rerun()
-            with col2:
-                if st.button("Next ➡️", use_container_width=True):
-                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
-                    st.rerun()
 
 # --- Curated visual pack (after image hunt completes) ---
-elif isinstance(_vp_imgs, list) and _vp_imgs:
-    st.header("Best images and brand assets found")
-    st.caption("Our AI has reviewed your website images and selected the best ones for your campaign.")
+if isinstance(_vp_imgs, list) and _vp_imgs:
+    st.subheader("Selected heroes, logos & brand elements")
 
     # Show images in a 2-column grid with rich captions
     img_cols = st.columns(2)

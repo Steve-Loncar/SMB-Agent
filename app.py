@@ -5,7 +5,7 @@ from backend.state import initstate
 
 st.set_page_config(
     page_title="SMB Ad Agent (Alpha)",
-    page_icon="🧩",
+    page_icon="🌐",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -38,7 +38,7 @@ with nav2:
 
 st.divider()
 
-st.title("🧩 SMB Ad Agent (Alpha)")
+st.title("SMB Ad Agent")
 st.caption(
     "Basic alpha UI. Enter a business website, then review a generated description and ad poster concepts."
 )
@@ -52,7 +52,7 @@ st.markdown(
 """
 )
 
-st.info("Use the top navigation: **Home** → **Results**.", icon="ℹ️")
+st.info("Use the top navigation: **Home** → **Results**."
 
 with st.expander("Dev notes", expanded=False):
     st.write(
