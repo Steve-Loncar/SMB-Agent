@@ -27,6 +27,9 @@ def initstate() -> None:
     st.session_state.setdefault("ads_autorun_done", False)   # only run once per scrape
     st.session_state.setdefault("ads_debug", None)           # store generate-ads debug envelope
 
-    # n8n settings
-    st.session_state.setdefault("n8n_mode", "LIVE")  # TEST | LIVE
+    # Image hunt state tracking
+    st.session_state.setdefault("image_hunt_done", False)
+    st.session_state.setdefault("image_hunt_debug", None)
+    st.session_state.setdefault("image_hunt_error", None)
+    st.session_state.setdefault("visual_pack", None)
 

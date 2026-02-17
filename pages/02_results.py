@@ -468,22 +468,37 @@ with st.sidebar:
     can_run_image_hunt = bool(st.session_state.get("asset_candidates"))
     if st.button("Run Image Hunt", disabled=not can_run_image_hunt):
         target_url = st.session_state.get("target_url", "")
-        with st.spinner("Reviewing images to match the themes from these snippets…"):
-            dbg = call_n8n_image_hunt(
-                url=target_url,
-                business_summary=st.session_state.get("business_summary", {}),
-                page_summaries=st.session_state.get("tier1_page_summaries", []),
-                tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
-                asset_candidates=st.session_state.get("asset_candidates", []),
-                mode=st.session_state.get("n8n_mode", "TEST"),
-            )
-        st.session_state["image_hunt_debug"] = dbg
-        resp = dbg.get("_n8n_response_json")
-        if isinstance(resp, list) and resp and isinstance(resp[0], dict):
-            resp = resp[0]
-        st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
-        st.session_state["image_hunt_done"] = True
-        st.success("Image hunt complete (see Best images section / diagnostics).")
+        ok = False
+        err = None
+        try:
+            with st.spinner("Reviewing images to match the themes from these snippets…"):
+                dbg = call_n8n_image_hunt(
+                    url=target_url,
+                    business_summary=st.session_state.get("business_summary", {}),
+                    page_summaries=st.session_state.get("tier1_page_summaries", []),
+                    tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
+                    asset_candidates=st.session_state.get("asset_candidates", []),
+                    mode=st.session_state.get("n8n_mode", "TEST"),
+                )
+            st.session_state["image_hunt_debug"] = dbg
+            resp = dbg.get("_n8n_response_json")
+            if isinstance(resp, list) and resp and isinstance(resp[0], dict):
+                resp = resp[0]
+            st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
+            ok = bool(st.session_state.get("visual_pack"))
+        except Exception as e:
+            err = str(e)
+
+        if ok:
+            st.session_state["image_hunt_done"] = True
+            st.success("Image hunt complete (see Best images section / diagnostics).")
+        else:
+            st.session_state["image_hunt_done"] = False
+            if err:
+                st.session_state["image_hunt_error"] = err
+                st.error(f"Image hunt failed: {err}")
+            else:
+                st.error("Image hunt failed: no visual_pack returned")
 
     if st.button("Reset"):
         st.session_state["target_url"] = ""
@@ -821,6 +836,8 @@ if (
     and len(st.session_state["asset_candidates"]) > 0
 ):
     st.session_state["scrape_status"] = "finding_images"
+    ok = False
+    err = None
     try:
         with st.spinner("Reviewing images to match the themes from these snippets…"):
             dbg = call_n8n_image_hunt(
@@ -836,11 +853,21 @@ if (
         if isinstance(resp, list) and resp and isinstance(resp[0], dict):
             resp = resp[0]
         st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
+        ok = bool(st.session_state.get("visual_pack"))
     except Exception as e:
-        st.warning(f"Image hunt step encountered an error: {e}")
-    st.session_state["image_hunt_done"] = True
-    st.session_state["scrape_status"] = "summarising"
-    st.rerun()
+        err = str(e)
+
+    if ok:
+        st.session_state["image_hunt_done"] = True
+        st.session_state["scrape_status"] = "summarising"
+        st.rerun()
+    else:
+        # DON'T mark done — let it be retried / debugged
+        st.session_state["image_hunt_done"] = False
+        st.session_state["scrape_status"] = "summarising"
+        if err:
+            st.session_state["image_hunt_error"] = err
+            st.warning(f"Image hunt failed (will not be marked done): {err}")
 
 # Step 4: Generate ads (chains after homepage summarise + image hunt)
 status = st.session_state.get("scrape_status", "idle")
@@ -1121,6 +1148,36 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
             st.error(ads_dbg.get("_error"))
         st.json(ads_dbg.get("_debug_payload_sent", {}))
         st.json(ads_dbg.get("_n8n_response_json", {}))
+
+    # Image hunt request/response debug
+    img_dbg = st.session_state.get("image_hunt_debug")
+    if img_dbg:
+        st.subheader("Debug: image-hunt request/response")
+        st.write("Target URL:")
+        st.code(img_dbg.get("_debug_target_url", ""), language="text")
+        st.write("HTTP status / final URL:")
+        st.code(
+            f"{img_dbg.get('_debug_http_status')} | final={img_dbg.get('_debug_final_url')}",
+            language="text",
+        )
+        if img_dbg.get("_error"):
+            st.error(img_dbg.get("_error"))
+        st.write("Response text (first 400 chars):")
+        st.code(img_dbg.get("_debug_resp_text_snippet", ""), language="text")
+        st.write("Payload sent (prompts + assets):")
+        payload = img_dbg.get("_debug_payload_sent", {})
+        # Show payload, but truncate the long lists for readability
+        display_payload = dict(payload)
+        if "asset_candidates" in display_payload and isinstance(display_payload["asset_candidates"], list):
+            display_payload["asset_candidates"] = f"[{len(display_payload['asset_candidates'])} items]"
+        if "page_summaries" in display_payload and isinstance(display_payload["page_summaries"], list):
+            display_payload["page_summaries"] = f"[{len(display_payload['page_summaries'])} items]"
+        st.json(display_payload)
+        st.write("N8N response JSON:")
+        st.json(img_dbg.get("_n8n_response_json", {}))
+        if img_dbg.get("_debug_resp_headers"):
+            st.write("Response headers:")
+            st.json(img_dbg.get("_debug_resp_headers", {}))
 
     # Scraped pages list (noisy) — now hidden by default
     st.subheader("Scraped pages")
