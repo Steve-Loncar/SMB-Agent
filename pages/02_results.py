@@ -1039,13 +1039,23 @@ if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidate
             continue
         _preview_urls.append(u)
 
-    # Show carousel of images with rotation
+    # Show carousel of images with auto-scroll
     if _preview_urls:
-        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – showing a rotating preview:")
+        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – auto-scrolling preview:")
         
         # Initialize carousel state if needed
         if "image_carousel_index" not in st.session_state:
             st.session_state["image_carousel_index"] = 0
+        if "image_carousel_timer" not in st.session_state:
+            st.session_state["image_carousel_timer"] = 0
+        
+        # Auto-advance carousel every 3.5 seconds
+        import time
+        current_time = time.time()
+        if current_time - st.session_state["image_carousel_timer"] > 3.5:
+            st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
+            st.session_state["image_carousel_timer"] = current_time
+            st.rerun()
         
         # Show 3 images in a row, rotating through all available
         carousel_cols = st.columns(3)
@@ -1061,17 +1071,19 @@ if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidate
                 except Exception:
                     st.info("Image preview unavailable")
         
-        # Auto-rotate every rerun (simulates carousel movement)
-        # Show button to manually rotate
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("⬅️ Previous", use_container_width=True):
-                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 3) % len(_preview_urls)
-                st.rerun()
-        with col2:
-            if st.button("Next ➡️", use_container_width=True):
-                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 3) % len(_preview_urls)
-                st.rerun()
+        # Show manual controls (less prominent)
+        with st.expander("📌 Pause and browse manually"):
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("⬅️ Previous", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 1) % len(_preview_urls)
+                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.rerun()
+            with col2:
+                if st.button("Next ➡️", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
+                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.rerun()
 
 # --- Curated visual pack (after image hunt completes) ---
 elif isinstance(_vp_imgs, list) and _vp_imgs:
