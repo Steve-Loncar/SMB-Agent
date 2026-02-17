@@ -26,8 +26,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        8032,
-        -16
+        8704,
+        112
       ],
       "name": "Respond to Webhook"
     },
@@ -322,7 +322,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4448,
+        4656,
         -16
       ],
       "name": "Prep decision context"
@@ -415,7 +415,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4672,
+        4880,
         -16
       ],
       "name": "Open AI decision on further T2s",
@@ -447,7 +447,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4896,
+        5104,
         -16
       ],
       "name": "Decision - Raw Text"
@@ -469,7 +469,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5120,
+        5328,
         -16
       ],
       "name": "Decision - strip fences"
@@ -491,7 +491,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5344,
+        5552,
         -16
       ],
       "name": "Decision- Parse JSON"
@@ -524,7 +524,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        5568,
+        5776,
         -16
       ],
       "name": "If - should scrape"
@@ -537,7 +537,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        5792,
+        6000,
         -112
       ],
       "name": "Split Out Tier 2"
@@ -578,7 +578,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        6464,
+        6672,
         -112
       ],
       "name": "Open AI snippets T2",
@@ -616,7 +616,7 @@
       "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
       "typeVersion": 1,
       "position": [
-        6016,
+        6224,
         -112
       ],
       "name": "Fetch Tier 2 pages",
@@ -662,7 +662,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6240,
+        6448,
         -112
       ],
       "name": "Prep LLM Call Tier 2"
@@ -696,7 +696,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7808,
+        8016,
         80
       ],
       "name": "Prepare just Tier 1 summaries"
@@ -718,7 +718,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6688,
+        6896,
         -112
       ],
       "name": "T2 - Raw text in"
@@ -740,7 +740,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6912,
+        7120,
         -112
       ],
       "name": "T2 - strip fences"
@@ -762,7 +762,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7136,
+        7344,
         -112
       ],
       "name": "T2 - Parse JSON"
@@ -814,7 +814,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7360,
+        7568,
         -112
       ],
       "name": "T2 - extract page result"
@@ -828,7 +828,7 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        7584,
+        7792,
         -112
       ],
       "name": "T2 - Aggregate"
@@ -862,7 +862,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7808,
+        8016,
         -112
       ],
       "name": "Package Combined"
@@ -1167,7 +1167,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4224,
+        4432,
         -16
       ],
       "name": "Set tier1_pages"
@@ -1211,6 +1211,178 @@
         -112
       ],
       "name": "Prep T1 LLM Call"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
+              "name": "page_summaries",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-2",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "tier2_decision",
+              "value": "={{ $json.tier2_decision }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "asset_candidates",
+              "value": "={{ $('IMG - Extract candidates').item.json.asset_candidates }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8576,
+        -224
+      ],
+      "name": "Trim response payload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
+              "name": "page_summaries",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-2",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "tier2_decision",
+              "value": "={{ $json.tier2_decision }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "asset_candidates",
+              "value": "={{ $('IMG - Extract candidates1').item.json.asset_candidates }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8512,
+        144
+      ],
+      "name": "Trim response payload1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae35f5d4-0b8b-4775-b188-84ba82f30774",
+              "name": "all_pages",
+              "value": "={{ $json.page_summaries }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4224,
+        -16
+      ],
+      "name": "IMG Prep pages input (T1/0 only)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae35f5d4-0b8b-4775-b188-84ba82f30774",
+              "name": "all_pages",
+              "value": "={{ ($json.page_summaries || []).concat($json.tier2_page_summaries || []) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8144,
+        -272
+      ],
+      "name": "IMG Prep pages input (T2/1/0)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nreturn [{ asset_candidates: candidates }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8352,
+        -272
+      ],
+      "name": "IMG - Extract candidates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nreturn [{ asset_candidates: candidates }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8336,
+        32
+      ],
+      "name": "IMG - Extract candidates1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b5dcf349-be7e-4b38-9be0-39bac24c657e",
+              "name": "all_pages",
+              "value": "={{ $json.page_summaries }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8224,
+        80
+      ],
+      "name": "IMG Prep pages input T1/o AFTER"
     }
   ],
   "connections": {
@@ -1311,7 +1483,7 @@
       "main": [
         [
           {
-            "node": "Set tier1_pages",
+            "node": "IMG Prep pages input (T1/0 only)",
             "type": "main",
             "index": 0
           }
@@ -1439,7 +1611,7 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "IMG Prep pages input T1/o AFTER",
             "type": "main",
             "index": 0
           }
@@ -1516,7 +1688,7 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "IMG Prep pages input (T2/1/0)",
             "type": "main",
             "index": 0
           }
@@ -1638,6 +1810,83 @@
         [
           {
             "node": "Open AI snippets T1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trim response payload": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trim response payload1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input (T1/0 only)": {
+      "main": [
+        [
+          {
+            "node": "Set tier1_pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input (T2/1/0)": {
+      "main": [
+        [
+          {
+            "node": "IMG - Extract candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG - Extract candidates": {
+      "main": [
+        [
+          {
+            "node": "Trim response payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG - Extract candidates1": {
+      "main": [
+        [
+          {
+            "node": "Trim response payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input T1/o AFTER": {
+      "main": [
+        [
+          {
+            "node": "IMG - Extract candidates1",
             "type": "main",
             "index": 0
           }

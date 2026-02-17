@@ -146,7 +146,8 @@
               ]
             },
             "headers": {},
-            "waitFor": 2000
+            "waitFor": 2000,
+            "timeout": 90000
           }
         },
         "requestOptions": {}

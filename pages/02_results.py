@@ -337,6 +337,7 @@ st.session_state.setdefault("tier1_summarise_debug", None)
 st.session_state.setdefault("tier1_page_summaries", [])
 st.session_state.setdefault("tier2_page_summaries", [])
 st.session_state.setdefault("tier2_decision", {})
+st.session_state.setdefault("asset_candidates", [])
 
 st.session_state.setdefault("image_hunt_done", False)
 st.session_state.setdefault("image_hunt_debug", None)
@@ -464,24 +465,23 @@ with st.sidebar:
         st.success("2nd pass complete (see Business summary section / diagnostics).")
 
     # Manual image hunt (useful for iterating on image hunt workflow/prompts)
-    sp_local = st.session_state.get("scrape_pack") or {}
-    has_html = isinstance(sp_local, dict) and (
-        bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
-    )
-    can_run_image_hunt = bool(st.session_state.get("scrape_pack")) and has_html
+    can_run_image_hunt = bool(st.session_state.get("asset_candidates"))
     if st.button("Run Image Hunt", disabled=not can_run_image_hunt):
         target_url = st.session_state.get("target_url", "")
-        with st.spinner("Finding the best on-brand images and assets from your site…"):
+        with st.spinner("Reviewing images to match the themes from these snippets…"):
             dbg = call_n8n_image_hunt(
                 url=target_url,
-                scrape_pack=sp_local,
+                business_summary=st.session_state.get("business_summary", {}),
+                page_summaries=st.session_state.get("tier1_page_summaries", []),
+                tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
+                asset_candidates=st.session_state.get("asset_candidates", []),
                 mode=st.session_state.get("n8n_mode", "TEST"),
             )
         st.session_state["image_hunt_debug"] = dbg
-        resp_json = dbg.get("_n8n_response_json")
-        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-            resp_json = resp_json[0]
-        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
+        resp = dbg.get("_n8n_response_json")
+        if isinstance(resp, list) and resp and isinstance(resp[0], dict):
+            resp = resp[0]
+        st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
         st.session_state["image_hunt_done"] = True
         st.success("Image hunt complete (see Best images section / diagnostics).")
 
@@ -508,6 +508,7 @@ with st.sidebar:
         st.session_state["tier1_page_summaries"] = []
         st.session_state["tier2_page_summaries"] = []
         st.session_state["tier2_decision"] = {}
+        st.session_state["asset_candidates"] = []
         st.session_state["image_hunt_done"] = False
         st.session_state["image_hunt_debug"] = None
         st.session_state["visual_pack"] = None
@@ -530,6 +531,8 @@ elif status == "analysing_pages":
     st.caption("Reviewing key pages for advertising material...")
 elif status == "summarising":
     st.caption("Building your business summary...")
+elif status == "finding_images":
+    st.caption("Reviewing images to match your advertising themes...")
 elif status == "generating_ads":
     st.caption("Creating your campaign concepts...")
 elif status == "done":
@@ -555,7 +558,7 @@ if sp and not st.session_state.get("scrape_pack_pack"):
         "raw": sp,
     }
 
-if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "summarising", "analysing_pages", "generating_ads", "done"):
+if (tiers.get(1) or tiers.get(2)) and status in ("scraped", "summarising", "analysing_pages", "finding_images", "generating_ads", "done"):
     st.markdown("#### Website scan complete")
     st.caption("Pages we identified as most relevant to your advertising:")
 
@@ -763,6 +766,9 @@ if status == "scraped" and not st.session_state.get("tier1_summarise_done", Fals
             t2d = resp_json.get("tier2_decision")
             if isinstance(t2d, dict):
                 st.session_state["tier2_decision"] = t2d
+            ac = resp_json.get("asset_candidates", [])
+            if isinstance(ac, list):
+                st.session_state["asset_candidates"] = ac
     except Exception:
         pass
 
@@ -804,35 +810,37 @@ if status == "analysing_pages" and not st.session_state.get("homepage_summarise_
     st.rerun()
 
 #
-# Step 3: Image hunt (no recrawl) — uses scrape_pack.homepage_html + tier pages html
+# Step 3: Image hunt — uses asset_candidates from tier1_summarise
 #
 status = st.session_state.get("scrape_status", "idle")
-pack = _extract_pack_summary(st.session_state.get("scrape_pack") or {})
-sp_local = st.session_state.get("scrape_pack") or {}
-has_html = isinstance(sp_local, dict) and (
-    bool(sp_local.get("homepage_html")) or bool(sp_local.get("tier1_pages")) or bool(sp_local.get("tier2_pages"))
-)
-
-if status == "summarising" and st.session_state.get("homepage_summarise_done", False) and not st.session_state.get("image_hunt_done", False):
-    if has_html:
-        st.session_state["scrape_status"] = "finding_images"
-        with st.spinner("Finding the best on-brand images and assets from your site…"):
+if (
+    status == "summarising"
+    and st.session_state.get("homepage_summarise_done", False)
+    and not st.session_state.get("image_hunt_done", False)
+    and isinstance(st.session_state.get("asset_candidates"), list)
+    and len(st.session_state["asset_candidates"]) > 0
+):
+    st.session_state["scrape_status"] = "finding_images"
+    try:
+        with st.spinner("Reviewing images to match the themes from these snippets…"):
             dbg = call_n8n_image_hunt(
                 url=st.session_state.get("target_url", ""),
-                scrape_pack=sp_local,
+                business_summary=st.session_state.get("business_summary", {}),
+                page_summaries=st.session_state.get("tier1_page_summaries", []),
+                tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
+                asset_candidates=st.session_state.get("asset_candidates", []),
                 mode=st.session_state.get("n8n_mode", "TEST"),
             )
         st.session_state["image_hunt_debug"] = dbg
-        resp_json = dbg.get("_n8n_response_json")
-        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-            resp_json = resp_json[0]
-        st.session_state["visual_pack"] = resp_json if isinstance(resp_json, dict) else None
-        st.session_state["image_hunt_done"] = True
-        st.session_state["scrape_status"] = "summarising"
-        st.rerun()
-    else:
-        st.warning("Image hunt skipped: scrape-pack did not include HTML yet. Add homepage_html/tier pages html to scrape-pack payload.")
-        st.session_state["image_hunt_done"] = True
+        resp = dbg.get("_n8n_response_json")
+        if isinstance(resp, list) and resp and isinstance(resp[0], dict):
+            resp = resp[0]
+        st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
+    except Exception as e:
+        st.warning(f"Image hunt step encountered an error: {e}")
+    st.session_state["image_hunt_done"] = True
+    st.session_state["scrape_status"] = "summarising"
+    st.rerun()
 
 # Step 4: Generate ads (chains after homepage summarise + image hunt)
 status = st.session_state.get("scrape_status", "idle")
@@ -964,52 +972,77 @@ if DEBUG_UI and ads_dbg:
         st.json(ads_dbg.get("_debug_payload_sent", {}))
         st.json(ads_dbg.get("_n8n_response_json", {}))
 
-# --- Tier 2 decision + results ---
-_t2_decision = st.session_state.get("tier2_decision", {})
-_t2_summaries = st.session_state.get("tier2_page_summaries", [])
-if isinstance(_t2_decision, dict) and _t2_decision:
-    st.divider()
-    if _t2_decision.get("should_scrape") and isinstance(_t2_summaries, list) and _t2_summaries:
-        st.subheader("Additional page highlights")
-        st.caption(f"Our agent decided to review deeper pages: {_t2_decision.get('reasoning', '')}")
-        st.markdown(_highlight_css, unsafe_allow_html=True)
-        for ps in _t2_summaries:
-            if not isinstance(ps, dict):
-                continue
-            p_title = ps.get("page_title", "")
-            p_url = ps.get("page_url", "")
-            snippets = ps.get("ad_snippets", [])
-            if not isinstance(snippets, list):
-                snippets = []
-            snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
-            card_html = (
-                f'<div class="highlight-card">'
-                f'<div class="page-title">{p_title}</div>'
-                f'<div class="page-url"><a href="{p_url}" target="_blank">{p_url}</a></div>'
-                f'<ul>{snippet_html or "<li>No snippets extracted.</li>"}</ul>'
-                f'</div>'
-            )
-            st.markdown(card_html, unsafe_allow_html=True)
-    else:
-        st.caption(f"Deeper pages reviewed — none needed. {_t2_decision.get('reasoning', '')}")
-
 # --- Best images and brand assets found ---
 st.divider()
 st.header("Best images and brand assets found")
 vp = st.session_state.get("visual_pack") or {}
 imgs = vp.get("images") if isinstance(vp, dict) else []
+logos = vp.get("logos") if isinstance(vp, dict) else []
+brand = vp.get("brand") if isinstance(vp, dict) else {}
+
 if isinstance(imgs, list) and imgs:
-    for im in imgs[:12]:
+    # Show images in a 2-column grid with rich captions
+    img_cols = st.columns(2)
+    for idx, im in enumerate(imgs[:16]):
         if not isinstance(im, dict):
             continue
-        url = im.get("url", "")
-        if url:
-            use_txt = im.get("use", "")
-            source_txt = im.get("source_page", "")
-            caption_txt = f"{use_txt} — {source_txt}"
-            st.image(url, caption=caption_txt, use_container_width=True)
+        img_url = im.get("url", "")
+        if not img_url:
+            continue
+        with img_cols[idx % 2]:
+            st.image(img_url, use_container_width=True)
+            # Type + recommended use tags
+            tags = []
+            if im.get("type"):
+                tags.append(im["type"])
+            if im.get("recommended_use"):
+                tags.append(im["recommended_use"])
+            if tags:
+                st.caption(" | ".join(tags))
+            # Matched themes
+            themes = im.get("matched_themes", [])
+            if isinstance(themes, list) and themes:
+                st.markdown("**Themes:** " + ", ".join(str(t) for t in themes))
+            # Why relevant
+            if im.get("why_relevant"):
+                st.markdown(f"_{im['why_relevant']}_")
+            # Risk notes (if any)
+            if im.get("risk_notes"):
+                st.caption(f"Note: {im['risk_notes']}")
+
+    # Logos section
+    if isinstance(logos, list) and logos:
+        st.subheader("Logos found")
+        logo_cols = st.columns(min(len(logos), 4))
+        for li, logo in enumerate(logos[:4]):
+            if not isinstance(logo, dict):
+                continue
+            logo_url = logo.get("url", "")
+            if logo_url:
+                with logo_cols[li]:
+                    st.image(logo_url, use_container_width=True)
+                    if logo.get("why_logo"):
+                        st.caption(logo["why_logo"])
+
+    # Brand cues
+    if isinstance(brand, dict):
+        colors = brand.get("colors", [])
+        motifs = brand.get("motifs", [])
+        if (isinstance(colors, list) and colors) or (isinstance(motifs, list) and motifs):
+            st.subheader("Brand cues")
+            if isinstance(colors, list) and colors:
+                color_text = ", ".join(
+                    f"{c.get('hex', '?')} ({c.get('role', '?')})"
+                    for c in colors if isinstance(c, dict)
+                )
+                if color_text:
+                    st.markdown(f"**Colours:** {color_text}")
+            if isinstance(motifs, list) and motifs:
+                for m in motifs:
+                    if isinstance(m, dict) and m.get("label"):
+                        st.markdown(f"- {m['label']}")
 else:
-    st.caption("No visual pack yet (or no images returned).")
+    st.caption("No visual pack yet.")
 
 st.divider()
 

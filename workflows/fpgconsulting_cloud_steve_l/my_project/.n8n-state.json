@@ -66,8 +66,8 @@
       "filename": "distiller_status.json"
     },
     "MOC3yN0C7ke04nM4": {
-      "lastSyncedHash": "b597db188ee693521317280c0b1f214f64010ad3de64026619f490c4b9227aa3",
-      "lastSyncedAt": "2026-02-16T18:05:21.905Z",
+      "lastSyncedHash": "622b3fc1209979099de6a8e08d55f5bf7b03eb88f84b1494a3a544635bdf4eef",
+      "lastSyncedAt": "2026-02-17T06:05:45.355Z",
       "filename": "SMB-scrape-pack.json"
     },
     "jJVUlUkXqesFrlpv": {
@@ -76,14 +76,19 @@
       "filename": "Tender evidence distiller.json"
     },
     "rJmG2127XE4XU3Zs": {
-      "lastSyncedHash": "a11ceaeffe5d7bf01d75b56796611f546b1732cfac310229ff56235afed81e85",
-      "lastSyncedAt": "2026-02-16T18:52:39.289Z",
+      "lastSyncedHash": "a6da17c965eb1360ae441c9acc772a909481723afc31c3edd00a1336b0e8c22c",
+      "lastSyncedAt": "2026-02-16T20:47:32.994Z",
       "filename": "SMB_tier1_summariser.json"
     },
     "zRiOBZzZe1xC2s4o": {
       "lastSyncedHash": "4e111c5233210f45e2e9c190ca2b65acfc21c67a319c608ee58d28c7d8e78ae2",
       "lastSyncedAt": "2026-02-16T14:50:38.658Z",
       "filename": "SMB_generate_ad_concepts.json"
+    },
+    "Q5kdwj9M7VlCwX2Z": {
+      "lastSyncedHash": "d3bc6c88808e2b8cdf46d18cfa08faad4a160be74174635111e1b34097159b2c",
+      "lastSyncedAt": "2026-02-17T05:59:20.622Z",
+      "filename": "SMB_Image_hunt.json"
     }
   }
 }

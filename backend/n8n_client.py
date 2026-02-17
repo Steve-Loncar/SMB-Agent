@@ -440,27 +440,139 @@ def call_n8n_tier1_summarise(
     return result
 
 
+def _filter_asset_candidates(candidates: list[dict], cap: int = 120) -> list[dict]:
+    """
+    Dedupe, remove junk, and cap asset candidates BEFORE building the LLM prompt.
+    Mirrors the n8n Code node logic so the prompt_user sees the cleaned list.
+    """
+    import re
+    from urllib.parse import urlparse, urlencode, parse_qs
+
+    JUNK_URL_PATTERNS = [
+        r"1x1", r"spacer", r"pixel", r"blank\.", r"tracking",
+        r"favicon", r"apple-touch-icon", r"safari-pinned-tab",
+        r"wp-emoji", r"gravatar\.com", r"googletagmanager",
+        r"facebook\.com/tr", r"analytics", r"beacon",
+        r"\.gif$", r"data:image/svg", r"data:image/gif",
+        r"cookie", r"gdpr", r"consent",
+    ]
+    JUNK_URL_RE = [re.compile(p, re.IGNORECASE) for p in JUNK_URL_PATTERNS]
+
+    JUNK_CLS_RE = re.compile(
+        r"icon-(?:arrow|chevron|caret|close|menu|search|social)", re.IGNORECASE
+    )
+    SOCIAL_ALT_RE = re.compile(
+        r"^(facebook|twitter|instagram|linkedin|youtube|tiktok|pinterest)\s*(icon|logo)?$",
+        re.IGNORECASE,
+    )
+    TRACKING_PARAMS = {
+        "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
+        "fbclid", "gclid", "ref", "_ga", "mc_cid", "mc_eid",
+    }
+
+    def normalise_url(u: str) -> str:
+        try:
+            parsed = urlparse(u)
+            qs = parse_qs(parsed.query, keep_blank_values=False)
+            cleaned_qs = {k: v for k, v in qs.items() if k not in TRACKING_PARAMS}
+            new_query = urlencode(cleaned_qs, doseq=True) if cleaned_qs else ""
+            frag = "" if parsed.fragment == "" else parsed.fragment
+            return parsed._replace(query=new_query, fragment=frag).geturl()
+        except Exception:
+            return u
+
+    def is_junk(c: dict) -> bool:
+        c_url = (c.get("url") or "").lower()
+        alt = (c.get("alt") or "").lower()
+        cls = (c.get("cls") or "").lower()
+        kind = (c.get("kind") or "").lower()
+
+        if c_url.startswith("data:"):
+            return True
+        if any(p.search(c_url) for p in JUNK_URL_RE):
+            return True
+        if JUNK_CLS_RE.search(cls):
+            return True
+        if SOCIAL_ALT_RE.match(alt):
+            return True
+        if kind == "svg_inline" and not re.search(r"logo|brand|mark", alt + " " + cls, re.IGNORECASE):
+            return True
+        return False
+
+    seen: set[str] = set()
+    cleaned: list[dict] = []
+    for c in candidates:
+        raw_url = c.get("url")
+        if not raw_url or not isinstance(raw_url, str):
+            continue
+        norm = normalise_url(raw_url)
+        if norm in seen:
+            continue
+        if is_junk(c):
+            continue
+        seen.add(norm)
+        cleaned.append({**c, "url": norm})
+
+    return cleaned[:cap]
+
+
 def call_n8n_image_hunt(
     *,
     url: str,
-    scrape_pack: dict,
+    business_summary: dict,
+    page_summaries: list[dict],
+    tier2_page_summaries: list[dict],
+    asset_candidates: list[dict],
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
-    POST scrape_pack (containing homepage_html + tier pages html) to n8n /SMB-image-hunt.
-    Returns a visual_pack with extracted image URLs, metadata, and suggested usage.
+    POST asset candidates + context to n8n /SMB-image-hunt.
+    Returns a visual_pack with curated image URLs matched to ad themes.
     """
     target_url = resolve_n8n_webhook("image_hunt", mode, override_url=webhook_url)
     headers = _tender_headers()
 
+    # Filter and dedupe candidates BEFORE building the prompt so the LLM
+    # sees the same cleaned list that gets passed in the structured payload.
+    filtered_candidates = _filter_asset_candidates(asset_candidates or [])
+
+    # Format page snippets into a readable text block (same pattern as other workflows)
+    all_summaries = list(page_summaries or []) + list(tier2_page_summaries or [])
+    snippets_text = ""
+    for ps in all_summaries:
+        if not isinstance(ps, dict):
+            continue
+        title = ps.get("page_title", "")
+        p_url = ps.get("page_url", "")
+        snips = ps.get("ad_snippets", [])
+        if not isinstance(snips, list):
+            snips = []
+        snip_lines = "\n".join(f"  - {s}" for s in snips if isinstance(s, str) and s.strip())
+        if title or snip_lines:
+            snippets_text += f"\n{title} ({p_url})\n{snip_lines}\n"
+
+    user_template = _load_prompt("smb_image_hunt_user.txt")
+    prompt_user = user_template.format(
+        url=url,
+        business_summary_json=json.dumps(business_summary or {}, ensure_ascii=False, indent=2),
+        page_snippets=snippets_text.strip() if snippets_text.strip() else "(no snippets provided)",
+        asset_candidates_json=json.dumps(filtered_candidates, ensure_ascii=False, indent=2),
+        asset_count=len(filtered_candidates),
+    )
+
     payload = {
         "payload_type": "smb_image_hunt",
         "url": url,
-        "scrape_pack": scrape_pack,
+        "business_summary": business_summary or {},
+        "page_summaries": page_summaries or [],
+        "tier2_page_summaries": tier2_page_summaries or [],
+        "asset_candidates": filtered_candidates,
+        "prompt_system": _load_prompt("smb_image_hunt_system.txt"),
+        "prompt_user": prompt_user,
     }
 
-    req_timeout = (10, 120)
+    req_timeout = (10, 180)
     resp = requests.post(target_url, headers=headers, json=payload, timeout=req_timeout)
 
     result: Dict[str, Any] = {}

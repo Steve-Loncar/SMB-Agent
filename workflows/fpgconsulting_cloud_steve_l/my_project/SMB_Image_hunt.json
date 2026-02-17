@@ -1,0 +1,310 @@
+{
+  "id": "Q5kdwj9M7VlCwX2Z",
+  "name": "SMB_Image_hunt",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SMB-image-hunt",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1552,
+        -16
+      ],
+      "name": "Webhook",
+      "webhookId": "f50e2198-bc22-4bdf-a4de-cec065a6b0d9"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3120,
+        -16
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "url",
+              "value": "={{ $json.body.url }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "business_summary",
+              "value": "={{ $json.body.business_summary }}",
+              "type": "object"
+            },
+            {
+              "id": "id-3",
+              "name": "page_summaries",
+              "value": "={{ $json.body.page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "id-4",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.body.tier2_page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "id-5",
+              "name": "asset_candidates",
+              "value": "={{ $json.body.asset_candidates }}",
+              "type": "array"
+            },
+            {
+              "id": "id-6",
+              "name": "prompt_system",
+              "value": "={{ $json.body.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "prompt_user",
+              "value": "={{ $json.body.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalise Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidates = $input.first().json.asset_candidates || [];\n\n// 1. Normalise URLs: strip tracking params, lowercase scheme+host\nfunction normaliseUrl(u) {\n  try {\n    const url = new URL(u);\n    // Strip common tracking params\n    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term',\n     'fbclid','gclid','ref','_ga','mc_cid','mc_eid'].forEach(p => url.searchParams.delete(p));\n    // Strip trailing hash if empty\n    if (url.hash === '#') url.hash = '';\n    return url.href;\n  } catch { return u; }\n}\n\n// 2. Junk detection patterns\nconst JUNK_PATTERNS = [\n  /1x1/i, /spacer/i, /pixel/i, /blank\\./i, /tracking/i,\n  /favicon/i, /apple-touch-icon/i, /safari-pinned-tab/i,\n  /wp-emoji/i, /gravatar\\.com/i, /googletagmanager/i,\n  /facebook\\.com\\/tr/i, /analytics/i, /beacon/i,\n  /\\.gif$/i,  // most GIFs on business sites are tracking pixels\n  /data:image\\/svg/i, /data:image\\/gif/i,\n  /cookie/i, /gdpr/i, /consent/i\n];\nconst JUNK_ALT = [\n  /^$/,  // empty alt is suspicious but not always junk\n  /loading/i, /spinner/i, /arrow/i, /chevron/i, /caret/i,\n  /hamburger/i, /menu icon/i, /close/i, /search icon/i\n];\n\nfunction isJunk(c) {\n  const url = (c.url || '').toLowerCase();\n  const alt = (c.alt || '').toLowerCase();\n  const cls = (c.cls || '').toLowerCase();\n  const kind = (c.kind || '').toLowerCase();\n\n  // Skip data URIs (inline SVG UI elements)\n  if (url.startsWith('data:')) return true;\n\n  // Skip by URL pattern\n  if (JUNK_PATTERNS.some(p => p.test(url))) return true;\n\n  // Skip tiny icon classes\n  if (/icon-(?:arrow|chevron|caret|close|menu|search|social)/i.test(cls)) return true;\n\n  // Skip social media icons by alt\n  if (/^(facebook|twitter|instagram|linkedin|youtube|tiktok|pinterest)\\s*(icon|logo)?$/i.test(alt)) return true;\n\n  // Keep SVG inlines only if they look like logos\n  if (kind === 'svg_inline' && !/logo|brand|mark/i.test(alt + ' ' + cls)) return true;\n\n  return false;\n}\n\n// 3. Dedupe by normalised URL\nconst seen = new Set();\nconst cleaned = [];\nfor (const c of candidates) {\n  if (!c.url) continue;\n  const norm = normaliseUrl(c.url);\n  if (seen.has(norm)) continue;\n  if (isJunk(c)) continue;\n  seen.add(norm);\n  cleaned.push({ ...c, url: norm });\n}\n\n// 4. Cap at 120 candidates (LLM context budget)\nconst capped = cleaned.slice(0, 120);\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    asset_candidates: capped,\n    _filter_stats: {\n      input_count: candidates.length,\n      after_dedupe_and_filter: cleaned.length,\n      sent_to_llm: capped.length\n    }\n  }\n}];"
+      },
+      "name": "Dedupe & Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [   {     \"role\": \"system\",     \"content\": $json.prompt_system   },   {     \"role\": \"user\",     \"content\": $json.prompt_user   } ] }}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "4096"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2224,
+        -16
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zhrmifvZdFhejfeJ",
+          "name": "Header Auth account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract raw text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "no_fences",
+              "value": "={{ $json.raw_text.replace(/```json\\s*/i, '').replace(/```\\s*/i, '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Strip fences + parse JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2672,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "visual_pack",
+              "value": "={{ $json.parsed.visual_pack }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Build final payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2896,
+        -16
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalise Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise Inputs": {
+      "main": [
+        [
+          {
+            "node": "Dedupe & Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedupe & Filter": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract raw text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract raw text": {
+      "main": [
+        [
+          {
+            "node": "Strip fences + parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strip fences + parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Build final payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build final payload": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
+  "isArchived": false
+}
