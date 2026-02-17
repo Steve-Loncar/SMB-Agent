@@ -974,16 +974,51 @@ if DEBUG_UI and ads_dbg:
 
 # --- Best images and brand assets found ---
 st.divider()
-st.header("Best images and brand assets found")
 vp = st.session_state.get("visual_pack") or {}
-imgs = vp.get("images") if isinstance(vp, dict) else []
-logos = vp.get("logos") if isinstance(vp, dict) else []
-brand = vp.get("brand") if isinstance(vp, dict) else {}
+_vp_imgs = vp.get("images") if isinstance(vp, dict) else []
+_vp_logos = vp.get("logos") if isinstance(vp, dict) else []
+_vp_brand = vp.get("brand") if isinstance(vp, dict) else {}
+_raw_candidates = st.session_state.get("asset_candidates", [])
+_image_hunt_done = st.session_state.get("image_hunt_done", False)
 
-if isinstance(imgs, list) and imgs:
+# --- Thumbnail preview: show raw candidates while image hunt is pending/running ---
+if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidates:
+    st.header("Images from your website")
+    st.caption("We found these images on your pages — reviewing them now to find the best ones for your campaign...")
+
+    # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
+    _preview_urls = []
+    for c in _raw_candidates:
+        if not isinstance(c, dict):
+            continue
+        u = c.get("url", "")
+        if not u or not isinstance(u, str):
+            continue
+        if u.startswith("data:") or u == "__INLINE_SVG__":
+            continue
+        kind = (c.get("kind") or "").lower()
+        if kind == "svg_inline":
+            continue
+        _preview_urls.append(u)
+
+    # Show up to 24 thumbnails in a 4-column grid
+    if _preview_urls:
+        _thumb_cols = st.columns(4)
+        for _ti, _tu in enumerate(_preview_urls[:24]):
+            with _thumb_cols[_ti % 4]:
+                try:
+                    st.image(_tu, use_container_width=True)
+                except Exception:
+                    pass  # skip broken images silently
+
+# --- Curated visual pack (after image hunt completes) ---
+elif isinstance(_vp_imgs, list) and _vp_imgs:
+    st.header("Best images and brand assets found")
+    st.caption("Our AI has reviewed your website images and selected the best ones for your campaign.")
+
     # Show images in a 2-column grid with rich captions
     img_cols = st.columns(2)
-    for idx, im in enumerate(imgs[:16]):
+    for idx, im in enumerate(_vp_imgs[:16]):
         if not isinstance(im, dict):
             continue
         img_url = im.get("url", "")
@@ -1011,10 +1046,10 @@ if isinstance(imgs, list) and imgs:
                 st.caption(f"Note: {im['risk_notes']}")
 
     # Logos section
-    if isinstance(logos, list) and logos:
+    if isinstance(_vp_logos, list) and _vp_logos:
         st.subheader("Logos found")
-        logo_cols = st.columns(min(len(logos), 4))
-        for li, logo in enumerate(logos[:4]):
+        logo_cols = st.columns(min(len(_vp_logos), 4))
+        for li, logo in enumerate(_vp_logos[:4]):
             if not isinstance(logo, dict):
                 continue
             logo_url = logo.get("url", "")
@@ -1025,9 +1060,9 @@ if isinstance(imgs, list) and imgs:
                         st.caption(logo["why_logo"])
 
     # Brand cues
-    if isinstance(brand, dict):
-        colors = brand.get("colors", [])
-        motifs = brand.get("motifs", [])
+    if isinstance(_vp_brand, dict):
+        colors = _vp_brand.get("colors", [])
+        motifs = _vp_brand.get("motifs", [])
         if (isinstance(colors, list) and colors) or (isinstance(motifs, list) and motifs):
             st.subheader("Brand cues")
             if isinstance(colors, list) and colors:
@@ -1041,8 +1076,12 @@ if isinstance(imgs, list) and imgs:
                 for m in motifs:
                     if isinstance(m, dict) and m.get("label"):
                         st.markdown(f"- {m['label']}")
+
+elif _image_hunt_done:
+    st.header("Best images and brand assets found")
+    st.caption("Image review complete — no strong visual candidates found for this site.")
 else:
-    st.caption("No visual pack yet.")
+    pass  # no candidates yet, nothing to show
 
 st.divider()
 

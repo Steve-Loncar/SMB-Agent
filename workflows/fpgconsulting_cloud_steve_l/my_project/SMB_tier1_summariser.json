@@ -13,7 +13,7 @@
       "typeVersion": 2.1,
       "position": [
         1552,
-        -16
+        -176
       ],
       "name": "Webhook",
       "webhookId": "b49fa9a7-a057-44b0-8475-bbe71b5c69b7"
@@ -26,8 +26,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        8704,
-        112
+        8944,
+        -176
       ],
       "name": "Respond to Webhook"
     },
@@ -91,7 +91,7 @@
       "typeVersion": 3.4,
       "position": [
         1776,
-        -16
+        -176
       ],
       "name": "Normalise inputs"
     },
@@ -104,7 +104,7 @@
       "typeVersion": 1,
       "position": [
         2000,
-        -112
+        -272
       ],
       "name": "Split Out Tier 1"
     },
@@ -133,7 +133,7 @@
       "typeVersion": 1,
       "position": [
         2224,
-        -112
+        -272
       ],
       "name": "Fetch Tier 1 pages",
       "credentials": {
@@ -161,7 +161,7 @@
       "typeVersion": 3.4,
       "position": [
         2896,
-        -112
+        -272
       ],
       "name": "T1 - Raw text in"
     },
@@ -183,7 +183,7 @@
       "typeVersion": 3.4,
       "position": [
         3120,
-        -112
+        -272
       ],
       "name": "T1 - strip fences"
     },
@@ -205,7 +205,7 @@
       "typeVersion": 3.4,
       "position": [
         3344,
-        -112
+        -272
       ],
       "name": "T1 - Parse JSON"
     },
@@ -257,7 +257,7 @@
       "typeVersion": 3.4,
       "position": [
         3568,
-        -112
+        -272
       ],
       "name": "T1 - extract page result"
     },
@@ -271,7 +271,7 @@
       "typeVersion": 1,
       "position": [
         4016,
-        -16
+        -176
       ],
       "name": "T1 - Aggregate"
     },
@@ -322,8 +322,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4656,
-        -16
+        4688,
+        -176
       ],
       "name": "Prep decision context"
     },
@@ -364,7 +364,7 @@
       "typeVersion": 4.3,
       "position": [
         2672,
-        -112
+        -272
       ],
       "name": "Open AI snippets T1",
       "credentials": {
@@ -415,8 +415,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4880,
-        -16
+        4912,
+        -176
       ],
       "name": "Open AI decision on further T2s",
       "credentials": {
@@ -447,8 +447,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5104,
-        -16
+        5136,
+        -176
       ],
       "name": "Decision - Raw Text"
     },
@@ -469,8 +469,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5328,
-        -16
+        5360,
+        -176
       ],
       "name": "Decision - strip fences"
     },
@@ -491,8 +491,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5552,
-        -16
+        5584,
+        -176
       ],
       "name": "Decision- Parse JSON"
     },
@@ -512,8 +512,7 @@
               "rightValue": "true",
               "operator": {
                 "type": "boolean",
-                "operation": "true",
-                "singleValue": true
+                "operation": "equals"
               }
             }
           ],
@@ -524,8 +523,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        5776,
-        -16
+        5808,
+        -176
       ],
       "name": "If - should scrape"
     },
@@ -537,8 +536,8 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        6000,
-        -112
+        6032,
+        -272
       ],
       "name": "Split Out Tier 2"
     },
@@ -578,8 +577,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        6672,
-        -112
+        6704,
+        -272
       ],
       "name": "Open AI snippets T2",
       "credentials": {
@@ -616,8 +615,8 @@
       "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
       "typeVersion": 1,
       "position": [
-        6224,
-        -112
+        6256,
+        -272
       ],
       "name": "Fetch Tier 2 pages",
       "credentials": {
@@ -662,8 +661,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6448,
-        -112
+        6480,
+        -272
       ],
       "name": "Prep LLM Call Tier 2"
     },
@@ -696,8 +695,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8016,
-        80
+        8048,
+        -80
       ],
       "name": "Prepare just Tier 1 summaries"
     },
@@ -718,8 +717,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6896,
-        -112
+        6928,
+        -272
       ],
       "name": "T2 - Raw text in"
     },
@@ -740,8 +739,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7120,
-        -112
+        7152,
+        -272
       ],
       "name": "T2 - strip fences"
     },
@@ -762,8 +761,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7344,
-        -112
+        7376,
+        -272
       ],
       "name": "T2 - Parse JSON"
     },
@@ -814,8 +813,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7568,
-        -112
+        7600,
+        -272
       ],
       "name": "T2 - extract page result"
     },
@@ -828,8 +827,8 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        7792,
-        -112
+        7824,
+        -272
       ],
       "name": "T2 - Aggregate"
     },
@@ -862,8 +861,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8016,
-        -112
+        8048,
+        -272
       ],
       "name": "Package Combined"
     },
@@ -876,12 +875,6 @@
               "name": "page_url",
               "value": "={{ $json.body?.url || $json.url }}",
               "type": "string"
-            },
-            {
-              "id": "7ed055d6-e7f5-46fe-8dba-cab9ebaf0b55",
-              "name": "",
-              "value": "",
-              "type": "string"
             }
           ]
         },
@@ -892,7 +885,7 @@
       "typeVersion": 3.4,
       "position": [
         2000,
-        80
+        -80
       ],
       "name": "Root origin (canonical)"
     },
@@ -921,7 +914,7 @@
       "typeVersion": 1,
       "position": [
         2224,
-        80
+        -80
       ],
       "name": "Fetch Tier 0 pages",
       "credentials": {
@@ -967,7 +960,7 @@
       "typeVersion": 3.4,
       "position": [
         2448,
-        80
+        -80
       ],
       "name": "Prep TO LLM Call"
     },
@@ -1008,7 +1001,7 @@
       "typeVersion": 4.3,
       "position": [
         2672,
-        80
+        -80
       ],
       "name": "Open AI snippets T0",
       "credentials": {
@@ -1040,7 +1033,7 @@
       "typeVersion": 3.4,
       "position": [
         2896,
-        80
+        -80
       ],
       "name": "T0 - Raw text in"
     },
@@ -1062,7 +1055,7 @@
       "typeVersion": 3.4,
       "position": [
         3120,
-        80
+        -80
       ],
       "name": "T0 - strip fences"
     },
@@ -1084,7 +1077,7 @@
       "typeVersion": 3.4,
       "position": [
         3344,
-        80
+        -80
       ],
       "name": "T0 - Parse JSON"
     },
@@ -1136,7 +1129,7 @@
       "typeVersion": 3.4,
       "position": [
         3568,
-        80
+        -80
       ],
       "name": "T0 - extract page result"
     },
@@ -1146,7 +1139,7 @@
       "typeVersion": 3.2,
       "position": [
         3792,
-        -16
+        -176
       ],
       "name": "Merge"
     },
@@ -1157,7 +1150,7 @@
             {
               "id": "2a3d30ca-98b0-4f73-a7dd-72cb14106ee9",
               "name": "",
-              "value": "={{$json.initial_tier1_tier2_scrape}}",
+              "value": "={{ $json.initial_tier1_tier2_scrape }}",
               "type": "string"
             }
           ]
@@ -1167,8 +1160,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4432,
-        -16
+        4464,
+        -176
       ],
       "name": "Set tier1_pages"
     },
@@ -1208,7 +1201,7 @@
       "typeVersion": 3.4,
       "position": [
         2448,
-        -112
+        -272
       ],
       "name": "Prep T1 LLM Call"
     },
@@ -1247,8 +1240,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8576,
-        -224
+        8720,
+        -272
       ],
       "name": "Trim response payload"
     },
@@ -1287,8 +1280,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8512,
-        144
+        8720,
+        -80
       ],
       "name": "Trim response payload1"
     },
@@ -1309,8 +1302,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4224,
-        -16
+        4240,
+        -176
       ],
       "name": "IMG Prep pages input (T1/0 only)"
     },
@@ -1332,32 +1325,32 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8144,
+        8272,
         -272
       ],
       "name": "IMG Prep pages input (T2/1/0)"
     },
     {
       "parameters": {
-        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nreturn [{ asset_candidates: candidates }];\n"
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nconst input = $input.first().json;\nreturn [{\n  page_summaries: input.page_summaries || [],\n  tier2_page_summaries: input.tier2_page_summaries || [],\n  tier2_decision: input.tier2_decision || {},\n  asset_candidates: candidates\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8352,
+        8496,
         -272
       ],
       "name": "IMG - Extract candidates"
     },
     {
       "parameters": {
-        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nreturn [{ asset_candidates: candidates }];\n"
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nconst input = $input.first().json;\nreturn [{\n  page_summaries: input.page_summaries || [],\n  tier2_page_summaries: input.tier2_page_summaries || [],\n  tier2_decision: input.tier2_decision || {},\n  asset_candidates: candidates\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8336,
-        32
+        8496,
+        -80
       ],
       "name": "IMG - Extract candidates1"
     },
@@ -1379,8 +1372,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8224,
-        80
+        8272,
+        -80
       ],
       "name": "IMG Prep pages input T1/o AFTER"
     }
