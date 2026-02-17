@@ -1,0 +1,8 @@
+{
+    "n8n.host": "https://fpgconsulting.app.n8n.cloud",
+    "n8n.apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NTc0YWMwMS1iYWVlLTRkZTctOTU0OC1kNDFiYTI0OTA1ZGQiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYTEzMjkxZmQtNTk3NS00ZjEyLThjY2EtNzFjODY4ZDYxMmFkIiwiaWF0IjoxNzcxMzIxNDExfQ.v9Zjfj6_rQYarO1SaebpO6KIW5XzRep_IkVO0jWayLQ",
+    "n8n.syncFolder": "workflows",
+    "n8n.syncMode": "auto",
+    "n8n.projectId": "FINYdRRpzfX9wIho",
+    "n8n.projectName": "My project"
+}

@@ -76,6 +76,18 @@
               "name": "prompt_user",
               "value": "={{ $json.body.prompt_user }}",
               "type": "string"
+            },
+            {
+              "id": "4dd3e800-8b96-4a28-8428-550b773ab03d",
+              "name": "max_tokens",
+              "value": 5000,
+              "type": "number"
+            },
+            {
+              "id": "78f33c91-b981-4b15-82e8-bafc98f02932",
+              "name": "temperature",
+              "value": "0.3",
+              "type": "string"
             }
           ]
         },
@@ -117,10 +129,6 @@
             {
               "name": "messages",
               "value": "={{ [   {     \"role\": \"system\",     \"content\": $json.prompt_system   },   {     \"role\": \"user\",     \"content\": $json.prompt_user   } ] }}"
-            },
-            {
-              "name": "max_tokens",
-              "value": "4096"
             }
           ]
         },
@@ -201,7 +209,7 @@
             {
               "id": "id-1",
               "name": "visual_pack",
-              "value": "={{ $json.parsed.visual_pack }}",
+              "value": "={{ JSON.parse($json.no_fences).visual_pack }}",
               "type": "object"
             }
           ]

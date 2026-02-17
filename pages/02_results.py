@@ -529,7 +529,7 @@ with st.sidebar:
         st.session_state["image_hunt_error"] = None
         st.session_state["visual_pack"] = None
         st.session_state["image_carousel_index"] = 0
-        st.session_state["image_carousel_timer"] = 0
+        st.session_state["image_carousel_last_advance"] = 0
         st.switch_page("pages/01_home.py")
 
 target_url = st.session_state.get("target_url", "")
@@ -879,16 +879,19 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
         # Initialize carousel state if needed
         if "image_carousel_index" not in st.session_state:
             st.session_state["image_carousel_index"] = 0
-        if "image_carousel_timer" not in st.session_state:
-            st.session_state["image_carousel_timer"] = 0
+        if "image_carousel_last_advance" not in st.session_state:
+            st.session_state["image_carousel_last_advance"] = 0
         
         # Auto-advance carousel every 2 seconds for smooth continuous scroll (only if still processing)
         if not _image_hunt_done:
             import time
             current_time = time.time()
-            if current_time - st.session_state["image_carousel_timer"] > 2.0:
+            last_advance = st.session_state.get("image_carousel_last_advance", 0)
+            
+            # Only advance if 2+ seconds have passed since last advance
+            if current_time - last_advance >= 2.0:
                 st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-                st.session_state["image_carousel_timer"] = current_time
+                st.session_state["image_carousel_last_advance"] = current_time
                 st.rerun()
         
         # Show 3 images in a row, smoothly scrolling through all available
@@ -912,12 +915,12 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
             with col1:
                 if st.button("Previous", use_container_width=True):
                     st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 1) % len(_preview_urls)
-                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.session_state["image_carousel_last_advance"] = time.time()  # Reset timer on manual click
                     st.rerun()
             with col2:
                 if st.button("Next", use_container_width=True):
                     st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-                    st.session_state["image_carousel_timer"] = time.time()  # Reset timer on manual click
+                    st.session_state["image_carousel_last_advance"] = time.time()  # Reset timer on manual click
                     st.rerun()
     
     # Divider + transition text when image hunt completes
