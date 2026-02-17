@@ -148,6 +148,15 @@ if apply_clicked:
         st.session_state["check_text_blobs_result"] = None
         st.session_state["scrape_pack_pack"] = None
 
+        # Clear image hunt state (prevent stale images from previous runs)
+        st.session_state["asset_candidates"] = []
+        st.session_state["image_hunt_done"] = False
+        st.session_state["image_hunt_debug"] = None
+        st.session_state["image_hunt_error"] = None
+        st.session_state["visual_pack"] = None
+        st.session_state["image_carousel_index"] = 0
+        st.session_state["image_carousel_timer"] = 0
+
         st.success("Saved. Opening Results…")
         st.switch_page("pages/02_results.py")
 

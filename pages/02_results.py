@@ -526,7 +526,10 @@ with st.sidebar:
         st.session_state["asset_candidates"] = []
         st.session_state["image_hunt_done"] = False
         st.session_state["image_hunt_debug"] = None
+        st.session_state["image_hunt_error"] = None
         st.session_state["visual_pack"] = None
+        st.session_state["image_carousel_index"] = 0
+        st.session_state["image_carousel_timer"] = 0
         st.switch_page("pages/01_home.py")
 
 target_url = st.session_state.get("target_url", "")
@@ -1041,7 +1044,7 @@ if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidate
 
     # Show carousel of images with auto-scroll
     if _preview_urls:
-        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – auto-scrolling preview:")
+        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – smooth auto-scrolling preview:")
         
         # Initialize carousel state if needed
         if "image_carousel_index" not in st.session_state:
@@ -1049,15 +1052,15 @@ if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidate
         if "image_carousel_timer" not in st.session_state:
             st.session_state["image_carousel_timer"] = 0
         
-        # Auto-advance carousel every 3.5 seconds
+        # Auto-advance carousel every 2 seconds for smooth continuous scroll
         import time
         current_time = time.time()
-        if current_time - st.session_state["image_carousel_timer"] > 3.5:
+        if current_time - st.session_state["image_carousel_timer"] > 2.0:
             st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
             st.session_state["image_carousel_timer"] = current_time
             st.rerun()
         
-        # Show 3 images in a row, rotating through all available
+        # Show 3 images in a row, smoothly scrolling through all available
         carousel_cols = st.columns(3)
         _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
         
