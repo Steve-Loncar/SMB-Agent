@@ -26,7 +26,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        8944,
+        9168,
         -176
       ],
       "name": "Respond to Webhook"
@@ -508,8 +508,8 @@
           "conditions": [
             {
               "id": "1b5d897f-b4ae-44f5-932a-c9ac1141cf45",
-              "leftValue": "={{ $json.parsed.should_scrape === true && ($json.parsed.selected_urls || []).length > 0 }}",
-              "rightValue": "true",
+              "leftValue": "={{ $json.should_scrape_bool === true && ($json.selected_urls || []).length > 0 }}",
+              "rightValue": true,
               "operator": {
                 "type": "boolean",
                 "operation": "equals"
@@ -523,7 +523,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        5808,
+        6032,
         -176
       ],
       "name": "If - should scrape"
@@ -536,7 +536,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        6032,
+        6256,
         -272
       ],
       "name": "Split Out Tier 2"
@@ -577,7 +577,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        6704,
+        6928,
         -272
       ],
       "name": "Open AI snippets T2",
@@ -615,7 +615,7 @@
       "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
       "typeVersion": 1,
       "position": [
-        6256,
+        6480,
         -272
       ],
       "name": "Fetch Tier 2 pages",
@@ -661,7 +661,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6480,
+        6704,
         -272
       ],
       "name": "Prep LLM Call Tier 2"
@@ -695,7 +695,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8048,
+        8272,
         -80
       ],
       "name": "Prepare just Tier 1 summaries"
@@ -717,7 +717,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        6928,
+        7152,
         -272
       ],
       "name": "T2 - Raw text in"
@@ -739,7 +739,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7152,
+        7376,
         -272
       ],
       "name": "T2 - strip fences"
@@ -761,7 +761,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7376,
+        7600,
         -272
       ],
       "name": "T2 - Parse JSON"
@@ -813,7 +813,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        7600,
+        7824,
         -272
       ],
       "name": "T2 - extract page result"
@@ -827,7 +827,7 @@
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
       "position": [
-        7824,
+        8048,
         -272
       ],
       "name": "T2 - Aggregate"
@@ -861,7 +861,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8048,
+        8272,
         -272
       ],
       "name": "Package Combined"
@@ -1240,7 +1240,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8720,
+        8944,
         -272
       ],
       "name": "Trim response payload"
@@ -1280,7 +1280,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8720,
+        8944,
         -80
       ],
       "name": "Trim response payload1"
@@ -1325,7 +1325,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8272,
+        8496,
         -272
       ],
       "name": "IMG Prep pages input (T2/1/0)"
@@ -1337,7 +1337,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8496,
+        8720,
         -272
       ],
       "name": "IMG - Extract candidates"
@@ -1349,7 +1349,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8496,
+        8720,
         -80
       ],
       "name": "IMG - Extract candidates1"
@@ -1372,10 +1372,44 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        8272,
+        8496,
         -80
       ],
       "name": "IMG Prep pages input T1/o AFTER"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "should_scrape_bool",
+              "value": "={{ (() => { const val = $json.parsed?.should_scrape; if (typeof val === 'boolean') return val; if (typeof val === 'string') return val.toLowerCase() === 'true'; return false; })() }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "selected_urls",
+              "value": "={{ $json.parsed?.selected_urls || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "parsed",
+              "value": "={{ JSON.stringify($json.parsed) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize should_scrape boolean",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5808,
+        -176
+      ]
     }
   ],
   "connections": {
@@ -1542,7 +1576,7 @@
       "main": [
         [
           {
-            "node": "If - should scrape",
+            "node": "Normalize should_scrape boolean",
             "type": "main",
             "index": 0
           }
@@ -1880,6 +1914,17 @@
         [
           {
             "node": "IMG - Extract candidates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize should_scrape boolean": {
+      "main": [
+        [
+          {
+            "node": "If - should scrape",
             "type": "main",
             "index": 0
           }
