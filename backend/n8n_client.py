@@ -11,7 +11,7 @@ def _load_prompt(filename: str) -> str:
 
 
 Mode = Literal["TEST", "LIVE"]
-Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise", "image_hunt"]
+Endpoint = Literal["generate_ads", "generate_image", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise", "image_hunt", "generate_ad_concepts"]
 
 
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
@@ -37,6 +37,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
         env_map = {
             ("generate_ads", "TEST"): "N8N_GENERATE_ADS_URL_TEST",
             ("generate_ads", "LIVE"): "N8N_GENERATE_ADS_URL_LIVE",
+            ("generate_ad_concepts", "TEST"): "N8N_GENERATE_AD_CONCEPTS_URL_TEST",
+            ("generate_ad_concepts", "LIVE"): "N8N_GENERATE_AD_CONCEPTS_URL_LIVE",
             ("generate_image", "TEST"): "N8N_GENERATE_IMAGE_URL_TEST",
             ("generate_image", "LIVE"): "N8N_GENERATE_IMAGE_URL_LIVE",
             ("scrape_pack", "TEST"): "N8N_SCRAPE_PACK_URL_TEST",
@@ -59,6 +61,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
             paths = {
                 ("generate_ads", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
                 ("generate_ads", "LIVE"): "/webhook/SMB-generate-ad-concepts",
+                ("generate_ad_concepts", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
+                ("generate_ad_concepts", "LIVE"): "/webhook/SMB-generate-ad-concepts",
                 ("generate_image", "TEST"): "/webhook-test/generate-image",
                 ("generate_image", "LIVE"): "/webhook/generate-image",
                 ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",
