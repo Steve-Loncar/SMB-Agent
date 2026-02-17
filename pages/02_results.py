@@ -473,26 +473,34 @@ with st.sidebar:
             _gc_hp_md = _sp2.get("homepage_markdown", "") or ""
         _all_ps = list(st.session_state.get("tier1_page_summaries", []) or [])
         _all_ps += list(st.session_state.get("tier2_page_summaries", []) or [])
+        
+        # Extract image URLs if visual_pack exists (from image hunt)
+        _image_urls = []
+        _vp = st.session_state.get("visual_pack") or {}
+        if isinstance(_vp, dict):
+            _vp_imgs = _vp.get("images", [])
+            if isinstance(_vp_imgs, list):
+                _image_urls = [img.get("url") for img in _vp_imgs if isinstance(img, dict) and img.get("url")]
+        
+        # If no visual_pack, fall back to scraped images
+        if not _image_urls:
+            _image_urls = st.session_state.get("scraped_images", [])
+        
         with st.spinner("Generating campaign concepts…"):
-            _gc_dbg = call_n8n_generate_ads(
-                url=_gc_url,
-                scraped_text=st.session_state.get("scraped_text", ""),
-                image_urls=st.session_state.get("scraped_images", []),
-                homepage_markdown=_gc_hp_md,
-                page_summaries=_all_ps,
+            _gc_dbg = call_n8n_generate_ad_concepts(
                 business_summary=st.session_state.get("business_summary", {}),
+                page_summaries=_all_ps,
+                homepage_markdown=_gc_hp_md,
+                image_urls=_image_urls,
                 mode=mode,
             )
-        st.session_state["ads_debug"] = _gc_dbg
+        st.session_state["concepts_debug"] = _gc_dbg
         _gc_resp = _gc_dbg.get("_n8n_response_json")
         try:
             if isinstance(_gc_resp, list) and _gc_resp:
                 _gc_resp = _gc_resp[0]
             if isinstance(_gc_resp, dict):
-                _bs2 = _gc_resp.get("business_summary")
                 _pc2 = _gc_resp.get("poster_concepts")
-                if isinstance(_bs2, dict):
-                    st.session_state["business_summary"] = _bs2
                 if isinstance(_pc2, list):
                     st.session_state["poster_concepts"] = _pc2
                     st.session_state["poster_images"] = {}
