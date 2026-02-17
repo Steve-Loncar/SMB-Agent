@@ -363,144 +363,189 @@ def _run_check_text_blobs_now(*, target_url: str) -> None:
 status = st.session_state.get("scrape_status", "idle")
 
 with st.sidebar:
-    st.subheader("n8n")
+    # ── n8n mode ──────────────────────────────────────────────────────────────
+    st.subheader("n8n Mode")
 
-    # Get current value, default to LIVE if not set
     current_mode = st.session_state.get("n8n_mode", "LIVE")
     current_index = 0 if current_mode == "TEST" else 1
-
-    # Radio button with different key, then manually sync
-    selected_mode = st.radio("Mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
-
-    # Manually update session state
+    selected_mode = st.radio("Webhook mode", ["TEST", "LIVE"], index=current_index, key="n8n_mode_widget", horizontal=True)
     st.session_state["n8n_mode"] = selected_mode
     mode = selected_mode
-    st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
-    st.caption(f"Ads endpoint: `{resolve_n8n_webhook('generate_ads', mode)}`")
-    st.caption(f"Image endpoint: `{resolve_n8n_webhook('generate_image', mode)}`")
-    st.caption(f"Check text blobs: `{resolve_n8n_webhook('check_text_blobs', mode)}`")
-    st.caption(f"Homepage summarise: `{resolve_n8n_webhook('homepage_summarise', mode)}`")
-    st.caption(f"Tier 1 summarise: `{resolve_n8n_webhook('tier1_summarise', mode)}`")
-    st.caption(f"Image hunt: `{resolve_n8n_webhook('image_hunt', mode)}`")
 
-    st.subheader("Run status")
-    st.write(f"**{status}**")
-    st.caption("V2: scrape-pack runs via n8n on page load when queued.")
+    with st.expander("Endpoints", expanded=False):
+        st.caption(f"Scrape-pack: `{resolve_n8n_webhook('scrape_pack', mode)}`")
+        st.caption(f"Tier 1 summarise: `{resolve_n8n_webhook('tier1_summarise', mode)}`")
+        st.caption(f"Homepage summarise: `{resolve_n8n_webhook('homepage_summarise', mode)}`")
+        st.caption(f"Generate concepts: `{resolve_n8n_webhook('generate_ads', mode)}`")
+        st.caption(f"Image hunt: `{resolve_n8n_webhook('image_hunt', mode)}`")
+        st.caption(f"Generate image: `{resolve_n8n_webhook('generate_image', mode)}`")
+        st.caption(f"Check text blobs: `{resolve_n8n_webhook('check_text_blobs', mode)}`")
 
-    # Allow re-running AI without re-scraping (useful for n8n prompt iteration)
-    can_run_ai = bool(st.session_state.get("scraped_text")) or bool(st.session_state.get("scrape_pack"))
-    if st.button("Run AI (n8n)", disabled=not can_run_ai):
-        target_url = st.session_state.get("target_url", "")
-        # If V2 scrape-pack exists but legacy fields are empty, derive them on-demand
-        if not st.session_state.get("scraped_text") and st.session_state.get("scrape_pack"):
-            txt, urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
-            st.session_state["scraped_text"] = txt
-            st.session_state["scraped_images"] = urls
-        with st.spinner("Calling n8n with test payload…"):
-            debug_result = call_n8n_generate_ads(
+    # ── Pipeline status ────────────────────────────────────────────────────────
+    st.subheader("Pipeline Status")
+    _s = st.session_state.get("scrape_status", "idle")
+    _t1_done = st.session_state.get("tier1_summarise_done", False)
+    _hp_done = st.session_state.get("homepage_summarise_done", False)
+    _ads_done = st.session_state.get("ads_autorun_done", False)
+    _concepts = st.session_state.get("poster_concepts", [])
+    st.markdown(
+        f"{'✅' if _s not in ('idle','queued') else '⏳'} **Scrape** `{_s}`  \n"
+        f"{'✅' if _t1_done else '⏳'} Page analysis  \n"
+        f"{'✅' if _hp_done else '⏳'} Business summary  \n"
+        f"{'✅' if _concepts else ('⏳' if not _ads_done else '⚠️')} Concepts "
+        f"({'none returned' if _ads_done and not _concepts else f'{len(_concepts)} ready' if _concepts else 'pending'})"
+    )
+
+    # ── Manual pipeline controls ───────────────────────────────────────────────
+    st.subheader("Manual Controls")
+
+    _has_pack = bool(st.session_state.get("scrape_pack"))
+    _has_t1 = bool(st.session_state.get("tier1_page_summaries"))
+    _has_bs = bool(st.session_state.get("business_summary"))
+
+    # Step 1: Re-run page analysis (tier1 summarise)
+    if st.button("① Re-run Page Analysis", disabled=not _has_pack, use_container_width=True):
+        _t1_url = st.session_state.get("target_url", "")
+        _sp = st.session_state.get("scrape_pack", {}) or {}
+        _t1_urls = _sp.get("tier1_urls", []) if isinstance(_sp, dict) else []
+        _t2_urls = _sp.get("tier2_urls", []) if isinstance(_sp, dict) else []
+        with st.spinner("Analysing pages…"):
+            _t1_dbg = call_n8n_tier1_summarise(
+                url=_t1_url,
+                tier1_urls=_t1_urls,
+                tier2_urls=_t2_urls,
+                business_summary=st.session_state.get("business_summary", {}),
+                mode=mode,
+            )
+        _t1_resp = _t1_dbg.get("_n8n_response_json")
+        if isinstance(_t1_resp, list) and _t1_resp:
+            _t1_resp = _t1_resp[0]
+        if isinstance(_t1_resp, dict):
+            if isinstance(_t1_resp.get("page_summaries"), list):
+                st.session_state["tier1_page_summaries"] = _t1_resp["page_summaries"]
+            if isinstance(_t1_resp.get("asset_candidates"), list):
+                st.session_state["asset_candidates"] = _t1_resp["asset_candidates"]
+        st.session_state["tier1_summarise_done"] = True
+        # reset downstream so they re-run
+        st.session_state["homepage_summarise_done"] = False
+        st.session_state["ads_autorun_done"] = False
+        st.session_state["poster_concepts"] = []
+        st.success("Page analysis complete.")
+        st.rerun()
+
+    # Step 2: Re-run business summary (homepage summarise)
+    if st.button("② Re-run Business Summary", disabled=not _has_pack, use_container_width=True):
+        _hp_url = st.session_state.get("target_url", "")
+        _hp_md = st.session_state.get("homepage_markdown", "") or ""
+        _all_snips = list(st.session_state.get("tier1_page_summaries", []) or [])
+        _all_snips += list(st.session_state.get("tier2_page_summaries", []) or [])
+        with st.spinner("Building business summary…"):
+            _hp_dbg = call_n8n_homepage_summarise(
+                url=_hp_url,
+                homepage_markdown=_hp_md,
+                page_summaries=_all_snips,
+                mode=mode,
+            )
+        _hp_resp = _hp_dbg.get("_n8n_response_json")
+        if isinstance(_hp_resp, list) and _hp_resp:
+            _hp_resp = _hp_resp[0]
+        if isinstance(_hp_resp, dict) and isinstance(_hp_resp.get("business_summary"), dict):
+            st.session_state["business_summary"] = _hp_resp["business_summary"]
+        st.session_state["homepage_summarise_done"] = True
+        # reset downstream
+        st.session_state["ads_autorun_done"] = False
+        st.session_state["poster_concepts"] = []
+        st.success("Business summary updated.")
+        st.rerun()
+
+    # Step 3: Generate concepts
+    can_run_concepts = bool(st.session_state.get("scraped_text")) or _has_pack
+    if st.button("③ Generate Concepts", disabled=not can_run_concepts, use_container_width=True):
+        _gc_url = st.session_state.get("target_url", "")
+        if not st.session_state.get("scraped_text") and _has_pack:
+            _txt, _urls = _derive_inputs_from_scrape_pack(st.session_state["scrape_pack"])
+            st.session_state["scraped_text"] = _txt
+            st.session_state["scraped_images"] = _urls
+        _gc_hp_md = st.session_state.get("homepage_markdown", "") or ""
+        _sp2 = st.session_state.get("scrape_pack")
+        if not _gc_hp_md and isinstance(_sp2, dict):
+            _gc_hp_md = _sp2.get("homepage_markdown", "") or ""
+        _all_ps = list(st.session_state.get("tier1_page_summaries", []) or [])
+        _all_ps += list(st.session_state.get("tier2_page_summaries", []) or [])
+        with st.spinner("Generating campaign concepts…"):
+            _gc_dbg = call_n8n_generate_ads(
+                url=_gc_url,
                 scraped_text=st.session_state.get("scraped_text", ""),
                 image_urls=st.session_state.get("scraped_images", []),
-                url=target_url,
-                mode=st.session_state.n8n_mode,
+                homepage_markdown=_gc_hp_md,
+                page_summaries=_all_ps,
+                business_summary=st.session_state.get("business_summary", {}),
+                mode=mode,
             )
-        st.session_state["ads_debug"] = debug_result
-
-        # ---- NEW: hydrate session_state from n8n response payload ----
-        # Your "Respond to Webhook" is set to "allIncomingItems", so expect a list of 1 item.
-        resp_json = debug_result.get("_n8n_response_json")
+        st.session_state["ads_debug"] = _gc_dbg
+        _gc_resp = _gc_dbg.get("_n8n_response_json")
         try:
-            if isinstance(resp_json, list) and resp_json:
-                item0 = resp_json[0]
-                # You are preparing a payload like:
-                # { business_summary: {...}, poster_concepts: [...] }
-                if isinstance(item0, dict):
-                    bs = item0.get("business_summary")
-                    pc = item0.get("poster_concepts")
-                    if isinstance(bs, dict):
-                        st.session_state["business_summary"] = bs
-                    if isinstance(pc, list):
-                        st.session_state["poster_concepts"] = pc
-                        # Reset any previously generated images (concepts changed)
-                        st.session_state["poster_images"] = {}
-                        # mark autorun done if this was triggered automatically later
-                        st.session_state["ads_autorun_done"] = True
+            if isinstance(_gc_resp, list) and _gc_resp:
+                _gc_resp = _gc_resp[0]
+            if isinstance(_gc_resp, dict):
+                _bs2 = _gc_resp.get("business_summary")
+                _pc2 = _gc_resp.get("poster_concepts")
+                if isinstance(_bs2, dict):
+                    st.session_state["business_summary"] = _bs2
+                if isinstance(_pc2, list):
+                    st.session_state["poster_concepts"] = _pc2
+                    st.session_state["poster_images"] = {}
+                    st.session_state["concept_visual_packs"] = {}
         except Exception:
-            # Keep debug visible below; don't crash UI.
             pass
+        st.session_state["ads_autorun_done"] = True
+        if st.session_state.get("poster_concepts"):
+            st.success(f"Generated {len(st.session_state['poster_concepts'])} concepts.")
+        else:
+            st.error("No concepts returned — check n8n execution / response schema.")
+        st.rerun()
 
-        mode = st.session_state.n8n_mode
-        st.success(f"Sent {mode} payload to n8n – check Webhook node Output → JSON.")
-        if DEBUG_UI:
-            with st.expander("Debug: JSON sent to n8n", expanded=True):
-                st.write("Target URL:")
-                st.code(debug_result.get("_debug_target_url", ""), language="text")
-            st.write("HTTP status / final URL:")
-            st.code(
-                f"{debug_result.get('_debug_http_status')} | final={debug_result.get('_debug_final_url')}",
-                language="text",
-            )
-            if debug_result.get("_error"):
-                st.error(debug_result.get("_error"))
-            if debug_result.get("_location"):
-                st.write("Redirect Location:")
-                st.code(debug_result.get("_location", ""), language="text")
-            st.write("Response Content-Type:")
-            st.code(debug_result.get("_debug_resp_content_type", ""), language="text")
-            st.write("Response text (first 400 chars):")
-            st.code(debug_result.get("_debug_resp_text_snippet", ""), language="text")
-            st.write("n8n response JSON (clean payload):")
-            st.json(debug_result.get("_n8n_response_json", {}))
-            st.write("Payload:")
-            st.json(debug_result.get("_debug_payload_sent", {}))
-            st.write("Response headers:")
-            st.json(debug_result.get("_debug_resp_headers", {}))
-            st.write("Response JSON (parsed):")
-            st.json(resp_json)
-
-    # NEW: AI 2nd pass over the already-loaded scrape_pack (no re-scrape required)
-    can_run_check = bool(st.session_state.get("scrape_pack"))
-    if st.button("Run AI 2nd pass (text blobs)", disabled=not can_run_check):
-        target_url = st.session_state.get("target_url", "")
-        _run_check_text_blobs_now(target_url=target_url)
-        st.success("2nd pass complete (see Business summary section / diagnostics).")
-
-    # Manual image hunt (useful for iterating on image hunt workflow/prompts)
+    # Step 4: Global image hunt (for testing / sidebar use)
     can_run_image_hunt = bool(st.session_state.get("asset_candidates"))
-    if st.button("Run Image Hunt", disabled=not can_run_image_hunt):
-        target_url = st.session_state.get("target_url", "")
-        ok = False
-        err = None
+    if st.button("④ Global Image Hunt", disabled=not can_run_image_hunt, use_container_width=True):
+        _ih_url = st.session_state.get("target_url", "")
+        _ih_ok = False
+        _ih_err = None
         try:
-            with st.spinner("Reviewing images to match the themes from these snippets…"):
-                dbg = call_n8n_image_hunt(
-                    url=target_url,
+            with st.spinner("Running image hunt…"):
+                _ih_dbg = call_n8n_image_hunt(
+                    url=_ih_url,
                     business_summary=st.session_state.get("business_summary", {}),
                     page_summaries=st.session_state.get("tier1_page_summaries", []),
                     tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
                     asset_candidates=st.session_state.get("asset_candidates", []),
-                    mode=st.session_state.get("n8n_mode", "TEST"),
+                    mode=mode,
                 )
-            st.session_state["image_hunt_debug"] = dbg
-            resp = dbg.get("_n8n_response_json")
-            if isinstance(resp, list) and resp and isinstance(resp[0], dict):
-                resp = resp[0]
-            st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
-            ok = bool(st.session_state.get("visual_pack"))
-        except Exception as e:
-            err = str(e)
-
-        if ok:
+            st.session_state["image_hunt_debug"] = _ih_dbg
+            _ih_resp = _ih_dbg.get("_n8n_response_json")
+            if isinstance(_ih_resp, list) and _ih_resp and isinstance(_ih_resp[0], dict):
+                _ih_resp = _ih_resp[0]
+            st.session_state["visual_pack"] = _ih_resp.get("visual_pack") if isinstance(_ih_resp, dict) else None
+            _ih_ok = bool(st.session_state.get("visual_pack"))
+        except Exception as _ih_e:
+            _ih_err = str(_ih_e)
+        if _ih_ok:
             st.session_state["image_hunt_done"] = True
-            st.success("Image hunt complete (see Best images section / diagnostics).")
+            st.success("Image hunt complete.")
         else:
             st.session_state["image_hunt_done"] = False
-            if err:
-                st.session_state["image_hunt_error"] = err
-                st.error(f"Image hunt failed: {err}")
-            else:
-                st.error("Image hunt failed: no visual_pack returned")
+            st.error(f"Image hunt failed: {_ih_err or 'no visual_pack returned'}")
 
-    if st.button("Reset"):
+    # 2nd-pass text analysis
+    can_run_check = bool(st.session_state.get("scrape_pack"))
+    if st.button("Re-analyse text (2nd pass)", disabled=not can_run_check, use_container_width=True):
+        target_url = st.session_state.get("target_url", "")
+        _run_check_text_blobs_now(target_url=target_url)
+        st.success("2nd pass complete.")
+
+    st.divider()
+
+    if st.button("🔄 Reset & start over", use_container_width=True):
         st.session_state["target_url"] = ""
         st.session_state["scrape_status"] = "idle"
         st.session_state["scraped_text"] = ""
@@ -549,9 +594,10 @@ elif status == "scraped":
 elif status == "analysing_pages":
     st.caption("Reviewing key pages for advertising material...")
 elif status == "summarising":
-    st.caption("Building your business summary...")
-elif status == "finding_images":
-    st.caption("Reviewing images to match your advertising themes...")
+    if st.session_state.get("homepage_summarise_done"):
+        st.caption("Creating your campaign concepts...")
+    else:
+        st.caption("Building your business summary...")
 elif status == "generating_ads":
     st.caption("Creating your campaign concepts...")
 elif status == "done":
@@ -1000,10 +1046,22 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
         _preview_urls.append(u)
 
     if _preview_urls:
-        st.markdown(f"**{len(_preview_urls)} candidate images:**")
+        st.markdown(f"**{len(_preview_urls)} candidate images — auto-scrolling preview:**")
 
+        import time as _time
         if "image_carousel_index" not in st.session_state:
             st.session_state["image_carousel_index"] = 0
+        if "image_carousel_last_advance" not in st.session_state:
+            st.session_state["image_carousel_last_advance"] = 0.0
+
+        # Auto-advance every 2 seconds
+        _now = _time.time()
+        if _now - st.session_state["image_carousel_last_advance"] >= 2.0:
+            st.session_state["image_carousel_index"] = (
+                st.session_state["image_carousel_index"] + 1
+            ) % len(_preview_urls)
+            st.session_state["image_carousel_last_advance"] = _now
+            st.rerun()
 
         carousel_cols = st.columns(3)
         _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
@@ -1016,20 +1074,21 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
                 except Exception:
                     st.info("Preview unavailable")
 
-        import time
-        with st.expander("Browse all images"):
+        with st.expander("Browse manually"):
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Previous", use_container_width=True):
+                if st.button("◀ Previous", use_container_width=True):
                     st.session_state["image_carousel_index"] = (
                         st.session_state["image_carousel_index"] - 1
                     ) % len(_preview_urls)
+                    st.session_state["image_carousel_last_advance"] = _time.time()
                     st.rerun()
             with col2:
-                if st.button("Next", use_container_width=True):
+                if st.button("Next ▶", use_container_width=True):
                     st.session_state["image_carousel_index"] = (
                         st.session_state["image_carousel_index"] + 1
                     ) % len(_preview_urls)
+                    st.session_state["image_carousel_last_advance"] = _time.time()
                     st.rerun()
 
 st.divider()
