@@ -52,7 +52,7 @@ st.markdown(
 """
 )
 
-st.info("Use the top navigation: **Home** → **Results**."
+st.info("Use the top navigation: **Home** → **Results**.")
 
 with st.expander("Dev notes", expanded=False):
     st.write(
