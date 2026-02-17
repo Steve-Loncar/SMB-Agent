@@ -1,0 +1,24 @@
+Based on the business information and available images below, generate 3-5 creative advertising concepts.
+
+BUSINESS SUMMARY:
+{business_summary}
+
+HOMEPAGE CONTENT:
+{homepage_markdown}
+
+PAGE SNIPPETS & THEMES:
+{page_context}
+
+AVAILABLE IMAGES:
+{image_urls}
+
+Please respond with valid JSON containing an array of poster_concepts objects, each with:
+- title (string): Concept name
+- theme (string): Core message
+- target_audience (string): Who this appeals to
+- ad_formats (array): Best formats for this concept
+- visual_direction (string): How to use the images
+- copy_direction (string): Tone and messaging
+- why_this_works (string): Why it's effective
+
+Return ONLY valid JSON, no other text.
