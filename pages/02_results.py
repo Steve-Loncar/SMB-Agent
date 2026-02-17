@@ -830,6 +830,21 @@ if status == "analysing_pages" and not st.session_state.get("homepage_summarise_
 #
 # CAROUSEL DISPLAY — Always show candidate images with contextual messaging
 #
+
+st.subheader("About your business")
+bs = st.session_state.get("business_summary", {})
+if isinstance(bs, dict) and bs:
+    st.caption("From a scan of your website, here is a first-draft summary:")
+    st.markdown(f"**Name:** {bs.get('name_guess','')}")
+    st.markdown(f"**Category:** {bs.get('category','')}")
+    st.markdown(f"**Value prop:** {bs.get('value_prop','')}")
+    st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
+    st.markdown(f"**Tone:** {bs.get('tone','')}")
+else:
+    st.info("We're still working on this. It will appear here shortly.")
+
+st.divider()
+
 _raw_candidates = st.session_state.get("asset_candidates", [])
 _image_hunt_done = st.session_state.get("image_hunt_done", False)
 
@@ -1075,18 +1090,6 @@ if DEBUG_UI and check_dbg:
         st.json(check_dbg.get("_n8n_response_json", {}))
 
 # Tiered Signals was debug-y; replaced by the client-facing ranked list above.
-
-st.subheader("About your business")
-bs = st.session_state.get("business_summary", {})
-if isinstance(bs, dict) and bs:
-    st.caption("From a scan of your website, here is a first-draft summary:")
-    st.markdown(f"**Name:** {bs.get('name_guess','')}")
-    st.markdown(f"**Category:** {bs.get('category','')}")
-    st.markdown(f"**Value prop:** {bs.get('value_prop','')}")
-    st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
-    st.markdown(f"**Tone:** {bs.get('tone','')}")
-else:
-    st.info("We're still working on this. It will appear here shortly.")
 
 # If your new 2nd-pass workflow returns an improved business_summary,
 # allow it to overwrite the existing one (without touching poster concepts).
