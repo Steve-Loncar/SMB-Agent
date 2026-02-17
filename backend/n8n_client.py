@@ -57,8 +57,8 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
         else:
             # Default paths (your current conventions)
             paths = {
-                ("generate_ads", "TEST"): "/webhook-test/generate-ads",
-                ("generate_ads", "LIVE"): "/webhook/generate-ads",
+                ("generate_ads", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
+                ("generate_ads", "LIVE"): "/webhook/SMB-generate-ad-concepts",
                 ("generate_image", "TEST"): "/webhook-test/generate-image",
                 ("generate_image", "LIVE"): "/webhook/generate-image",
                 ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",

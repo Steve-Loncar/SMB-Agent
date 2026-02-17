@@ -927,7 +927,11 @@ if (
     if isinstance(t2, list):
         all_page_summaries.extend([x for x in t2 if isinstance(x, dict)])
 
-    can_autorun = bool(st.session_state.get("scraped_text"))
+    can_autorun = bool(
+        st.session_state.get("scraped_text")
+        or st.session_state.get("business_summary")
+        or all_page_summaries
+    )
     if can_autorun:
         with st.spinner("Creating your campaign concepts..."):
             debug_result = call_n8n_generate_ads(

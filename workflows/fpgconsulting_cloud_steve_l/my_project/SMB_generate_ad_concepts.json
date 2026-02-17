@@ -127,9 +127,9 @@
           "assignments": [
             {
               "id": "991b63fb-0b0f-477f-916d-7428031bd8b8",
-              "name": "business_summary",
-              "value": "={{ $json.parsed.business_summary }}",
-              "type": "object"
+              "name": "poster_concepts",
+              "value": "={{ $json.parsed.poster_concepts }}",
+              "type": "array"
             }
           ]
         },
@@ -300,12 +300,5 @@
   "settings": {},
   "tags": [],
   "active": true,
-  "projectId": "FINYdRRpzfX9wIho",
-  "projectName": "My project",
-  "homeProject": {
-    "id": "FINYdRRpzfX9wIho",
-    "name": "My project",
-    "type": "team"
-  },
   "isArchived": false
 }

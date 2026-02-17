@@ -14,9 +14,9 @@ Available image URLs (may be empty):
 {image_urls}
 
 Task:
-1) Propose 3–5 campaign platforms (each a distinct message angle).
-2) For each platform, produce 2–4 poster concepts.
-3) Ground each platform in evidence (quote or paraphrase snippets; do not invent claims).
-4) Explain why each platform works for OOH and why it fits the brand tone.
+1) Generate 6–10 distinct OOH poster concepts, spanning at least 3 different message angles.
+2) Each concept must have a punchy headline (≤5 words), grounded supporting copy (≤10 words), a clear CTA, a specific image idea, and layout notes.
+3) Ground every concept in evidence from the snippets or business summary — do not invent claims.
+4) Vary tone and style across concepts (e.g. emotional, rational, community, quality, value).
 
 Output JSON only in the required schema.
