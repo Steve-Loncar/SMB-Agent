@@ -15,6 +15,7 @@ from backend.n8n_client import (
     call_n8n_check_text_blobs,
     call_n8n_generate_image,
     call_n8n_image_hunt,
+    call_n8n_generate_ad_concepts,
     call_n8n_scrape_pack,
     call_n8n_homepage_summarise,
     call_n8n_tier1_summarise,
@@ -532,6 +533,35 @@ with st.sidebar:
         if _ih_ok:
             st.session_state["image_hunt_done"] = True
             st.success("Image hunt complete.")
+            
+            # Auto-run generate_ad_concepts after image hunt succeeds
+            with st.spinner("Generating poster concepts..."):
+                _vp = st.session_state.get("visual_pack") or {}
+                _image_urls = []
+                if isinstance(_vp, dict):
+                    _vp_imgs = _vp.get("images", [])
+                    if isinstance(_vp_imgs, list):
+                        _image_urls = [img.get("url") for img in _vp_imgs if isinstance(img, dict) and img.get("url")]
+                
+                _concepts_dbg = call_n8n_generate_ad_concepts(
+                    business_summary=st.session_state.get("business_summary", {}),
+                    page_summaries=st.session_state.get("tier1_page_summaries", []),
+                    homepage_markdown=st.session_state.get("homepage_markdown", ""),
+                    image_urls=_image_urls,
+                    mode=mode,
+                )
+                st.session_state["concepts_debug"] = _concepts_dbg
+                
+                _concepts_resp = _concepts_dbg.get("_n8n_response_json")
+                if isinstance(_concepts_resp, list) and _concepts_resp and isinstance(_concepts_resp[0], dict):
+                    _concepts_resp = _concepts_resp[0]
+                
+                if isinstance(_concepts_resp, dict) and _concepts_resp.get("poster_concepts"):
+                    st.session_state["poster_concepts"] = _concepts_resp.get("poster_concepts")
+                    st.success("Poster concepts generated!")
+                else:
+                    st.warning("Poster concepts workflow returned empty response")
+            st.rerun()
         else:
             st.session_state["image_hunt_done"] = False
             st.error(f"Image hunt failed: {_ih_err or 'no visual_pack returned'}")

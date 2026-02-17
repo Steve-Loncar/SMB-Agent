@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(py -m py_compile:*)",
+      "Bash(where:*)",
+      "Bash(dir:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nReorder pipeline: concepts before images, per-concept image hunt on Generate Poster\n\n- Pipeline now generates ad concepts immediately after homepage summarise,\n  without waiting for image hunt \\(faster UX\\)\n- Image hunt moved to on-demand: clicking Generate Poster on a concept runs\n  the image hunt against ALL asset_candidates with that concept as context,\n  then chains straight into poster generation\n- Carousel stays above concepts \\(as before\\) but now explains its role as the\n  pool the AI will search per-concept\n- smb_image_hunt_system.txt: major rewrite using OOH Image Hunt Reference Guide —\n  adds 7-factor scoring rubric, +15pt concept-specific bonus, OOH distance tests,\n  8-type taxonomy, 10 industry playbooks, logo detection priority, failure mode table\n- smb_image_hunt_user.txt: adds {concept_context} and {concept_task_line}\n  placeholders for targeted vs global hunts\n- call_n8n_image_hunt: adds optional concept param that injects concept brief\n  into the prompt and payload\n- state.py: adds concept_visual_packs session state \\(per-concept visual packs\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
+    ]
+  }
+}

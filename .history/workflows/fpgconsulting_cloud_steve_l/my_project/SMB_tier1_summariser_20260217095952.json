@@ -1,0 +1,1939 @@
+{
+  "id": "rJmG2127XE4XU3Zs",
+  "name": "SMB_tier1_summariser",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SMB-tier1-summariser",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1552,
+        -176
+      ],
+      "name": "Webhook",
+      "webhookId": "b49fa9a7-a057-44b0-8475-bbe71b5c69b7"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        9168,
+        -176
+      ],
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c50cd4cd-b183-479b-b8af-f4bda17ffa93",
+              "name": "url",
+              "value": "={{ $json.body.url }}",
+              "type": "string"
+            },
+            {
+              "id": "81ffadd2-885c-42e0-8681-21780b4605c8",
+              "name": "prompt_system",
+              "value": "={{ $json.body.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "8fd21241-50f9-46d5-967c-ed2f777b5917",
+              "name": "prompt_user",
+              "value": "={{ $json.body.prompt_user }}",
+              "type": "string"
+            },
+            {
+              "id": "9efbf95a-ae49-41b3-83f8-6a4d7944338b",
+              "name": "tier1_urls",
+              "value": "={{ $json.body.tier1_urls }}",
+              "type": "array"
+            },
+            {
+              "id": "6a26521d-6ce4-40c5-8cca-0c97d78952ec",
+              "name": "tier2_urls",
+              "value": "={{ $json.body.tier2_urls }}",
+              "type": "array"
+            },
+            {
+              "id": "42fb87a3-a071-42ec-819e-a0c1345f9ab7",
+              "name": "business_summary",
+              "value": "={{ $json.body.business_summary }}",
+              "type": "object"
+            },
+            {
+              "id": "e3fd6d14-c3c0-4ec5-a2df-b4a9867a9d2a",
+              "name": "decision_prompt_system",
+              "value": "={{ $json.body.decision_prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "30136a70-b03b-40b3-95ff-d7d505be0903",
+              "name": "decision_prompt_user",
+              "value": "={{ $json.body.decision_prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        -176
+      ],
+      "name": "Normalise inputs"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tier1_urls",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        -272
+      ],
+      "name": "Split Out Tier 1"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.tier1_urls }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "html"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 2000,
+            "timeout": 60000
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        -272
+      ],
+      "name": "Fetch Tier 1 pages",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02f5f0e7-ce7d-4d54-9da3-642ae10ba677",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2896,
+        -272
+      ],
+      "name": "T1 - Raw text in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b33aebe-9c95-407e-a40f-bf35430000aa",
+              "name": "no_fences",
+              "value": "={{ \n  (() => {\n    const raw = $json.raw_text || \"\";\n    const cleaned = raw\n      .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')\n      .replace(/```\\s*([\\s\\S]*?)```/i, '$1')\n      .trim();\n    return cleaned;\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3120,
+        -272
+      ],
+      "name": "T1 - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "564b627e-476c-4a4e-9eb4-a2ae4f477a85",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3344,
+        -272
+      ],
+      "name": "T1 - Parse JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "991b63fb-0b0f-477f-916d-7428031bd8b8",
+              "name": "page_url",
+              "value": "={{ $('Prep T1 LLM Call').item.json.page_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fde40cb4-0e28-4395-9d15-2d96df30e9a5",
+              "name": "page_title",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].page_title : (($json.parsed.page_title) || \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "419eff4e-d638-4752-8d52-a875c68e7900",
+              "name": "ad_snippets",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].ad_snippets : (($json.parsed.ad_snippets) || []) }}",
+              "type": "array"
+            },
+            {
+              "id": "1da419ec-2815-4e1c-b06e-9440518ee9e1",
+              "name": "page_html",
+              "value": "={{ $('Fetch Tier 1 pages').item.json.data.html || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "3201eecf-e4dd-4fda-9956-d350e808f5c1",
+              "name": "page_markdown",
+              "value": "={{ $('Fetch Tier 1 pages').item.json.data.markdown || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "16f9717d-a846-483a-ae68-749dfd38cb8b",
+              "name": "page_source",
+              "value": "tier1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3568,
+        -272
+      ],
+      "name": "T1 - extract page result"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "page_summaries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        -176
+      ],
+      "name": "T1 - Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b8a354b-2a00-4b24-9b6b-8f983ee1731c",
+              "name": "page_summaries",
+              "value": "={{ $('T1 - Aggregate').item.json.page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "4bcc5783-1b3d-4b81-b5e2-5acd7f345984",
+              "name": "decision_prompt_system",
+              "value": "={{ $('Normalise inputs').item.json.decision_prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "cbdca78b-65fb-40d0-8324-4904030d1047",
+              "name": "decision_prompt_user",
+              "value": "={{ $('Normalise inputs').item.json.decision_prompt_user }}",
+              "type": "string"
+            },
+            {
+              "id": "62a1fe7d-81dc-4b40-bd2e-7db8518ea688",
+              "name": "tier2_urls",
+              "value": "={{ $('Normalise inputs').item.json.tier2_urls }}",
+              "type": "array"
+            },
+            {
+              "id": "e8740627-e9c8-4b32-9486-c61e589f3432",
+              "name": "prompt_system",
+              "value": "={{ $('Normalise inputs').item.json.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "902e1529-9aea-4da3-975c-311e883fd52b",
+              "name": "prompt_user",
+              "value": "={{ $('Normalise inputs').item.json.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4688,
+        -176
+      ],
+      "name": "Prep decision context"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4.1-mini"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $('Normalise inputs').item.json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $('Normalise inputs').item.json.prompt_user +\n      '\\n\\nPage URL: ' + ($json.page_url) +\n      '\\n\\nPage content:\\n' + ($json.page_markdown)\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2672,
+        -272
+      ],
+      "name": "Open AI snippets T1",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    role: 'system',\n    content: ($json.decision_prompt_system)\n  },\n  {\n    role: 'user',\n    content: ($json.decision_prompt_user)\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 15000
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4912,
+        -176
+      ],
+      "name": "Open AI decision on further T2s",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7151df4c-f43e-4fb0-a2bb-b34fa6dfc90a",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5136,
+        -176
+      ],
+      "name": "Decision - Raw Text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b33aebe-9c95-407e-a40f-bf35430000aa",
+              "name": "no_fences",
+              "value": "={{ \n  (() => {\n    const raw = $json.raw_text || \"\";\n    const cleaned = raw\n      .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')\n      .replace(/```\\s*([\\s\\S]*?)```/i, '$1')\n      .trim();\n    return cleaned;\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5360,
+        -176
+      ],
+      "name": "Decision - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "564b627e-476c-4a4e-9eb4-a2ae4f477a85",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5584,
+        -176
+      ],
+      "name": "Decision- Parse JSON"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1b5d897f-b4ae-44f5-932a-c9ac1141cf45",
+              "leftValue": "={{ $json.should_scrape_bool === true && ($json.selected_urls || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6032,
+        -176
+      ],
+      "name": "If - should scrape"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "parsed.selected_urls",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        6256,
+        -272
+      ],
+      "name": "Split Out Tier 2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4.1-mini"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $('Normalise inputs').item.json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $('Normalise inputs').item.json.prompt_user +\n      '\\n\\nPage URL: ' + ($json.page_url) +\n      '\\n\\nPage content:\\n' + ($json.page_markdown)\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        6928,
+        -272
+      ],
+      "name": "Open AI snippets T2",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json['parsed.selected_urls'] }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "html"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 2000
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        6480,
+        -272
+      ],
+      "name": "Fetch Tier 2 pages",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4e0d832-acf1-4d17-a425-64b50220bfab",
+              "name": "page_url",
+              "value": "={{ $('Split Out Tier 2').item.json['parsed.selected_urls'] }}",
+              "type": "string"
+            },
+            {
+              "id": "db1c0078-ad47-43d7-b661-f90c0f13b2c1",
+              "name": "page_markdown",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "f913733d-3402-4bbc-8504-aedaad0c28aa",
+              "name": "prompt_system",
+              "value": "={{ $('Normalise inputs').item.json.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "c7de4935-c337-468d-a795-67107eac3819",
+              "name": "prompt_user",
+              "value": "={{ $('Normalise inputs').item.json.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6704,
+        -272
+      ],
+      "name": "Prep LLM Call Tier 2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08e56fbe-aa73-401f-884d-609f5e82743f",
+              "name": "page_summaries",
+              "value": "={{ $('T1 - Aggregate').item.json.page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "57f1afb4-84aa-4e64-9e7f-b8b4acbe389e",
+              "name": "tier2_decision",
+              "value": "={{ $('Decision- Parse JSON').item.json.parsed }}",
+              "type": "object"
+            },
+            {
+              "id": "c0f1fc93-9cb1-4051-ab4c-f9ff11e5f974",
+              "name": "tier2_page_summaries",
+              "value": "={{ [] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8272,
+        -80
+      ],
+      "name": "Prepare just Tier 1 summaries"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02f5f0e7-ce7d-4d54-9da3-642ae10ba677",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7152,
+        -272
+      ],
+      "name": "T2 - Raw text in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b33aebe-9c95-407e-a40f-bf35430000aa",
+              "name": "no_fences",
+              "value": "={{ \n  (() => {\n    const raw = $json.raw_text || \"\";\n    const cleaned = raw\n      .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')\n      .replace(/```\\s*([\\s\\S]*?)```/i, '$1')\n      .trim();\n    return cleaned;\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7376,
+        -272
+      ],
+      "name": "T2 - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "564b627e-476c-4a4e-9eb4-a2ae4f477a85",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7600,
+        -272
+      ],
+      "name": "T2 - Parse JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "991b63fb-0b0f-477f-916d-7428031bd8b8",
+              "name": "page_url",
+              "value": "={{ $('Prep LLM Call Tier 2').item.json.page_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fde40cb4-0e28-4395-9d15-2d96df30e9a5",
+              "name": "page_title",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].page_title : (($json.parsed.page_title) || \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "419eff4e-d638-4752-8d52-a875c68e7900",
+              "name": "ad_snippets",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].ad_snippets : (($json.parsed.ad_snippets) || []) }}",
+              "type": "array"
+            },
+            {
+              "id": "f809ffa8-f60c-4318-917c-f262a1cde303",
+              "name": "page_html",
+              "value": "={{ $('Fetch Tier 2 pages').item.json.data.html || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "c3c0a058-9ec0-439e-8e39-b2c416d2a9f9",
+              "name": "page_markdown",
+              "value": "={{ $('Fetch Tier 2 pages').item.json.data.markdown || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "07fb079b-d30a-4220-a019-04b2490ba122",
+              "name": "page_source",
+              "value": "tier2",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7824,
+        -272
+      ],
+      "name": "T2 - extract page result"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "tier2_page_summaries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        8048,
+        -272
+      ],
+      "name": "T2 - Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "59422d92-eaa5-41c5-a8cb-e79a1cf173f8",
+              "name": "page_summaries",
+              "value": "={{ $('T1 - Aggregate').item.json.page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "57cbb4b6-cd91-43b3-ad56-d60cfed47fc5",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.tier2_page_summaries }}",
+              "type": "array"
+            },
+            {
+              "id": "9c417a33-0dd2-4b43-8ace-93f0ff3605af",
+              "name": "tier2_decision",
+              "value": "={{ $('Decision- Parse JSON').item.json.parsed }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8272,
+        -272
+      ],
+      "name": "Package Combined"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56a60055-4d68-4b27-8f2e-efc508666766",
+              "name": "page_url",
+              "value": "={{ $json.body?.url || $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -80
+      ],
+      "name": "Root origin (canonical)"
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json.page_url }}",
+        "scrapeOptions": {
+          "options": {
+            "formats": {
+              "format": [
+                {},
+                {
+                  "type": "html"
+                }
+              ]
+            },
+            "headers": {},
+            "waitFor": 2000,
+            "timeout": 60000
+          }
+        },
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        -80
+      ],
+      "name": "Fetch Tier 0 pages",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZQyTJh6WCDYvojwI",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4e0d832-acf1-4d17-a425-64b50220bfab",
+              "name": "page_url",
+              "value": "={{ $('Root origin (canonical)').item.json.page_url }}",
+              "type": "string"
+            },
+            {
+              "id": "db1c0078-ad47-43d7-b661-f90c0f13b2c1",
+              "name": "page_markdown",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "f913733d-3402-4bbc-8504-aedaad0c28aa",
+              "name": "prompt_system",
+              "value": "={{ $('Normalise inputs').item.json.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "c7de4935-c337-468d-a795-67107eac3819",
+              "name": "prompt_user",
+              "value": "={{ $('Normalise inputs').item.json.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        -80
+      ],
+      "name": "Prep TO LLM Call"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4.1-mini"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $('Normalise inputs').item.json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $('Normalise inputs').item.json.prompt_user +\n      '\\n\\nPage URL: ' + ($json.page_url) +\n      '\\n\\nPage content:\\n' + ($json.page_markdown)\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2672,
+        -80
+      ],
+      "name": "Open AI snippets T0",
+      "credentials": {
+        "perplexityApi": {
+          "id": "SkSOGLP98gXnuOBu",
+          "name": "Perplexity account"
+        },
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02f5f0e7-ce7d-4d54-9da3-642ae10ba677",
+              "name": "raw_text",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2896,
+        -80
+      ],
+      "name": "T0 - Raw text in"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9b33aebe-9c95-407e-a40f-bf35430000aa",
+              "name": "no_fences",
+              "value": "={{ \n  (() => {\n    const raw = $json.raw_text || \"\";\n    const cleaned = raw\n      .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')\n      .replace(/```\\s*([\\s\\S]*?)```/i, '$1')\n      .trim();\n    return cleaned;\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3120,
+        -80
+      ],
+      "name": "T0 - strip fences"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "564b627e-476c-4a4e-9eb4-a2ae4f477a85",
+              "name": "parsed",
+              "value": "={{ JSON.parse($json.no_fences) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3344,
+        -80
+      ],
+      "name": "T0 - Parse JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "991b63fb-0b0f-477f-916d-7428031bd8b8",
+              "name": "page_url",
+              "value": "={{ $('Prep TO LLM Call').item.json.page_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fde40cb4-0e28-4395-9d15-2d96df30e9a5",
+              "name": "page_title",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].page_title : (($json.parsed.page_title) || \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "419eff4e-d638-4752-8d52-a875c68e7900",
+              "name": "ad_snippets",
+              "value": "={{ $json.parsed.page_summaries ? $json.parsed.page_summaries[0].ad_snippets : (($json.parsed.ad_snippets) || []) }}",
+              "type": "array"
+            },
+            {
+              "id": "9a33a297-2011-4520-ad1a-79f9017afc6e",
+              "name": "page_html",
+              "value": "={{ $('Fetch Tier 0 pages').item.json.data.html || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "82be25ad-6a33-4311-9d91-6d82f899ec57",
+              "name": "page_markdown",
+              "value": "={{ $('Fetch Tier 0 pages').item.json.data.markdown || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "ae9e2521-0617-4234-aeca-c4e996109a2f",
+              "name": "page_source",
+              "value": "tier0",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3568,
+        -80
+      ],
+      "name": "T0 - extract page result"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3792,
+        -176
+      ],
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a3d30ca-98b0-4f73-a7dd-72cb14106ee9",
+              "name": "",
+              "value": "={{ $json.initial_tier1_tier2_scrape }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4464,
+        -176
+      ],
+      "name": "Set tier1_pages"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4e0d832-acf1-4d17-a425-64b50220bfab",
+              "name": "page_url",
+              "value": "={{ $('Split Out Tier 1').item.json.tier1_urls }}",
+              "type": "string"
+            },
+            {
+              "id": "db1c0078-ad47-43d7-b661-f90c0f13b2c1",
+              "name": "page_markdown",
+              "value": "={{ $json.data.markdown }}",
+              "type": "string"
+            },
+            {
+              "id": "f913733d-3402-4bbc-8504-aedaad0c28aa",
+              "name": "prompt_system",
+              "value": "={{ $('Normalise inputs').item.json.prompt_system }}",
+              "type": "string"
+            },
+            {
+              "id": "c7de4935-c337-468d-a795-67107eac3819",
+              "name": "prompt_user",
+              "value": "={{ $('Normalise inputs').item.json.prompt_user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        -272
+      ],
+      "name": "Prep T1 LLM Call"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
+              "name": "page_summaries",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-2",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "tier2_decision",
+              "value": "={{ $json.tier2_decision }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "asset_candidates",
+              "value": "={{ $('IMG - Extract candidates').item.json.asset_candidates }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8944,
+        -272
+      ],
+      "name": "Trim response payload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
+              "name": "page_summaries",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-2",
+              "name": "tier2_page_summaries",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "tier2_decision",
+              "value": "={{ $json.tier2_decision }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "asset_candidates",
+              "value": "={{ $('IMG - Extract candidates1').item.json.asset_candidates }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8944,
+        -80
+      ],
+      "name": "Trim response payload1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae35f5d4-0b8b-4775-b188-84ba82f30774",
+              "name": "all_pages",
+              "value": "={{ $json.page_summaries }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4240,
+        -176
+      ],
+      "name": "IMG Prep pages input (T1/0 only)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae35f5d4-0b8b-4775-b188-84ba82f30774",
+              "name": "all_pages",
+              "value": "={{ ($json.page_summaries || []).concat($json.tier2_page_summaries || []) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8496,
+        -272
+      ],
+      "name": "IMG Prep pages input (T2/1/0)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nconst input = $input.first().json;\nreturn [{\n  page_summaries: input.page_summaries || [],\n  tier2_page_summaries: input.tier2_page_summaries || [],\n  tier2_decision: input.tier2_decision || {},\n  asset_candidates: candidates\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8720,
+        -272
+      ],
+      "name": "IMG - Extract candidates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: $json.all_pages = [{page_url, page_html, page_title, ad_snippets, page_source, ...}, ...]\n\nfunction normUrl(u) {\n  if (!u || typeof u !== \"string\") return \"\";\n  return u.trim().replace(/&amp;/g, \"&\");\n}\n\nfunction uniqBy(arr, keyFn) {\n  const seen = new Set();\n  const out = [];\n  for (const x of arr) {\n    const k = keyFn(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\nfunction extractFromHtml(html) {\n  const candidates = [];\n  if (!html || typeof html !== \"string\") return candidates;\n\n  // meta og:image / twitter:image\n  for (const re of [\n    /<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n    /<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"'][^>]*>/gi,\n  ]) {\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      candidates.push({ url: normUrl(m[1]), kind: \"meta\" });\n    }\n  }\n\n  // img src + alt\n  {\n    const re = /<img[^>]+>/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const tag = m[0];\n      const src = (tag.match(/\\ssrc=[\"']([^\"']+)[\"']/i) || [])[1];\n      const alt = (tag.match(/\\salt=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const cls = (tag.match(/\\sclass=[\"']([^\"']*)[\"']/i) || [])[1] || \"\";\n      const w = (tag.match(/\\swidth=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      const h = (tag.match(/\\sheight=[\"']([^\"']+)[\"']/i) || [])[1] || \"\";\n      if (src) candidates.push({ url: normUrl(src), kind: \"img\", alt, cls, w, h });\n    }\n  }\n\n  // srcset candidates (take the largest descriptor)\n  {\n    const re = /\\ssrcset=[\"']([^\"']+)[\"']/gi;\n    let m;\n    while ((m = re.exec(html)) !== null) {\n      const srcset = m[1];\n      const parts = srcset.split(\",\").map(s => s.trim()).filter(Boolean);\n      // prefer last (often largest), but also grab all urls for recall\n      for (const p of parts) {\n        const u = p.split(/\\s+/)[0];\n        if (u) candidates.push({ url: normUrl(u), kind: \"srcset\" });\n      }\n    }\n  }\n\n  // inline svg (potential logo)\n  if (/<svg[\\s>]/i.test(html)) {\n    candidates.push({ url: \"__INLINE_SVG__\", kind: \"svg_inline\" });\n  }\n\n  return candidates;\n}\n\nconst pages = Array.isArray($json.all_pages) ? $json.all_pages : [];\nconst out = [];\n\nfor (const p of pages) {\n  const page_url = p.page_url || \"\";\n  const page_title = p.page_title || \"\";\n  const page_source = p.page_source || \"\";\n  const html = p.page_html || \"\";\n\n  const raw = extractFromHtml(html).map(c => ({\n    url: c.url,\n    kind: c.kind,\n    alt: c.alt || \"\",\n    cls: c.cls || \"\",\n    source_page: page_url,\n    page_title,\n    page_source,\n  }));\n\n  // Basic filtering: remove empties, data URIs, likely tracking pixels\n  const filtered = raw.filter(x =>\n    x.url &&\n    typeof x.url === \"string\" &&\n    !x.url.startsWith(\"data:\") &&\n    !x.url.includes(\"doubleclick\") &&\n    !x.url.includes(\"googletagmanager\")\n  );\n\n  out.push(...filtered);\n}\n\n// Deduplicate by url+kind+source_page\nlet candidates = uniqBy(out, x => `${x.kind}|${x.source_page}|${x.url}`);\n\n// Hard cap for safety (keeps LLM prompt bounded)\ncandidates = candidates.slice(0, 250);\n\nconst input = $input.first().json;\nreturn [{\n  page_summaries: input.page_summaries || [],\n  tier2_page_summaries: input.tier2_page_summaries || [],\n  tier2_decision: input.tier2_decision || {},\n  asset_candidates: candidates\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8720,
+        -80
+      ],
+      "name": "IMG - Extract candidates1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b5dcf349-be7e-4b38-9be0-39bac24c657e",
+              "name": "all_pages",
+              "value": "={{ $json.page_summaries }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8496,
+        -80
+      ],
+      "name": "IMG Prep pages input T1/o AFTER"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "should_scrape_bool",
+              "value": "={{ (() => { const val = $json.parsed?.should_scrape; if (typeof val === 'boolean') return val; if (typeof val === 'string') return val.toLowerCase() === 'true'; return false; })() }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "selected_urls",
+              "value": "={{ $json.parsed?.selected_urls || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "id-3",
+              "name": "parsed",
+              "value": "={{ JSON.stringify($json.parsed) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize should_scrape boolean",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5808,
+        -176
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalise inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise inputs": {
+      "main": [
+        [
+          {
+            "node": "Split Out Tier 1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Root origin (canonical)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Tier 1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tier 1 pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tier 1 pages": {
+      "main": [
+        [
+          {
+            "node": "Prep T1 LLM Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T1 - Raw text in": {
+      "main": [
+        [
+          {
+            "node": "T1 - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T1 - strip fences": {
+      "main": [
+        [
+          {
+            "node": "T1 - Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T1 - Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "T1 - extract page result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T1 - extract page result": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "T1 - Aggregate": {
+      "main": [
+        [
+          {
+            "node": "IMG Prep pages input (T1/0 only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep decision context": {
+      "main": [
+        [
+          {
+            "node": "Open AI decision on further T2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI snippets T1": {
+      "main": [
+        [
+          {
+            "node": "T1 - Raw text in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI decision on further T2s": {
+      "main": [
+        [
+          {
+            "node": "Decision - Raw Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision - Raw Text": {
+      "main": [
+        [
+          {
+            "node": "Decision - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision - strip fences": {
+      "main": [
+        [
+          {
+            "node": "Decision- Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision- Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Normalize should_scrape boolean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - should scrape": {
+      "main": [
+        [
+          {
+            "node": "Split Out Tier 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare just Tier 1 summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Tier 2": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tier 2 pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tier 2 pages": {
+      "main": [
+        [
+          {
+            "node": "Prep LLM Call Tier 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep LLM Call Tier 2": {
+      "main": [
+        [
+          {
+            "node": "Open AI snippets T2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare just Tier 1 summaries": {
+      "main": [
+        [
+          {
+            "node": "IMG Prep pages input T1/o AFTER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI snippets T2": {
+      "main": [
+        [
+          {
+            "node": "T2 - Raw text in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2 - Raw text in": {
+      "main": [
+        [
+          {
+            "node": "T2 - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2 - strip fences": {
+      "main": [
+        [
+          {
+            "node": "T2 - Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2 - Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "T2 - extract page result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2 - extract page result": {
+      "main": [
+        [
+          {
+            "node": "T2 - Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2 - Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Package Combined",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Combined": {
+      "main": [
+        [
+          {
+            "node": "IMG Prep pages input (T2/1/0)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Root origin (canonical)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tier 0 pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tier 0 pages": {
+      "main": [
+        [
+          {
+            "node": "Prep TO LLM Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep TO LLM Call": {
+      "main": [
+        [
+          {
+            "node": "Open AI snippets T0",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI snippets T0": {
+      "main": [
+        [
+          {
+            "node": "T0 - Raw text in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T0 - Raw text in": {
+      "main": [
+        [
+          {
+            "node": "T0 - strip fences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T0 - strip fences": {
+      "main": [
+        [
+          {
+            "node": "T0 - Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T0 - Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "T0 - extract page result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T0 - extract page result": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "T1 - Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set tier1_pages": {
+      "main": [
+        [
+          {
+            "node": "Prep decision context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep T1 LLM Call": {
+      "main": [
+        [
+          {
+            "node": "Open AI snippets T1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trim response payload": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trim response payload1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input (T1/0 only)": {
+      "main": [
+        [
+          {
+            "node": "Set tier1_pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input (T2/1/0)": {
+      "main": [
+        [
+          {
+            "node": "IMG - Extract candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG - Extract candidates": {
+      "main": [
+        [
+          {
+            "node": "Trim response payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG - Extract candidates1": {
+      "main": [
+        [
+          {
+            "node": "Trim response payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IMG Prep pages input T1/o AFTER": {
+      "main": [
+        [
+          {
+            "node": "IMG - Extract candidates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize should_scrape boolean": {
+      "main": [
+        [
+          {
+            "node": "If - should scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "isArchived": false
+}

@@ -36,10 +36,4 @@ def initstate() -> None:
     # Carousel state tracking
     st.session_state.setdefault("image_carousel_index", 0)
     st.session_state.setdefault("image_carousel_last_advance", 0)
-    
-    # Poster concepts state
-    st.session_state.setdefault("concepts_debug", None)
-
-    # Per-concept image hunt results (concept index → visual_pack dict)
-    st.session_state.setdefault("concept_visual_packs", {})
 

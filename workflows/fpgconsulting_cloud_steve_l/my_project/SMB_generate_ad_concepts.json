@@ -161,8 +161,8 @@
             },
             {
               "id": "81ffadd2-885c-42e0-8681-21780b4605c8",
-              "name": "business_summary",
-              "value": "={{$json.business_summary || []}",
+              "name": "Poster_concepts",
+              "value": "={{ $json.parsed.poster_concepts }}",
               "type": "object"
             },
             {
@@ -300,5 +300,12 @@
   "settings": {},
   "tags": [],
   "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
   "isArchived": false
 }
