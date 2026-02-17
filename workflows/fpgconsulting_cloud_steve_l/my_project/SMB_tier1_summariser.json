@@ -282,7 +282,7 @@
             {
               "id": "6b8a354b-2a00-4b24-9b6b-8f983ee1731c",
               "name": "page_summaries",
-              "value": "={{ $json.page_summaries }}",
+              "value": "={{ $('T1 - Aggregate').item.json.page_summaries }}",
               "type": "array"
             },
             {
@@ -1935,12 +1935,5 @@
   "settings": {},
   "tags": [],
   "active": true,
-  "projectId": "FINYdRRpzfX9wIho",
-  "projectName": "My project",
-  "homeProject": {
-    "id": "FINYdRRpzfX9wIho",
-    "name": "My project",
-    "type": "team"
-  },
   "isArchived": false
 }
