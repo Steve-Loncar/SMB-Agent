@@ -20,13 +20,13 @@ Return JSON in this exact shape:
     {
       "concept_name": "Short memorable title (e.g. 'Craft Lives Here')",
       "size": "6 Sheet or 48 Sheet",
-      "format": "Classic or Digital",
+      "recommended_format": "Classic or Digital (state which is best for THIS concept and why)",
       "headline": "The poster headline — punchy, high contrast, legible at distance",
       "supporting_copy": "One supporting line grounded in website evidence, 15 words max",
       "cta": "Short action phrase (e.g. 'Visit us today', 'Learn more online')",
       "image_idea": "Description of ideal image: subject, style, mood, colour palette",
       "layout_notes": "Composition: headline position, focal point, negative space usage",
-      "format_notes": "Specific considerations for Classic vs Digital (e.g. animation for digital)",
+      "format_reasoning": "Explain why Classic or Digital is best for this concept (e.g. 'Digital for motion/urgency' or 'Classic for permanence/prestige')",
       "style_tags": ["2-4 descriptors"]
     }
   ]
