@@ -523,6 +523,7 @@ def call_n8n_image_hunt(
     page_summaries: list[dict],
     tier2_page_summaries: list[dict],
     asset_candidates: list[dict],
+    concept: dict | None = None,
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
@@ -552,6 +553,27 @@ def call_n8n_image_hunt(
         if title or snip_lines:
             snippets_text += f"\n{title} ({p_url})\n{snip_lines}\n"
 
+    # Build optional concept context block for targeted image hunting
+    if concept and isinstance(concept, dict):
+        concept_context = (
+            "\n## Target Poster Concept\n"
+            "This image hunt is for a specific poster concept. Prioritise images that best realise "
+            "this concept's visual direction (award up to +15pts bonus for direct match to suggested imagery).\n\n"
+            f"- Concept name: {concept.get('concept_name', '')}\n"
+            f"- Headline: {concept.get('headline', '')}\n"
+            f"- Supporting copy: {concept.get('supporting_copy', '')}\n"
+            f"- CTA: {concept.get('cta', '')}\n"
+            f"- Suggested imagery: {concept.get('image_idea', '')}\n"
+            f"- Layout guidance: {concept.get('layout_notes', '')}\n"
+        )
+        concept_task_line = (
+            "\n   - When scoring, apply up to +15pt bonus for images that directly match "
+            "the concept's suggested_imagery."
+        )
+    else:
+        concept_context = ""
+        concept_task_line = ""
+
     user_template = _load_prompt("smb_image_hunt_user.txt")
     prompt_user = user_template.format(
         url=url,
@@ -559,6 +581,8 @@ def call_n8n_image_hunt(
         page_snippets=snippets_text.strip() if snippets_text.strip() else "(no snippets provided)",
         asset_candidates_json=json.dumps(filtered_candidates, ensure_ascii=False, indent=2),
         asset_count=len(filtered_candidates),
+        concept_context=concept_context,
+        concept_task_line=concept_task_line,
     )
 
     payload = {
@@ -568,6 +592,7 @@ def call_n8n_image_hunt(
         "page_summaries": page_summaries or [],
         "tier2_page_summaries": tier2_page_summaries or [],
         "asset_candidates": filtered_candidates,
+        "concept": concept or {},
         "prompt_system": _load_prompt("smb_image_hunt_system.txt"),
         "prompt_user": prompt_user,
     }

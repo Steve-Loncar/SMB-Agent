@@ -530,6 +530,7 @@ with st.sidebar:
         st.session_state["visual_pack"] = None
         st.session_state["image_carousel_index"] = 0
         st.session_state["image_carousel_last_advance"] = 0
+        st.session_state["concept_visual_packs"] = {}
         st.switch_page("pages/01_home.py")
 
 target_url = st.session_state.get("target_url", "")
@@ -845,157 +846,16 @@ else:
 
 st.divider()
 
-_raw_candidates = st.session_state.get("asset_candidates", [])
-_image_hunt_done = st.session_state.get("image_hunt_done", False)
-
-if isinstance(_raw_candidates, list) and _raw_candidates:
-    # Different header based on whether image hunt has completed
-    if not _image_hunt_done:
-        st.header("Reviewing your images...")
-        st.markdown("""
-        Our AI is carefully analyzing your website's visual assets to find the best **hero images** and **brand elements** 
-        that align with what we've learned about your business.
-        
-        We're looking for:
-        - **Hero/Feature Images** – High-impact visuals that showcase your products, services, or brand personality
-        - **Brand Logos** – Your company mark and any partner/certification logos
-        - **Brand Colors & Patterns** – Visual cues that define your aesthetic
-        - **Supporting Graphics** – Icons, illustrations, or design elements that reinforce your messaging
-        """)
-    else:
-        st.header("All candidate images from your site")
-        st.markdown("""
-        Here's the complete collection of images we extracted from your website. Our AI analyzed all of these 
-        to select the best matches for your campaign themes — see the curated selection below.
-        """)
-
-    # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
-    _preview_urls = []
-    for c in _raw_candidates:
-        if not isinstance(c, dict):
-            continue
-        u = c.get("url", "")
-        if not u or not isinstance(u, str):
-            continue
-        if u.startswith("data:") or u == "__INLINE_SVG__":
-            continue
-        kind = (c.get("kind") or "").lower()
-        if kind == "svg_inline":
-            continue
-        _preview_urls.append(u)
-
-    # Show carousel of images with auto-scroll
-    if _preview_urls:
-        if not _image_hunt_done:
-            st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – smooth auto-scrolling preview:")
-        else:
-            st.markdown(f"**{len(_preview_urls)} candidate images discovered:**")
-        
-        # Initialize carousel state if needed
-        if "image_carousel_index" not in st.session_state:
-            st.session_state["image_carousel_index"] = 0
-        if "image_carousel_last_advance" not in st.session_state:
-            st.session_state["image_carousel_last_advance"] = 0
-        
-        # Auto-advance carousel every 2 seconds for smooth continuous scroll (only if still processing)
-        if not _image_hunt_done:
-            import time
-            current_time = time.time()
-            last_advance = st.session_state.get("image_carousel_last_advance", 0)
-            
-            # Only advance if 2+ seconds have passed since last advance
-            if current_time - last_advance >= 2.0:
-                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-                st.session_state["image_carousel_last_advance"] = current_time
-                st.rerun()
-        
-        # Show 3 images in a row, smoothly scrolling through all available
-        carousel_cols = st.columns(3)
-        _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
-        
-        for col_idx, col in enumerate(carousel_cols):
-            _image_idx = (_start_idx + col_idx) % len(_preview_urls)
-            _url = _preview_urls[_image_idx]
-            with col:
-                try:
-                    st.image(_url, use_container_width=True)
-                    st.caption(f"Image {_image_idx + 1}/{len(_preview_urls)}")
-                except Exception:
-                    st.info("Image preview unavailable")
-        
-        # Show manual controls (less prominent)
-        with st.expander("Browse manually"):
-            import time
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Previous", use_container_width=True):
-                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 1) % len(_preview_urls)
-                    st.session_state["image_carousel_last_advance"] = time.time()  # Reset timer on manual click
-                    st.rerun()
-            with col2:
-                if st.button("Next", use_container_width=True):
-                    st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 1) % len(_preview_urls)
-                    st.session_state["image_carousel_last_advance"] = time.time()  # Reset timer on manual click
-                    st.rerun()
-    
-    # Divider + transition text when image hunt completes
-    if _image_hunt_done:
-        st.divider()
-        st.markdown("""
-        ### Our AI's Selection
-        
-        From the candidates above, our AI identified the best matches for your campaign. 
-        These selections align with your brand, themes, and advertising goals.
-        """)
 
 #
-# Step 3: Image hunt — uses asset_candidates from tier1_summarise
+# Step 3: Generate ads (chains after homepage summarise — image hunt now runs per-concept on demand)
 #
 status = st.session_state.get("scrape_status", "idle")
 if (
     status == "summarising"
     and st.session_state.get("homepage_summarise_done", False)
-    and not st.session_state.get("image_hunt_done", False)
-    and isinstance(st.session_state.get("asset_candidates"), list)
-    and len(st.session_state["asset_candidates"]) > 0
+    and not st.session_state.get("ads_autorun_done", False)
 ):
-    st.session_state["scrape_status"] = "finding_images"
-    ok = False
-    err = None
-    try:
-        with st.spinner("Reviewing images to match the themes from these snippets…"):
-            dbg = call_n8n_image_hunt(
-                url=st.session_state.get("target_url", ""),
-                business_summary=st.session_state.get("business_summary", {}),
-                page_summaries=st.session_state.get("tier1_page_summaries", []),
-                tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
-                asset_candidates=st.session_state.get("asset_candidates", []),
-                mode=st.session_state.get("n8n_mode", "TEST"),
-            )
-        st.session_state["image_hunt_debug"] = dbg
-        resp = dbg.get("_n8n_response_json")
-        if isinstance(resp, list) and resp and isinstance(resp[0], dict):
-            resp = resp[0]
-        st.session_state["visual_pack"] = resp.get("visual_pack") if isinstance(resp, dict) else None
-        ok = bool(st.session_state.get("visual_pack"))
-    except Exception as e:
-        err = str(e)
-
-    if ok:
-        st.session_state["image_hunt_done"] = True
-        st.session_state["scrape_status"] = "summarising"
-        st.rerun()
-    else:
-        # DON'T mark done — let it be retried / debugged
-        st.session_state["image_hunt_done"] = False
-        st.session_state["scrape_status"] = "summarising"
-        if err:
-            st.session_state["image_hunt_error"] = err
-            st.warning(f"Image hunt failed (will not be marked done): {err}")
-
-# Step 4: Generate ads (chains after homepage summarise + image hunt)
-status = st.session_state.get("scrape_status", "idle")
-if status == "summarising" and st.session_state.get("image_hunt_done", False) and not st.session_state.get("ads_autorun_done", False):
     st.session_state["scrape_status"] = "generating_ads"
 
     # ensure inputs exist (derive from V2 if needed)
@@ -1111,87 +971,272 @@ if DEBUG_UI and ads_dbg:
         st.json(ads_dbg.get("_debug_payload_sent", {}))
         st.json(ads_dbg.get("_n8n_response_json", {}))
 
-# --- Best images and brand assets found ---
-vp = st.session_state.get("visual_pack") or {}
-_vp_imgs = vp.get("images") if isinstance(vp, dict) else []
-_vp_logos = vp.get("logos") if isinstance(vp, dict) else []
-_vp_brand = vp.get("brand") if isinstance(vp, dict) else {}
+# =============================================================================
+# ALL CANDIDATE IMAGES — carousel above concepts so users can see the pool first
+# =============================================================================
 
-# --- Curated visual pack (after image hunt completes) ---
-if isinstance(_vp_imgs, list) and _vp_imgs:
-    st.subheader("Selected heroes, logos & brand elements")
+_raw_candidates = st.session_state.get("asset_candidates", [])
 
-    # Show images in a 2-column grid with rich captions
-    img_cols = st.columns(2)
-    for idx, im in enumerate(_vp_imgs[:16]):
-        if not isinstance(im, dict):
+if isinstance(_raw_candidates, list) and _raw_candidates:
+    st.header("Images from your website")
+    st.caption(
+        f"All {len(_raw_candidates)} images harvested from your site. "
+        "When you click **Generate Poster** on a concept below, our AI reviews every one of these "
+        "and selects the best matches for that specific concept."
+    )
+
+    # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
+    _preview_urls = []
+    for _c in _raw_candidates:
+        if not isinstance(_c, dict):
             continue
-        img_url = im.get("url", "")
-        if not img_url:
+        u = _c.get("url", "")
+        if not u or not isinstance(u, str):
             continue
-        with img_cols[idx % 2]:
-            st.image(img_url, use_container_width=True)
-            # Type + recommended use tags
-            tags = []
-            if im.get("type"):
-                tags.append(im["type"])
-            if im.get("recommended_use"):
-                tags.append(im["recommended_use"])
-            if tags:
-                st.caption(" | ".join(tags))
-            # Matched themes
-            themes = im.get("matched_themes", [])
-            if isinstance(themes, list) and themes:
-                st.markdown("**Themes:** " + ", ".join(str(t) for t in themes))
-            # Why relevant
-            if im.get("why_relevant"):
-                st.markdown(f"_{im['why_relevant']}_")
-            # Risk notes (if any)
-            if im.get("risk_notes"):
-                st.caption(f"Note: {im['risk_notes']}")
+        if u.startswith("data:") or u == "__INLINE_SVG__":
+            continue
+        if (_c.get("kind") or "").lower() == "svg_inline":
+            continue
+        _preview_urls.append(u)
 
-    # Logos section
-    if isinstance(_vp_logos, list) and _vp_logos:
-        st.subheader("Logos found")
-        logo_cols = st.columns(min(len(_vp_logos), 4))
-        for li, logo in enumerate(_vp_logos[:4]):
-            if not isinstance(logo, dict):
-                continue
-            logo_url = logo.get("url", "")
-            if logo_url:
-                with logo_cols[li]:
-                    st.image(logo_url, use_container_width=True)
-                    if logo.get("why_logo"):
-                        st.caption(logo["why_logo"])
+    if _preview_urls:
+        st.markdown(f"**{len(_preview_urls)} candidate images:**")
 
-    # Brand cues
-    if isinstance(_vp_brand, dict):
-        colors = _vp_brand.get("colors", [])
-        motifs = _vp_brand.get("motifs", [])
-        if (isinstance(colors, list) and colors) or (isinstance(motifs, list) and motifs):
-            st.subheader("Brand cues")
-            if isinstance(colors, list) and colors:
-                color_text = ", ".join(
-                    f"{c.get('hex', '?')} ({c.get('role', '?')})"
-                    for c in colors if isinstance(c, dict)
-                )
-                if color_text:
-                    st.markdown(f"**Colours:** {color_text}")
-            if isinstance(motifs, list) and motifs:
-                for m in motifs:
-                    if isinstance(m, dict) and m.get("label"):
-                        st.markdown(f"- {m['label']}")
+        if "image_carousel_index" not in st.session_state:
+            st.session_state["image_carousel_index"] = 0
 
-elif _image_hunt_done:
-    st.header("Best images and brand assets found")
-    st.caption("Image review complete — no strong visual candidates found for this site.")
-else:
-    pass  # no candidates yet, nothing to show
+        carousel_cols = st.columns(3)
+        _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
+        for col_idx, col in enumerate(carousel_cols):
+            _image_idx = (_start_idx + col_idx) % len(_preview_urls)
+            with col:
+                try:
+                    st.image(_preview_urls[_image_idx], use_container_width=True)
+                    st.caption(f"Image {_image_idx + 1}/{len(_preview_urls)}")
+                except Exception:
+                    st.info("Preview unavailable")
+
+        import time
+        with st.expander("Browse all images"):
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Previous", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (
+                        st.session_state["image_carousel_index"] - 1
+                    ) % len(_preview_urls)
+                    st.rerun()
+            with col2:
+                if st.button("Next", use_container_width=True):
+                    st.session_state["image_carousel_index"] = (
+                        st.session_state["image_carousel_index"] + 1
+                    ) % len(_preview_urls)
+                    st.rerun()
 
 st.divider()
 
+# =============================================================================
+# CAMPAIGN CONCEPTS — each concept has its own Generate Poster flow
+# =============================================================================
+
+st.subheader("Campaign concepts")
+concepts = st.session_state.get("poster_concepts", [])
+
+if not concepts:
+    st.info("Concepts will appear here once generation is complete.")
+else:
+    for i, concept in enumerate(concepts):
+        with st.container(border=True):
+            c_left, c_right = st.columns([3, 2])
+
+            with c_left:
+                name = concept.get("concept_name", f"Concept {i + 1}")
+                st.markdown(f"### {name}")
+                st.markdown(f"**Headline:** {concept.get('headline','')}")
+                st.markdown(f"**Supporting copy:** {concept.get('supporting_copy','')}")
+                st.markdown(f"**CTA:** {concept.get('cta','')}")
+                st.markdown(f"**Image idea:** {concept.get('image_idea','')}")
+                st.markdown(f"**Layout notes:** {concept.get('layout_notes','')}")
+                tags = concept.get("style_tags") or []
+                if isinstance(tags, list) and tags:
+                    st.caption("Style tags: " + ", ".join([str(t) for t in tags]))
+
+            with c_right:
+                cvp = st.session_state.get("concept_visual_packs", {})
+                img_cache = st.session_state.get("poster_images", {}) or {}
+
+                # Show generated poster if we have one
+                if i in img_cache:
+                    st.image(img_cache[i], use_container_width=True)
+
+                # Show curated images for this concept if image hunt has run
+                if i in cvp:
+                    vp_i = cvp[i] or {}
+                    vp_imgs = vp_i.get("images", []) or []
+                    vp_logos = vp_i.get("logos", []) or []
+                    vp_brand = vp_i.get("brand", {}) or {}
+
+                    if vp_imgs:
+                        st.markdown("**Images selected for this concept:**")
+                        thumb_cols = st.columns(min(len(vp_imgs[:6]), 3))
+                        for ti, im in enumerate(vp_imgs[:6]):
+                            if not isinstance(im, dict):
+                                continue
+                            img_url = im.get("url", "")
+                            if not img_url:
+                                continue
+                            with thumb_cols[ti % 3]:
+                                try:
+                                    st.image(img_url, use_container_width=True)
+                                    type_label = im.get("type", "")
+                                    use_label = im.get("recommended_use", "")
+                                    if type_label or use_label:
+                                        st.caption(" | ".join(filter(None, [type_label, use_label])))
+                                    if im.get("why_relevant"):
+                                        st.caption(im["why_relevant"])
+                                except Exception:
+                                    pass
+
+                    if vp_logos:
+                        st.markdown("**Logos:**")
+                        logo_c = st.columns(min(len(vp_logos[:3]), 3))
+                        for li, logo in enumerate(vp_logos[:3]):
+                            if isinstance(logo, dict) and logo.get("url"):
+                                with logo_c[li]:
+                                    try:
+                                        st.image(logo["url"], use_container_width=True)
+                                    except Exception:
+                                        pass
+
+                    # Brand cues summary
+                    colors = vp_brand.get("colors", [])
+                    if isinstance(colors, list) and colors:
+                        color_text = ", ".join(
+                            f"{c.get('hex', '?')} ({c.get('role', '?')})"
+                            for c in colors if isinstance(c, dict)
+                        )
+                        if color_text:
+                            st.caption(f"Brand colours: {color_text}")
+
+                # --- Generate Poster button ---
+                # Triggers: (1) concept-specific image hunt across ALL candidates,
+                #           then (2) poster image generation using those results.
+                if i not in img_cache:
+                    if st.button("Generate Poster", key=f"gen_poster_{i}", use_container_width=True, type="primary"):
+                        bs = st.session_state.get("business_summary", {}) or {}
+
+                        # Step 1: Run image hunt for this specific concept
+                        all_candidates = st.session_state.get("asset_candidates", [])
+                        if all_candidates:
+                            try:
+                                with st.spinner("Searching for the best images for this concept..."):
+                                    hunt_dbg = call_n8n_image_hunt(
+                                        url=st.session_state.get("target_url", ""),
+                                        business_summary=bs,
+                                        page_summaries=st.session_state.get("tier1_page_summaries", []),
+                                        tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
+                                        asset_candidates=all_candidates,
+                                        concept=concept,
+                                        mode=st.session_state.get("n8n_mode", "TEST"),
+                                    )
+                                hunt_resp = hunt_dbg.get("_n8n_response_json")
+                                if isinstance(hunt_resp, list) and hunt_resp and isinstance(hunt_resp[0], dict):
+                                    hunt_resp = hunt_resp[0]
+                                concept_vp = hunt_resp.get("visual_pack") if isinstance(hunt_resp, dict) else None
+                                if concept_vp:
+                                    cvp_store = st.session_state.get("concept_visual_packs", {})
+                                    cvp_store[i] = concept_vp
+                                    st.session_state["concept_visual_packs"] = cvp_store
+                            except Exception as hunt_err:
+                                st.warning(f"Image search encountered an issue: {hunt_err}")
+
+                        # Step 2: Build enriched poster prompt using selected images
+                        concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
+                        selected_imgs = (concept_vp_result.get("images") or [])[:3]
+                        selected_bg = next(
+                            (im.get("url", "") for im in selected_imgs
+                             if isinstance(im, dict) and im.get("recommended_use") == "background"),
+                            ""
+                        )
+                        selected_focal = next(
+                            (im.get("url", "") for im in selected_imgs
+                             if isinstance(im, dict) and im.get("recommended_use") == "product_focal"),
+                            ""
+                        )
+                        selected_logos = (concept_vp_result.get("logos") or [])[:1]
+                        logo_url = selected_logos[0].get("url", "") if selected_logos else ""
+
+                        shortlist = concept_vp_result.get("shortlist", {})
+                        bg_ids = shortlist.get("poster_backgrounds", [])
+                        focal_ids = shortlist.get("product_focals", [])
+
+                        image_guidance = ""
+                        if selected_bg:
+                            image_guidance += f"Primary background image URL: {selected_bg}\n"
+                        if selected_focal:
+                            image_guidance += f"Focal product image URL: {selected_focal}\n"
+                        if logo_url:
+                            image_guidance += f"Brand logo URL: {logo_url}\n"
+                        if bg_ids:
+                            image_guidance += f"Background image IDs from hunt: {', '.join(bg_ids)}\n"
+                        if focal_ids:
+                            image_guidance += f"Focal image IDs from hunt: {', '.join(focal_ids)}\n"
+
+                        cropping = ""
+                        for im in selected_imgs:
+                            if isinstance(im, dict) and im.get("cropping_guidance"):
+                                cropping += f"  - {im.get('type','img')}: {im['cropping_guidance']}\n"
+
+                        prompt = (
+                            "Create a UK roadside OOH poster mockup.\n"
+                            f"Business: {bs.get('name_guess','')}\n"
+                            f"Category: {bs.get('category','')}\n"
+                            f"Tone: {bs.get('tone','')}\n\n"
+                            f"Headline text on poster: {concept.get('headline','')}\n"
+                            f"Supporting copy: {concept.get('supporting_copy','')}\n"
+                            f"CTA: {concept.get('cta','')}\n"
+                            f"Visual concept: {concept.get('image_idea','')}\n"
+                            f"Layout guidance: {concept.get('layout_notes','')}\n"
+                            f"Style tags: {', '.join(tags) if isinstance(tags, list) else ''}\n\n"
+                            + (f"Selected images from website:\n{image_guidance}\n" if image_guidance else "")
+                            + (f"Cropping guidance:\n{cropping}\n" if cropping else "")
+                            + "Design requirements:\n"
+                            "- Poster is legible from 100+ feet (large headline, high contrast)\n"
+                            "- 60% negative space — do not clutter\n"
+                            "- Incorporate the selected website images as the primary visual\n"
+                            "- Clean composition with single dominant focal point\n"
+                            "- Do NOT include phone numbers unless explicitly provided\n"
+                            "- Place brand logo bottom-right at approx 8% of poster area\n"
+                        )
+
+                        try:
+                            with st.spinner("Generating your poster..."):
+                                img_res = call_n8n_generate_image(
+                                    prompt=prompt,
+                                    mode=st.session_state.n8n_mode,
+                                )
+                                if not img_res.get("ok"):
+                                    raise RuntimeError(
+                                        img_res.get("response_text_snippet", "n8n image call failed")
+                                    )
+                                resp = img_res.get("response_json") or {}
+                                if isinstance(resp, list) and resp:
+                                    resp = resp[0]
+                                b64 = (resp or {}).get("image_b64", "")
+                                if not b64:
+                                    raise RuntimeError("Missing image_b64 in n8n response")
+                                img_bytes = base64.b64decode(b64)
+                            st.session_state["poster_images"][i] = img_bytes
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Poster generation failed: {e}")
+
+st.divider()
+
+# =============================================================================
+# DEVELOPER DIAGNOSTICS
+# =============================================================================
+
 with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
-    # Scrape-pack payload (raw)
     st.subheader("Scrape-pack output (debug)")
     sp = st.session_state.get("scrape_pack")
     if sp:
@@ -1199,7 +1244,6 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
     else:
         st.info("No scrape-pack payload yet (check debug below).")
 
-    # Scrape-pack request/response debug
     dbg = st.session_state.get("scrape_pack_debug")
     if dbg:
         st.subheader("Debug: scrape-pack request/response")
@@ -1217,7 +1261,6 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
         st.write("Payload sent:")
         st.json(dbg.get("_debug_payload_sent", {}))
 
-    # Generate-ads request/response debug
     ads_dbg = st.session_state.get("ads_debug")
     if ads_dbg:
         st.subheader("Debug: generate-ads request/response")
@@ -1227,132 +1270,30 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
         st.json(ads_dbg.get("_debug_payload_sent", {}))
         st.json(ads_dbg.get("_n8n_response_json", {}))
 
-    # Image hunt request/response debug
     img_dbg = st.session_state.get("image_hunt_debug")
     if img_dbg:
-        st.subheader("Debug: image-hunt request/response")
-        st.write("Target URL:")
+        st.subheader("Debug: last image-hunt request/response")
         st.code(img_dbg.get("_debug_target_url", ""), language="text")
-        st.write("HTTP status / final URL:")
-        st.code(
-            f"{img_dbg.get('_debug_http_status')} | final={img_dbg.get('_debug_final_url')}",
-            language="text",
-        )
         if img_dbg.get("_error"):
             st.error(img_dbg.get("_error"))
-        st.write("Response text (first 400 chars):")
-        st.code(img_dbg.get("_debug_resp_text_snippet", ""), language="text")
-        st.write("Payload sent (prompts + assets):")
         payload = img_dbg.get("_debug_payload_sent", {})
-        # Show payload, but truncate the long lists for readability
         display_payload = dict(payload)
         if "asset_candidates" in display_payload and isinstance(display_payload["asset_candidates"], list):
             display_payload["asset_candidates"] = f"[{len(display_payload['asset_candidates'])} items]"
         if "page_summaries" in display_payload and isinstance(display_payload["page_summaries"], list):
             display_payload["page_summaries"] = f"[{len(display_payload['page_summaries'])} items]"
         st.json(display_payload)
-        st.write("N8N response JSON:")
         st.json(img_dbg.get("_n8n_response_json", {}))
-        if img_dbg.get("_debug_resp_headers"):
-            st.write("Response headers:")
-            st.json(img_dbg.get("_debug_resp_headers", {}))
 
-    # Scraped pages list (noisy) — now hidden by default
     st.subheader("Scraped pages")
     visited = st.session_state.get("visited_urls", [])
     if visited:
-        st.write(f"Visited {len(visited)} page(s):")
         for u in visited:
             st.write(f"- {u}")
     else:
         st.write("No pages scraped yet.")
 
-    # Scraped text (noisy) — now hidden by default
-    st.subheader("Scraped text (alpha)")
     scraped_text = st.session_state.get("scraped_text", "")
     if scraped_text:
+        st.subheader("Scraped text")
         st.text_area("Extracted text", scraped_text, height=240)
-    else:
-        st.write("No text extracted.")
-
-# Images section — hidden when empty (no "alpha" label for clients)
-imgs = st.session_state.get("scraped_images", [])
-if imgs:
-    st.subheader("Images from your website")
-    st.image(imgs[:6], caption=imgs[:6], use_container_width=True)
-
-st.divider()
-
-st.subheader("Campaign concepts")
-concepts = st.session_state.get("poster_concepts", [])
-
-if not concepts:
-    st.info("Concepts will appear here once generation is complete.")
-else:
-    cols = st.columns(3)
-    for i, concept in enumerate(concepts):
-        with cols[i % 3]:
-            st.markdown("#### Concept")
-            st.caption(concept.get("concept_name", ""))
-            st.markdown(f"**Headline:** {concept.get('headline','')}")
-            st.markdown(f"**Supporting copy:** {concept.get('supporting_copy','')}")
-            st.markdown(f"**CTA:** {concept.get('cta','')}")
-            st.markdown(f"**Layout notes:** {concept.get('layout_notes','')}")
-            st.markdown(f"**Image idea:** {concept.get('image_idea','')}")
-            tags = concept.get("style_tags") or []
-            if isinstance(tags, list) and tags:
-                st.caption("Style tags: " + ", ".join([str(t) for t in tags]))
-
-            # Show generated image if we have one
-            img_cache = st.session_state.get("poster_images", {}) or {}
-            if i in img_cache:
-                st.image(img_cache[i], use_container_width=True)
-
-            # Generate on demand
-            if st.button("Generate image", key=f"gen_{i}", use_container_width=True):
-                bs = st.session_state.get("business_summary", {}) or {}
-                # V1 prompt: simple + reliable (iterate later)
-                prompt = (
-                    "Create a UK roadside OOH poster mockup.\n"
-                    f"Business: {bs.get('name_guess','')}\n"
-                    f"Category: {bs.get('category','')}\n"
-                    f"Tone: {bs.get('tone','')}\n"
-                    f"Headline text on poster: {concept.get('headline','')}\n"
-                    f"Supporting copy on poster: {concept.get('supporting_copy','')}\n"
-                    f"CTA on poster: {concept.get('cta','')}\n"
-                    f"Visual concept: {concept.get('image_idea','')}\n"
-                    f"Layout guidance: {concept.get('layout_notes','')}\n"
-                    f"Style tags: {', '.join(tags) if isinstance(tags, list) else ''}\n"
-                    "Design requirements:\n"
-                    "- Poster is legible from distance\n"
-                    "- Large headline, minimal text\n"
-                    "- Clean composition, high contrast\n"
-                    "- Do NOT include phone numbers unless explicitly provided\n"
-                    "- No brand logos unless provided\n"
-                )
-
-                try:
-                    with st.spinner("Generating visual..."):
-                        img_res = call_n8n_generate_image(
-                            prompt=prompt,
-                            mode=st.session_state.n8n_mode,
-                        )
-                        if not img_res.get("ok"):
-                            raise RuntimeError(
-                                img_res.get("response_text_snippet", "n8n image call failed")
-                            )
-
-                        resp = img_res.get("response_json") or {}
-                        # n8n Respond node may return a list (allIncomingItems)
-                        if isinstance(resp, list) and resp:
-                            resp = resp[0]
-
-                        b64 = (resp or {}).get("image_b64", "")
-                        if not b64:
-                            raise RuntimeError("Missing image_b64 in n8n response")
-
-                        img_bytes = base64.b64decode(b64)
-                    st.session_state["poster_images"][i] = img_bytes
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Image generation failed: {e}")

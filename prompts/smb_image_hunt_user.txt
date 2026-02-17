@@ -5,21 +5,23 @@ Business summary:
 
 Ad snippets from website pages (themes and proof points to match images against):
 {page_snippets}
-
+{concept_context}
 Asset candidates harvested from website HTML ({asset_count} candidates after deduplication and junk filtering):
 {asset_candidates_json}
 
 Task:
-1) Review the asset candidates above. Each has a url, kind, source_page, and optional alt/cls metadata.
-2) Select the 8-20 best images for OOH poster use, ranked by quality and theme relevance.
-3) Identify 1-5 likely logos from the candidates.
-4) Extract brand cues (colors, fonts, motifs) only where confident.
-5) For each selected image, explain:
-   - Which snippet themes it matches (use exact phrases from the snippets)
-   - How a poster designer should use it (background, focal product, supporting detail)
-   - Cropping and layout guidance for OOH formats
-   - Any risk notes (text overlay, low-res indicators, watermarks)
-6) Build the shortlist: which images work best as poster backgrounds, product focals, and supporting details.
-7) If few quality candidates exist, return fewer items rather than padding with poor choices.
+1) Apply the OOH distance test and pre-filters to eliminate junk assets (icons, tiny images, social media elements, tracking pixels).
+2) Score each remaining candidate using the 7-factor rubric (Snippet Theme Relevance, Vertical Fit, Brand Tone Match, Compositional Usability, Resolution/Quality, Uniqueness, Risk Deductions).{concept_task_line}
+3) Select 8–20 images ranked by composite score (highest first).
+4) Ensure at least 3 distinct image types are represented in your selection.
+5) Identify 1–5 likely logos from the candidates using the logo detection signals.
+6) Extract brand cues (colours, fonts, motifs) only where confident evidence exists in the data.
+7) For each selected image, provide:
+   - Which snippet themes it matches (use exact phrases from the snippets above)
+   - How a poster designer should use it (background, product_focal, supporting_detail)
+   - Cropping and layout guidance specific to OOH formats (portrait and landscape)
+   - Any risk notes (text overlay problems, low-res indicators, potential watermarks, compliance concerns)
+8) Build the shortlist: which 2–3 images work best as poster backgrounds, which as product focals, which as supporting details, and which logo to use primary.
+9) If few quality candidates exist, return fewer items rather than padding with poor choices.
 
 Output JSON only in the required visual_pack schema. Do not wrap in markdown fences.
