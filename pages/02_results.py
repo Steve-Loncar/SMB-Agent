@@ -1010,8 +1010,19 @@ _image_hunt_done = st.session_state.get("image_hunt_done", False)
 
 # --- Thumbnail preview: show raw candidates while image hunt is pending/running ---
 if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidates:
-    st.header("Images from your website")
-    st.caption("We found these images on your pages — reviewing them now to find the best ones for your campaign...")
+    st.header("🔍 Reviewing your images...")
+    
+    # Engaging context about what we're doing
+    st.markdown("""
+    Our AI is carefully analyzing your website's visual assets to find the best **hero images** and **brand elements** 
+    that align with what we've learned about your business.
+    
+    We're looking for:
+    - **Hero/Feature Images** – High-impact visuals that showcase your products, services, or brand personality
+    - **Brand Logos** – Your company mark and any partner/certification logos
+    - **Brand Colors & Patterns** – Visual cues that define your aesthetic
+    - **Supporting Graphics** – Icons, illustrations, or design elements that reinforce your messaging
+    """)
 
     # Filter to likely renderable images (skip data URIs, SVG inlines, tiny icons)
     _preview_urls = []
@@ -1028,15 +1039,39 @@ if not _image_hunt_done and isinstance(_raw_candidates, list) and _raw_candidate
             continue
         _preview_urls.append(u)
 
-    # Show up to 24 thumbnails in a 4-column grid
+    # Show carousel of images with rotation
     if _preview_urls:
-        _thumb_cols = st.columns(4)
-        for _ti, _tu in enumerate(_preview_urls[:24]):
-            with _thumb_cols[_ti % 4]:
+        st.markdown(f"**Found {len(_preview_urls)} candidate images on your site** – showing a rotating preview:")
+        
+        # Initialize carousel state if needed
+        if "image_carousel_index" not in st.session_state:
+            st.session_state["image_carousel_index"] = 0
+        
+        # Show 3 images in a row, rotating through all available
+        carousel_cols = st.columns(3)
+        _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
+        
+        for col_idx, col in enumerate(carousel_cols):
+            _image_idx = (_start_idx + col_idx) % len(_preview_urls)
+            _url = _preview_urls[_image_idx]
+            with col:
                 try:
-                    st.image(_tu, use_container_width=True)
+                    st.image(_url, use_container_width=True)
+                    st.caption(f"Image {_image_idx + 1}/{len(_preview_urls)}")
                 except Exception:
-                    pass  # skip broken images silently
+                    st.info("Image preview unavailable")
+        
+        # Auto-rotate every rerun (simulates carousel movement)
+        # Show button to manually rotate
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("⬅️ Previous", use_container_width=True):
+                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] - 3) % len(_preview_urls)
+                st.rerun()
+        with col2:
+            if st.button("Next ➡️", use_container_width=True):
+                st.session_state["image_carousel_index"] = (st.session_state["image_carousel_index"] + 3) % len(_preview_urls)
+                st.rerun()
 
 # --- Curated visual pack (after image hunt completes) ---
 elif isinstance(_vp_imgs, list) and _vp_imgs:
