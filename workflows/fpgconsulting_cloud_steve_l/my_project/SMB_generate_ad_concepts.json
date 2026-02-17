@@ -33,7 +33,7 @@
             },
             {
               "name": "messages",
-              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $json.prompt_user\n  }\n] }}"
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": $json.prompt_system\n  },\n  {\n    \"role\": \"user\",\n    \"content\":\n      'BUSINESS SUMMARY:\\n' +\n      JSON.stringify($json.business_summary || {}) +\n      '\\n\\nHOMEPAGE CONTENT:\\n' +\n      ($json.homepage_markdown || '') +\n      '\\n\\nTIER 1 & 2 PAGE SUMMARIES:\\n' +\n      JSON.stringify($json.page_summaries || []) +\n      '\\n\\nAVAILABLE IMAGES:\\n' +\n      ($json.image_urls || []).join('\\n')\n  }\n] }}"
             }
           ]
         },
@@ -300,12 +300,5 @@
   "settings": {},
   "tags": [],
   "active": true,
-  "projectId": "FINYdRRpzfX9wIho",
-  "projectName": "My project",
-  "homeProject": {
-    "id": "FINYdRRpzfX9wIho",
-    "name": "My project",
-    "type": "team"
-  },
   "isArchived": false
 }

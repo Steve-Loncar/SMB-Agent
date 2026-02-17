@@ -1,23 +1,23 @@
-Generate UK OOH poster concepts (6 Sheet and 48 Sheet, Classic and Digital formats) based on the business information below.
+You will receive the following data below:
 
-CLIENT INFORMATION:
-{business_summary}
+BUSINESS SUMMARY:
+[JSON object containing business profile, value proposition, target audience]
 
 HOMEPAGE CONTENT:
-{homepage_markdown}
+[Markdown content from the homepage]
 
 TIER 1 & 2 PAGE SUMMARIES:
-{page_context}
+[JSON array of page summaries]
 
 AVAILABLE IMAGES:
-{image_urls}
+[List of image URLs you can reference in your concepts]
 
 TASK:
 1) Generate 6–8 distinct OOH concepts spanning Classic (print) and Digital (LED/screens) formats
 2) Mix 6 Sheet and 48 Sheet sizes with consideration for their context (foot traffic vs motorist)
 3) Headlines must be punchy and legible at distance
-4) Ground every concept in website evidence — do not invent claims
+4) Ground every concept in the provided business summary and page content — do not invent claims
 5) Vary messaging angles and emotional appeals across concepts
 6) Consider format-specific opportunities (animation potential for digital, print quality for classic)
 
-Output JSON only in the required schema with all fields populated.
+Output valid JSON only in the required schema with all fields populated.
