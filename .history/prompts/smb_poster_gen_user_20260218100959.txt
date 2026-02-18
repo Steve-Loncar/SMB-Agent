@@ -1,0 +1,54 @@
+You are generating a DALL·E-ready poster prompt for ONE OOH poster concept using ONLY the selected images.
+
+INPUTS
+
+1) POSTER CONCEPT (single concept)
+{poster_concept}
+
+2) SELECTED IMAGES (chosen from the website)
+{selected_images}
+
+3) BRAND / DESIGN GUIDELINES + POSTER CREATION GUIDELINES
+{guidelines}
+
+TASK
+Create:
+- a poster_name
+- a single detailed poster_prompt (for DALL·E) that produces a professional UK OOH poster layout
+- a clear layout_spec (format/orientation/aspect/type)
+- an asset_plan including which selected image is the hero image
+- render_notes including exact text to render verbatim and negative instructions to avoid AI artefacts
+
+OUTPUT
+Return JSON ONLY with this schema:
+
+{
+  "poster_name": "string",
+  "poster_prompt": "string",
+  "layout_spec": {
+    "format": "6-sheet|48-sheet",
+    "orientation": "portrait|landscape",
+    "aspect_ratio": "2:3|2:1",
+    "type": "classic|digital",
+    "safe_area_notes": "string"
+  },
+  "asset_plan": {
+    "hero_image_url": "string",
+    "supporting_image_urls": ["string"],
+    "logo_url": "string|null",
+    "use_of_brand_motifs": "string"
+  },
+  "render_notes": {
+    "text_to_render_verbatim": {
+      "headline": "string",
+      "supporting_copy": "string|null",
+      "cta": "string|null"
+    },
+    "negative_instructions": ["string"]
+  }
+}
+
+Hard checks before you answer:
+- hero_image_url MUST be one of {selected_images}.
+- supporting_image_urls (if any) MUST be a subset of {selected_images}.
+- Output must be valid JSON only. No markdown fences. No extra keys.

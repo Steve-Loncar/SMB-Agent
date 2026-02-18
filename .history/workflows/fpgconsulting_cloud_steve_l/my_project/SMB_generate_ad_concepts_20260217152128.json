@@ -33,7 +33,7 @@
             },
             {
               "name": "messages",
-              "value": "={{[\n  {\n    role: 'system',\n    content: ($json.prompt_system)\n  },\n  {\n    role: 'user',\n    content: ($json.prompt_user) +\n      '\\n\\nBUSINESS SUMMARY:\\n' +\n      JSON.stringify(($json.body.business_summary) || {}) +\n      '\\n\\nTIER 1 & 2 PAGE SUMMARIES:\\n' +\n      JSON.stringify(($json.page_summaries) || []) \n  }\n]}}"
+              "value": "={{[\n  {\n    role: 'system',\n    content: ($json.prompt_system)\n  },\n  {\n    role: 'user',\n    content: ($json.prompt_user) +\n      '\\n\\nBUSINESS SUMMARY:\\n' +\n      JSON.stringify(($json.body.business_summary) || {}) +\n      '\\n\\nTIER 1 & 2 PAGE SUMMARIES:\\n' +\n      JSON.stringify(($json.page_summaries) || [])\n  }\n]}}"
             }
           ]
         },
@@ -43,7 +43,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 180000
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -160,10 +160,22 @@
               "type": "string"
             },
             {
+              "id": "c50cd4cd-b183-479b-b8af-f4bda17ffa93",
+              "name": "homepage_markdown",
+              "value": "={{$json.body.homepage_markdown || \"\"}}",
+              "type": "string"
+            },
+            {
               "id": "103d2627-4cca-4014-a8ca-853b9fb7e531",
               "name": "page_summaries",
               "value": "={{$json.body.page_summaries || []}}",
               "type": "array"
+            },
+            {
+              "id": "6723564a-f9a1-45b2-84d9-9d68d3cfb055",
+              "name": "image_urls",
+              "value": "={{$json.body.image_urls || []}}",
+              "type": "string"
             },
             {
               "id": "bd08992b-f26a-47e1-965b-9ca7474cddb6",
@@ -288,12 +300,5 @@
   "settings": {},
   "tags": [],
   "active": true,
-  "projectId": "FINYdRRpzfX9wIho",
-  "projectName": "My project",
-  "homeProject": {
-    "id": "FINYdRRpzfX9wIho",
-    "name": "My project",
-    "type": "team"
-  },
   "isArchived": false
 }

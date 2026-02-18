@@ -1,0 +1,40 @@
+You are selecting images for ONE OOH poster concept.
+
+IMPORTANT: You may ONLY select from the candidate URLs provided below.
+
+INPUTS
+
+1) POSTER CONCEPT (single concept)
+{poster_concept}
+
+2) BRAND / DESIGN GUIDELINES (brand + OOH constraints)
+{guidelines}
+
+3) CANDIDATE IMAGE URLS (all available images)
+{image_urls}
+
+TASK
+Select the best 5–6 images that match this concept and the guidelines, optimised for OOH poster usability (clear focal point, negative space, high-contrast overlay potential, vertical-appropriate imagery).
+
+OUTPUT
+Return JSON ONLY with this schema:
+
+{
+  "selected_images": ["url1", "url2", "url3", "url4", "url5"],
+  "selection_notes": {
+    "concept_name": "string",
+    "vertical": "string",
+    "brand_tone_keywords": ["string"],
+    "top_reasons": ["string"],
+    "rejected_reasons_summary": ["string"],
+    "coverage": {
+      "includes_background_candidate": true/false,
+      "includes_focal_candidate": true/false,
+      "includes_supporting_detail_candidate": true/false
+    }
+  }
+}
+
+Hard checks before you answer:
+- Every selected_images entry MUST appear verbatim in {image_urls}.
+- Do NOT output anything except JSON.
