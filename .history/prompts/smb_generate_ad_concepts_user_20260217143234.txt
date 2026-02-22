@@ -3,8 +3,14 @@ You will receive the following data below:
 BUSINESS SUMMARY:
 [JSON object containing business profile, value proposition, target audience]
 
+HOMEPAGE CONTENT:
+[Markdown content from the homepage]
+
 TIER 1 & 2 PAGE SUMMARIES:
-[JSON array of page summaries from tier 1 and tier 2 sections]
+[JSON array of page summaries]
+
+AVAILABLE IMAGES:
+[List of image URLs you can reference in your concepts]
 
 TASK:
 1) Generate 6–8 distinct OOH concepts spanning Classic (print) and Digital (LED/screens) formats

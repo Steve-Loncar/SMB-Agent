@@ -1,0 +1,647 @@
+{
+  "id": "LwppGj55f48uEPcm",
+  "name": "smb_image_gen",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Webhook",
+      "webhookId": "c0a3cdfa-59d0-4ff7-a159-de6404b3a52d"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prep-img-sel-3",
+              "name": "poster_concept",
+              "value": "={{ $json.body.poster_concept }}",
+              "type": "object"
+            },
+            {
+              "id": "prep-img-sel-4",
+              "name": "guidelines",
+              "value": "={{ $json.body.guidelines }}",
+              "type": "object"
+            },
+            {
+              "id": "prep-img-sel-5",
+              "name": "image_urls",
+              "value": "={{ $json.body.image_urls }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        250,
+        0
+      ],
+      "name": "Prepare Webhook Inputs"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "prompts/smb_image_selection_system.txt"
+      },
+      "type": "n8n-nodes-base.readFile",
+      "typeVersion": 1,
+      "position": [
+        250,
+        100
+      ],
+      "name": "Read Image Selection System Prompt"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "prompts/smb_image_selection_user.txt"
+      },
+      "type": "n8n-nodes-base.readFile",
+      "typeVersion": 1,
+      "position": [
+        250,
+        200
+      ],
+      "name": "Read Image Selection User Prompt"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "merge-prompts-1",
+              "name": "system_prompt",
+              "value": "={{ $('Read Image Selection System Prompt').item.json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-prompts-2",
+              "name": "user_prompt_template",
+              "value": "={{ $('Read Image Selection User Prompt').item.json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "merge-prompts-3",
+              "name": "poster_concept",
+              "value": "={{ $('Prepare Webhook Inputs').item.json.poster_concept }}",
+              "type": "object"
+            },
+            {
+              "id": "merge-prompts-4",
+              "name": "guidelines",
+              "value": "={{ $('Prepare Webhook Inputs').item.json.guidelines }}",
+              "type": "object"
+            },
+            {
+              "id": "merge-prompts-5",
+              "name": "image_urls",
+              "value": "={{ $('Prepare Webhook Inputs').item.json.image_urls }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        500,
+        0
+      ],
+      "name": "Merge Image Selection Inputs"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "template-img-sel-1",
+              "name": "user_prompt",
+              "value": "={{ $json.user_prompt_template.split('{poster_concept}').join(JSON.stringify($json.poster_concept)).split('{guidelines}').join(JSON.stringify($json.guidelines)).split('{image_urls}').join(JSON.stringify($json.image_urls)) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        750,
+        0
+      ],
+      "name": "Template Image Selection Prompt"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "content": "={{ $json.system_prompt }}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.user_prompt }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        750,
+        0
+      ],
+      "name": "OpenAI: Select Best Images",
+      "credentials": {
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "extract-img-sel-1",
+              "name": "selection_response",
+              "value": "={{ JSON.parse($json.message.content) }}",
+              "type": "object"
+            },
+            {
+              "id": "extract-img-sel-2",
+              "name": "selected_images",
+              "value": "={{ $json.selection_response.selected_images }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1000,
+        0
+      ],
+      "name": "Extract Selected Images"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "prompts/smb_poster_gen_system.txt"
+      },
+      "type": "n8n-nodes-base.readFile",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        100
+      ],
+      "name": "Read Poster Gen System Prompt"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "prompts/smb_poster_gen_user.txt"
+      },
+      "type": "n8n-nodes-base.readFile",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        200
+      ],
+      "name": "Read Poster Gen User Prompt"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prep-poster-1",
+              "name": "system_prompt_poster",
+              "value": "={{ $('Read Poster Gen System Prompt').item.json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "prep-poster-2",
+              "name": "user_prompt_template_poster",
+              "value": "={{ $('Read Poster Gen User Prompt').item.json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "prep-poster-3",
+              "name": "poster_concept",
+              "value": "={{ $json.poster_concept }}",
+              "type": "object"
+            },
+            {
+              "id": "prep-poster-4",
+              "name": "selected_images",
+              "value": "={{ $json.selected_images }}",
+              "type": "array"
+            },
+            {
+              "id": "prep-poster-5",
+              "name": "guidelines",
+              "value": "={{ $json.guidelines }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1250,
+        0
+      ],
+      "name": "Prepare Poster Generation Inputs"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "template-poster-1",
+              "name": "user_prompt_poster",
+              "value": "={{ $json.user_prompt_template_poster.split('{poster_concept}').join(JSON.stringify($json.poster_concept)).split('{selected_images}').join(JSON.stringify($json.selected_images)).split('{guidelines}').join(JSON.stringify($json.guidelines)) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1500,
+        0
+      ],
+      "name": "Template Poster Generation Prompt"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "content": "={{ $json.system_prompt_poster }}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.user_prompt_poster }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        1750,
+        0
+      ],
+      "name": "OpenAI: Generate Poster Prompt",
+      "credentials": {
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "extract-poster-1",
+              "name": "poster_response",
+              "value": "={{ JSON.parse($json.message.content) }}",
+              "type": "object"
+            },
+            {
+              "id": "extract-poster-2",
+              "name": "poster_prompt",
+              "value": "={{ $json.poster_response.poster_prompt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        0
+      ],
+      "name": "Extract Poster Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "dall-e-3"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $json.poster_prompt }}"
+            },
+            {
+              "name": "n",
+              "value": 1
+            },
+            {
+              "name": "size",
+              "value": "1024x1024"
+            },
+            {
+              "name": "response_format",
+              "value": "b64_json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2250,
+        0
+      ],
+      "name": "DALL-E: Generate Poster Image",
+      "credentials": {
+        "openAiApi": {
+          "id": "qvYIchzeQAYSEfoi",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prep-response-1",
+              "name": "image_b64",
+              "value": "={{ $json.data[0].b64_json }}",
+              "type": "string"
+            },
+            {
+              "id": "prep-response-2",
+              "name": "mime",
+              "value": "image/png",
+              "type": "string"
+            },
+            {
+              "id": "prep-response-3",
+              "name": "selected_images",
+              "value": "={{ $json.selected_images }}",
+              "type": "array"
+            },
+            {
+              "id": "prep-response-4",
+              "name": "poster_metadata",
+              "value": "={{ $json.poster_response }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2500,
+        0
+      ],
+      "name": "Prepare Response Payload"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2750,
+        0
+      ],
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Webhook Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Webhook Inputs": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Selection Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Image Selection System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Selection Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Image Selection User Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge Image Selection Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Image Selection Inputs": {
+      "main": [
+        [
+          {
+            "node": "Template Image Selection Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Image Selection Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Select Best Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Select Best Images": {
+      "main": [
+        [
+          {
+            "node": "Extract Selected Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Selected Images": {
+      "main": [
+        [
+          {
+            "node": "Prepare Poster Generation Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Poster Gen System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Prepare Poster Generation Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Poster Gen User Prompt": {
+      "main": [
+        [
+          {
+            "node": "Prepare Poster Generation Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Poster Generation Inputs": {
+      "main": [
+        [
+          {
+            "node": "Template Poster Generation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Poster Generation Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Generate Poster Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Generate Poster Prompt": {
+      "main": [
+        [
+          {
+            "node": "Extract Poster Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Poster Prompt": {
+      "main": [
+        [
+          {
+            "node": "DALL-E: Generate Poster Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DALL-E: Generate Poster Image": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response Payload": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": [],
+  "active": true,
+  "isArchived": false
+}
