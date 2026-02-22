@@ -248,12 +248,14 @@ def call_n8n_generate_poster(
     headers = _tender_headers()
 
     # Stage 1 prompts: image selection (fully formatted — n8n uses as-is)
+    # NOTE: .replace() not .format() because templates contain literal JSON braces
     sel_system = _load_prompt("smb_image_selection_system.txt")
     sel_user_template = _load_prompt("smb_image_selection_user.txt")
-    sel_user = sel_user_template.format(
-        poster_concept=json.dumps(poster_concept, ensure_ascii=False, indent=2),
-        guidelines=json.dumps(guidelines, ensure_ascii=False, indent=2),
-        image_urls=json.dumps(image_urls, ensure_ascii=False, indent=2),
+    sel_user = (
+        sel_user_template
+        .replace("{poster_concept}", json.dumps(poster_concept, ensure_ascii=False, indent=2))
+        .replace("{guidelines}", json.dumps(guidelines, ensure_ascii=False, indent=2))
+        .replace("{image_urls}", json.dumps(image_urls, ensure_ascii=False, indent=2))
     )
 
     # Stage 2 prompts: poster prompt gen (template — n8n substitutes {selected_images} after stage 1)
