@@ -341,6 +341,11 @@ st.session_state.setdefault("tier2_page_summaries", [])
 st.session_state.setdefault("tier2_decision", {})
 st.session_state.setdefault("asset_candidates", [])
 
+# Image generation request plumbing (prevents missed clicks / double submits)
+st.session_state.setdefault("generate_image_pending", False)
+st.session_state.setdefault("generate_image_request", None)  # {"concept_index": int, "concept": dict, "guidelines": dict, "image_urls": list}
+st.session_state.setdefault("generate_image_error", None)
+
 st.session_state.setdefault("image_hunt_done", False)
 st.session_state.setdefault("image_hunt_debug", None)
 st.session_state.setdefault("visual_pack", None)
@@ -1224,11 +1229,12 @@ else:
                 # Triggers: (1) concept-specific image hunt across ALL candidates,
                 #           then (2) n8n two-stage poster generation (LLM selects images → LLM builds DALL-E prompt → DALL-E generates image).
                 if i not in img_cache:
-                    if st.button("Generate Poster", key=f"gen_poster_{i}", use_container_width=True, type="primary"):
+                    if st.button("Generate Poster", key=f"gen_poster_{i}", use_container_width=True, type="primary", disabled=st.session_state.get("generate_image_pending", False)):
                         bs = st.session_state.get("business_summary", {}) or {}
 
                         # Step 1: Run image hunt for this specific concept
                         all_candidates = st.session_state.get("asset_candidates", [])
+                        concept_vp_result = None
                         if all_candidates:
                             try:
                                 with st.spinner("Searching for the best images for this concept..."):
@@ -1249,11 +1255,13 @@ else:
                                     cvp_store = st.session_state.get("concept_visual_packs", {})
                                     cvp_store[i] = concept_vp
                                     st.session_state["concept_visual_packs"] = cvp_store
+                                    concept_vp_result = concept_vp
                             except Exception as hunt_err:
                                 st.warning(f"Image search encountered an issue: {hunt_err}")
 
                         # Step 2: Collect image URLs and build guidelines for n8n poster workflow
-                        concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
+                        if concept_vp_result is None:
+                            concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
                         vp_images = concept_vp_result.get("images") or []
                         vp_logos = concept_vp_result.get("logos") or []
                         vp_brand = concept_vp_result.get("brand") or {}
@@ -1285,27 +1293,54 @@ else:
                             },
                         }
 
-                        try:
-                            with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
-                                img_res = call_n8n_generate_poster(
-                                    poster_concept=concept,
-                                    guidelines=guidelines,
-                                    image_urls=poster_image_urls,
-                                    mode=st.session_state.get("n8n_mode", "TEST"),
-                                )
-                                if not img_res.get("ok"):
-                                    raise RuntimeError(
-                                        img_res.get("response_text_snippet", "n8n poster call failed")
-                                    )
-                                resp = img_res.get("response_json") or {}
-                                b64 = (resp or {}).get("image_b64", "")
-                                if not b64:
-                                    raise RuntimeError("Missing image_b64 in n8n response")
-                                img_bytes = base64.b64decode(b64)
-                            st.session_state["poster_images"][i] = img_bytes
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Poster generation failed: {e}")
+                        # Do NOT call n8n inline in the loop. Store intent; process once after loop.
+                        st.session_state["generate_image_pending"] = True
+                        st.session_state["generate_image_error"] = None
+                        st.session_state["generate_image_request"] = {
+                            "concept_index": i,
+                            "concept": concept,
+                            "guidelines": guidelines,
+                            "image_urls": poster_image_urls,
+                        }
+                        st.rerun()
+
+    # ---- Process any pending image generation request (single-shot) ----
+    req = st.session_state.get("generate_image_request")
+    if st.session_state.get("generate_image_pending") and isinstance(req, dict):
+        i = req.get("concept_index")
+        concept = req.get("concept", {})
+        guidelines = req.get("guidelines", {})
+        poster_image_urls = req.get("image_urls", [])
+        try:
+            with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
+                img_res = call_n8n_generate_poster(
+                    poster_concept=concept,
+                    guidelines=guidelines,
+                    image_urls=poster_image_urls,
+                    mode=st.session_state.get("n8n_mode", "TEST"),
+                )
+                if not img_res.get("ok"):
+                    raise RuntimeError(
+                        img_res.get("response_text_snippet", "n8n poster call failed")
+                    )
+                resp = img_res.get("response_json") or {}
+                b64 = (resp or {}).get("image_b64", "")
+                if not b64:
+                    raise RuntimeError("Missing image_b64 in n8n response")
+                img_bytes = base64.b64decode(b64)
+
+            # Success: store bytes and clear pending
+            st.session_state["poster_images"][i] = img_bytes
+            st.session_state["generate_image_pending"] = False
+            st.session_state["generate_image_request"] = None
+            st.session_state["generate_image_error"] = None
+            st.rerun()
+        except Exception as e:
+            # Failure: clear pending but keep error visible (do not require double clicks)
+            st.session_state["generate_image_pending"] = False
+            st.session_state["generate_image_error"] = str(e)
+            st.session_state["generate_image_request"] = None
+            st.warning(f"Poster generation failed: {e}")
 
 st.divider()
 
