@@ -22,3 +22,12 @@ SCHEMA:
     "Snippet 2 - another useful advertising detail"
   ]
 }
+
+SNIPPET STRUCTURE (MUST FOLLOW)
+- For each page_summary.ad_snippets, output a LIST of objects, not strings.
+- Each snippet object MUST include:
+  - quote: verbatim text from the page (no paraphrase)
+  - source_url: the page_url it came from
+  - use: one or more of ["headline_candidate","supporting_copy","proof","offer","differentiation","cta","location","delivery","classes"]
+  - confidence: one of ["high","medium","low"]
+- If you are not confident the text is verbatim, set confidence="low" and keep it out of headline_candidate.

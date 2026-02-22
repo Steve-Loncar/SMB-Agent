@@ -8,3 +8,9 @@ Target customer: {target_customer}
 Tone: {tone}
 
 Extract advertising snippets from the page content below. Use ONLY what is written on this page.
+
+HARD CHECKS BEFORE YOU OUTPUT:
+- ad_snippets MUST be objects with quote/source_url/use/confidence.
+- quote MUST be verbatim from the page content provided.
+- source_url MUST exactly match the page_url.
+- Do NOT include paraphrases as high confidence.
