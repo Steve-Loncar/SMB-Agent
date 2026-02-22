@@ -9,8 +9,17 @@ Tone: {tone}
 
 Extract advertising snippets from the page content below. Use ONLY what is written on this page.
 
-HARD CHECKS BEFORE YOU OUTPUT:
-- ad_snippets MUST be objects with quote/source_url/use/confidence.
-- quote MUST be verbatim from the page content provided.
-- source_url MUST exactly match the page_url.
-- Do NOT include paraphrases as high confidence.
+Return JSON for this page with ad_snippets that could be used in UK roadside OOH advertising.
+
+Rules:
+- Prefer specific, factual claims (numbers, durations, locations, exclusivity)
+- Avoid generic marketing fluff
+- Keep snippets short
+
+HARD CHECKS (do not skip):
+- You MUST return BOTH:
+  - ad_snippets: string[]
+  - ad_snippets_structured: object[]
+- Every ad_snippets_structured[i].source_url MUST equal page_url.
+- Every ad_snippets_structured[i].quote MUST also appear verbatim in ad_snippets.
+- Do NOT paraphrase into confidence="high". Use "low" if unsure.
