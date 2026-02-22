@@ -70,8 +70,7 @@ url = st.text_input(
     value=st.session_state.get("target_url", ""),
 )
 
-# Dev-only controls (for wiring + iteration). You'll hide later.
-st.caption("Dev controls (temporary)")
+st.caption("Tip: include `https://` for now.")
 
 # n8n mode selector (choose before running)
 current_mode = st.session_state.get("n8n_mode", "LIVE")
@@ -84,20 +83,25 @@ selected_mode = st.radio(
 )
 st.session_state["n8n_mode"] = selected_mode
 
-depth = st.selectbox(
-    "Scrape depth",
-    options=["homepage_only", "homepage_plus"],
-    index=1 if st.session_state.get("scrape_depth") == "homepage_plus" else 0,
-    help="homepage_plus is intended to fetch homepage plus a couple of likely About/Services pages.",
-)
-max_pages = st.number_input(
-    "Max pages",
-    min_value=1,
-    max_value=10,
-    value=int(st.session_state.get("scrape_max_pages", 3)),
-    step=1,
-    help="Used by scrape-pack workflow to limit extra internal pages.",
-)
+with st.expander("Advanced (dev) — scrape controls", expanded=False):
+    st.caption(
+        "These are temporary dev controls. In the current scrape-pack workflow, "
+        "page selection is mostly automatic, so these may have limited effect."
+    )
+    depth = st.selectbox(
+        "Scrape depth",
+        options=["homepage_only", "homepage_plus"],
+        index=1 if st.session_state.get("scrape_depth") == "homepage_plus" else 0,
+        help="homepage_plus is intended to fetch homepage plus a couple of likely About/Services pages.",
+    )
+    max_pages = st.number_input(
+        "Max pages",
+        min_value=1,
+        max_value=10,
+        value=int(st.session_state.get("scrape_max_pages", 3)),
+        step=1,
+        help="Used by scrape-pack workflow to limit extra internal pages.",
+    )
 
 col1, col2 = st.columns([1, 3])
 
@@ -106,7 +110,7 @@ with col1:
 
 with col2:
     st.write("")
-    st.write("Tip: include `https://` for now.")
+    st.write("")
 
 
 if apply_clicked:
@@ -115,8 +119,15 @@ if apply_clicked:
         st.error("Please enter a valid URL starting with http:// or https://")
     else:
         st.session_state["target_url"] = cleaned
-        st.session_state["scrape_depth"] = depth
-        st.session_state["scrape_max_pages"] = int(max_pages)
+        # Keep legacy scrape controls for compatibility with existing n8n payloads.
+        # If Advanced is collapsed, fall back to prior session values (or defaults).
+        st.session_state["scrape_depth"] = st.session_state.get("scrape_depth", "homepage_plus")
+        st.session_state["scrape_max_pages"] = int(st.session_state.get("scrape_max_pages", 3))
+        # If the user opened Advanced, overwrite with their selections.
+        if "depth" in locals():
+            st.session_state["scrape_depth"] = depth
+        if "max_pages" in locals():
+            st.session_state["scrape_max_pages"] = int(max_pages)
 
         # In the next step we'll kick off scrape + AI generation.
         st.session_state["scrape_status"] = "queued"
