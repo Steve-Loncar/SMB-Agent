@@ -23,11 +23,13 @@ SCHEMA:
   ]
 }
 
-SNIPPET STRUCTURE (MUST FOLLOW)
-- For each page_summary.ad_snippets, output a LIST of objects, not strings.
-- Each snippet object MUST include:
-  - quote: verbatim text from the page (no paraphrase)
-  - source_url: the page_url it came from
-  - use: one or more of ["headline_candidate","supporting_copy","proof","offer","differentiation","cta","location","delivery","classes"]
-  - confidence: one of ["high","medium","low"]
-- If you are not confident the text is verbatim, set confidence="low" and keep it out of headline_candidate.
+IMPORTANT: Backwards compatible evidence output
+- Keep "ad_snippets" as an array of STRINGS (this is required for downstream compatibility).
+- ALSO add "ad_snippets_structured" as an array of OBJECTS with this exact shape:
+  {
+    "quote": "string",              // verbatim text from the page (no paraphrase)
+    "source_url": "string",         // MUST equal page_url
+    "use": ["proof|offer|cta|differentiation|location|delivery|classes|headline_candidate|supporting_copy"],
+    "confidence": "high|medium|low" // "high" only if clearly verbatim
+  }
+- For each item in ad_snippets_structured.quote, also include the same text in ad_snippets (string list).

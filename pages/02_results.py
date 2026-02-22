@@ -769,7 +769,8 @@ if isinstance(_page_summaries, list) and _page_summaries:
             continue
         p_title = ps.get("page_title", "")
         p_url = ps.get("page_url", "")
-        snippets = ps.get("ad_snippets", [])
+        # Prefer structured snippets if available, fall back to legacy string array
+        snippets = ps.get("ad_snippets_structured") or ps.get("ad_snippets", [])
         if not isinstance(snippets, list):
             snippets = []
 
@@ -795,7 +796,8 @@ if isinstance(_t2_decision, dict) and _t2_decision:
                 continue
             p_title = ps.get("page_title", "")
             p_url = ps.get("page_url", "")
-            snippets = ps.get("ad_snippets", [])
+            # Prefer structured snippets if available, fall back to legacy string array
+            snippets = ps.get("ad_snippets_structured") or ps.get("ad_snippets", [])
             if not isinstance(snippets, list):
                 snippets = []
             snippet_html = "".join(_render_snippet_li(s) for s in snippets)
