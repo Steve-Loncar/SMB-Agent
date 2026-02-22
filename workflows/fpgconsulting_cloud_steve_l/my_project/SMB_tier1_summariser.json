@@ -248,6 +248,12 @@
               "name": "page_source",
               "value": "tier1",
               "type": "string"
+            },
+            {
+              "id": "c5f00247-cedb-4141-9d52-5be046d891e5",
+              "name": "ad_snippets_structured",
+              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
+              "type": "string"
             }
           ]
         },
@@ -805,6 +811,12 @@
               "name": "page_source",
               "value": "tier2",
               "type": "string"
+            },
+            {
+              "id": "b64a5370-3dae-4088-b7b8-49c26dd9994b",
+              "name": "ad_snippets_structured",
+              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
+              "type": "string"
             }
           ]
         },
@@ -1119,6 +1131,12 @@
               "id": "ae9e2521-0617-4234-aeca-c4e996109a2f",
               "name": "page_source",
               "value": "tier0",
+              "type": "string"
+            },
+            {
+              "id": "b6e69441-47bd-4612-a1dc-5be15738c57c",
+              "name": "ad_snippets_structured",
+              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
               "type": "string"
             }
           ]
@@ -1935,5 +1953,12 @@
   "settings": {},
   "tags": [],
   "active": true,
+  "projectId": "FINYdRRpzfX9wIho",
+  "projectName": "My project",
+  "homeProject": {
+    "id": "FINYdRRpzfX9wIho",
+    "name": "My project",
+    "type": "team"
+  },
   "isArchived": false
 }
