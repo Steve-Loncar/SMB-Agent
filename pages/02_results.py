@@ -14,6 +14,7 @@ from backend.n8n_client import (
     call_n8n_generate_ads,
     call_n8n_check_text_blobs,
     call_n8n_generate_image,
+    call_n8n_generate_poster,
     call_n8n_image_hunt,
     call_n8n_generate_ad_concepts,
     call_n8n_scrape_pack,
@@ -379,6 +380,7 @@ with st.sidebar:
         st.caption(f"Homepage summarise: `{resolve_n8n_webhook('homepage_summarise', mode)}`")
         st.caption(f"Generate concepts: `{resolve_n8n_webhook('generate_ads', mode)}`")
         st.caption(f"Image hunt: `{resolve_n8n_webhook('image_hunt', mode)}`")
+        st.caption(f"Generate poster: `{resolve_n8n_webhook('generate_poster', mode)}`")
         st.caption(f"Generate image: `{resolve_n8n_webhook('generate_image', mode)}`")
         st.caption(f"Check text blobs: `{resolve_n8n_webhook('check_text_blobs', mode)}`")
 
@@ -1220,7 +1222,7 @@ else:
 
                 # --- Generate Poster button ---
                 # Triggers: (1) concept-specific image hunt across ALL candidates,
-                #           then (2) poster image generation using those results.
+                #           then (2) n8n two-stage poster generation (LLM selects images → LLM builds DALL-E prompt → DALL-E generates image).
                 if i not in img_cache:
                     if st.button("Generate Poster", key=f"gen_poster_{i}", use_container_width=True, type="primary"):
                         bs = st.session_state.get("business_summary", {}) or {}
@@ -1250,78 +1252,52 @@ else:
                             except Exception as hunt_err:
                                 st.warning(f"Image search encountered an issue: {hunt_err}")
 
-                        # Step 2: Build enriched poster prompt using selected images
+                        # Step 2: Collect image URLs and build guidelines for n8n poster workflow
                         concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
-                        selected_imgs = (concept_vp_result.get("images") or [])[:3]
-                        selected_bg = next(
-                            (im.get("url", "") for im in selected_imgs
-                             if isinstance(im, dict) and im.get("recommended_use") == "background"),
-                            ""
-                        )
-                        selected_focal = next(
-                            (im.get("url", "") for im in selected_imgs
-                             if isinstance(im, dict) and im.get("recommended_use") == "product_focal"),
-                            ""
-                        )
-                        selected_logos = (concept_vp_result.get("logos") or [])[:1]
-                        logo_url = selected_logos[0].get("url", "") if selected_logos else ""
+                        vp_images = concept_vp_result.get("images") or []
+                        vp_logos = concept_vp_result.get("logos") or []
+                        vp_brand = concept_vp_result.get("brand") or {}
 
-                        shortlist = concept_vp_result.get("shortlist", {})
-                        bg_ids = shortlist.get("poster_backgrounds", [])
-                        focal_ids = shortlist.get("product_focals", [])
+                        # Gather all curated image URLs for n8n's image-selection LLM
+                        poster_image_urls = [
+                            im.get("url") for im in vp_images
+                            if isinstance(im, dict) and im.get("url")
+                        ]
+                        for lg in vp_logos:
+                            if isinstance(lg, dict) and lg.get("url"):
+                                poster_image_urls.append(lg["url"])
 
-                        image_guidance = ""
-                        if selected_bg:
-                            image_guidance += f"Primary background image URL: {selected_bg}\n"
-                        if selected_focal:
-                            image_guidance += f"Focal product image URL: {selected_focal}\n"
-                        if logo_url:
-                            image_guidance += f"Brand logo URL: {logo_url}\n"
-                        if bg_ids:
-                            image_guidance += f"Background image IDs from hunt: {', '.join(bg_ids)}\n"
-                        if focal_ids:
-                            image_guidance += f"Focal image IDs from hunt: {', '.join(focal_ids)}\n"
-
-                        cropping = ""
-                        for im in selected_imgs:
-                            if isinstance(im, dict) and im.get("cropping_guidance"):
-                                cropping += f"  - {im.get('type','img')}: {im['cropping_guidance']}\n"
-
-                        prompt = (
-                            "Create a UK roadside OOH poster mockup.\n"
-                            f"Business: {bs.get('name_guess','')}\n"
-                            f"Category: {bs.get('category','')}\n"
-                            f"Tone: {bs.get('tone','')}\n\n"
-                            f"Headline text on poster: {concept.get('headline','')}\n"
-                            f"Supporting copy: {concept.get('supporting_copy','')}\n"
-                            f"CTA: {concept.get('cta','')}\n"
-                            f"Visual concept: {concept.get('image_idea','')}\n"
-                            f"Layout guidance: {concept.get('layout_notes','')}\n"
-                            f"Style tags: {', '.join(tags) if isinstance(tags, list) else ''}\n\n"
-                            + (f"Selected images from website:\n{image_guidance}\n" if image_guidance else "")
-                            + (f"Cropping guidance:\n{cropping}\n" if cropping else "")
-                            + "Design requirements:\n"
-                            "- Poster is legible from 100+ feet (large headline, high contrast)\n"
-                            "- 60% negative space — do not clutter\n"
-                            "- Incorporate the selected website images as the primary visual\n"
-                            "- Clean composition with single dominant focal point\n"
-                            "- Do NOT include phone numbers unless explicitly provided\n"
-                            "- Place brand logo bottom-right at approx 8% of poster area\n"
-                        )
+                        # Build guidelines dict from business summary + brand cues
+                        guidelines = {
+                            "business_name": bs.get("name_guess", ""),
+                            "category": bs.get("category", ""),
+                            "tone": bs.get("tone", ""),
+                            "value_proposition": bs.get("value_proposition", ""),
+                            "brand_colors": vp_brand.get("colors", []),
+                            "brand_fonts": vp_brand.get("fonts", []),
+                            "brand_motifs": vp_brand.get("motifs", []),
+                            "logo_url": vp_logos[0].get("url", "") if vp_logos else "",
+                            "ooh_requirements": {
+                                "legible_at_100ft": True,
+                                "negative_space_60pct": True,
+                                "single_dominant_focal": True,
+                                "logo_placement": "bottom-right at ~8% of poster area",
+                            },
+                        }
 
                         try:
-                            with st.spinner("Generating your poster..."):
-                                img_res = call_n8n_generate_image(
-                                    prompt=prompt,
-                                    mode=st.session_state.n8n_mode,
+                            with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
+                                img_res = call_n8n_generate_poster(
+                                    poster_concept=concept,
+                                    guidelines=guidelines,
+                                    image_urls=poster_image_urls,
+                                    mode=st.session_state.get("n8n_mode", "TEST"),
                                 )
                                 if not img_res.get("ok"):
                                     raise RuntimeError(
-                                        img_res.get("response_text_snippet", "n8n image call failed")
+                                        img_res.get("response_text_snippet", "n8n poster call failed")
                                     )
                                 resp = img_res.get("response_json") or {}
-                                if isinstance(resp, list) and resp:
-                                    resp = resp[0]
                                 b64 = (resp or {}).get("image_b64", "")
                                 if not b64:
                                     raise RuntimeError("Missing image_b64 in n8n response")
