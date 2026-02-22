@@ -727,6 +727,38 @@ _highlight_css = """
 </style>
 """
 
+def _render_snippet_li(sn: object) -> str:
+    """
+    Render an <li> for either:
+      - legacy snippet string
+      - new snippet object: {quote, source_url, use, confidence}
+    """
+    # Legacy: string
+    if isinstance(sn, str):
+        s = sn.strip()
+        return f"<li>{s}</li>" if s else ""
+
+    # New: object
+    if isinstance(sn, dict):
+        quote = (sn.get("quote") or "").strip()
+        if not quote:
+            return ""
+        use = sn.get("use", [])
+        if not isinstance(use, list):
+            use = []
+        # Small badges for QA (safe to omit if you prefer)
+        use_badges = ""
+        if use:
+            use_badges = " " + " ".join(
+                f'<span style="display:inline-block;font-size:0.68rem;opacity:0.7;'
+                f'border:1px solid rgba(255,255,255,0.18);border-radius:999px;'
+                f'padding:0.08rem 0.45rem;margin-left:0.25rem;">{u}</span>'
+                for u in use[:3] if isinstance(u, str) and u.strip()
+            )
+        return f"<li>{quote}{use_badges}</li>"
+
+    return ""
+
 _page_summaries = st.session_state.get("tier1_page_summaries", [])
 if isinstance(_page_summaries, list) and _page_summaries:
     st.caption("Key advertising material we found on your pages:")
@@ -741,7 +773,7 @@ if isinstance(_page_summaries, list) and _page_summaries:
         if not isinstance(snippets, list):
             snippets = []
 
-        snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
+        snippet_html = "".join(_render_snippet_li(s) for s in snippets)
         card_html = (
             f'<div class="highlight-card">'
             f'<div class="page-title">{p_title}</div>'
@@ -766,7 +798,7 @@ if isinstance(_t2_decision, dict) and _t2_decision:
             snippets = ps.get("ad_snippets", [])
             if not isinstance(snippets, list):
                 snippets = []
-            snippet_html = "".join(f"<li>{s}</li>" for s in snippets if isinstance(s, str) and s.strip())
+            snippet_html = "".join(_render_snippet_li(s) for s in snippets)
             card_html = (
                 f'<div class="highlight-card">'
                 f'<div class="page-title">{p_title}</div>'
