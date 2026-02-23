@@ -235,19 +235,22 @@ def call_n8n_generate_poster(
     *,
     poster_concept: dict,
     guidelines: dict,
-    image_urls: list[str],
+    visual_images: list[dict],
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
     POST structured data to n8n /generate-image (poster workflow).
-    Two-stage flow in n8n: (1) LLM selects best images, (2) LLM generates DALL-E prompt, (3) DALL-E generates image.
+    Three-stage flow in n8n:
+      (1) LLM selects best images from enriched visual_images (with type/cropping/layout metadata)
+      (2) LLM (vision-enabled) generates poster prompt, seeing the hero image directly
+      (3) gpt-image-1 generates background plate using hero image as reference
     Returns { image_b64, mime, selected_images, poster_metadata }.
     """
     target_url = resolve_n8n_webhook("generate_poster", mode, override_url=webhook_url)
     headers = _tender_headers()
 
-    # Stage 1 prompts: image selection (fully formatted — n8n uses as-is)
+    # Stage 1 prompts: image selection — pass enriched image objects (not bare URLs)
     # NOTE: .replace() not .format() because templates contain literal JSON braces
     sel_system = _load_prompt("smb_image_selection_system.txt")
     sel_user_template = _load_prompt("smb_image_selection_user.txt")
@@ -255,16 +258,20 @@ def call_n8n_generate_poster(
         sel_user_template
         .replace("{poster_concept}", json.dumps(poster_concept, ensure_ascii=False, indent=2))
         .replace("{guidelines}", json.dumps(guidelines, ensure_ascii=False, indent=2))
-        .replace("{image_urls}", json.dumps(image_urls, ensure_ascii=False, indent=2))
+        .replace("{visual_images}", json.dumps(visual_images, ensure_ascii=False, indent=2))
     )
 
     # Stage 2 prompts: poster prompt gen (template — n8n substitutes {selected_images} after stage 1)
     poster_system = _load_prompt("smb_poster_gen_system.txt")
     poster_user_template = _load_prompt("smb_poster_gen_user.txt")
 
+    # Bare URLs for n8n fallback / debug
+    image_urls = [im.get("url", "") for im in visual_images if isinstance(im, dict) and im.get("url")]
+
     payload = {
         "poster_concept": poster_concept,
         "guidelines": guidelines,
+        "visual_images": visual_images,
         "image_urls": image_urls,
         "prompt_system_selection": sel_system,
         "prompt_user_selection": sel_user,
@@ -278,7 +285,7 @@ def call_n8n_generate_poster(
         "status_code": r.status_code,
         "_debug_target_url": target_url,
         "_debug_payload_keys": list(payload.keys()),
-        "_debug_image_url_count": len(image_urls),
+        "_debug_image_url_count": len(visual_images),
     }
     out["response_text_snippet"] = (r.text or "")[:1200]
     try:

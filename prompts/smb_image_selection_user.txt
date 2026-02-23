@@ -1,40 +1,56 @@
 You are selecting images for ONE OOH poster concept.
 
-IMPORTANT: You may ONLY select from the candidate URLs provided below.
+IMPORTANT: You may ONLY select from the candidate images provided below. Every selected URL must appear verbatim in the candidates list.
 
 INPUTS
 
 1) POSTER CONCEPT (single concept)
 {poster_concept}
 
-2) BRAND / DESIGN GUIDELINES (brand + OOH constraints)
+2) BRAND / DESIGN GUIDELINES (business context, brand, shortlist, OOH constraints)
 {guidelines}
 
-3) CANDIDATE IMAGE URLS (all available images)
-{image_urls}
+3) CANDIDATE IMAGES (enriched — includes type, recommended_use, cropping_guidance, layout_pairing, why_relevant, composite_score)
+{visual_images}
 
 TASK
-Select the best 5–6 images that match this concept and the guidelines, optimised for OOH poster usability (clear focal point, negative space, high-contrast overlay potential, vertical-appropriate imagery).
+Select the best 5–6 images for this concept. Use the enriched metadata to make better decisions:
+- Prefer images where recommended_use is "background" or "product_focal"
+- Prefer images that appear in guidelines.shortlist.poster_backgrounds or shortlist.product_focals
+- Use cropping_guidance and layout_pairing to assess suitability for the concept's layout_notes
+- Use composite_score to break ties (higher = better)
+- Use type to ensure diversity (aim for background + focal + optional texture/detail)
+- Reject images with risk_notes flagging text-heavy, watermarked, or very low-res issues
 
 OUTPUT
 Return JSON ONLY with this schema:
 
 {
-  "selected_images": ["url1", "url2", "url3", "url4", "url5"],
+  "selected_images": [
+    {
+      "url": "exact URL from candidate list",
+      "type": "hero_lifestyle|product_closeup|ingredient_texture|people_portrait|environment_location|process_craft|iconography|other",
+      "intended_role": "background|hero_focal|supporting_detail|logo",
+      "why_selected": "1-sentence reason referencing concept message or layout need",
+      "cropping_note": "copy from candidate or summarise for this concept's format"
+    }
+  ],
   "selection_notes": {
     "concept_name": "string",
     "vertical": "string",
     "brand_tone_keywords": ["string"],
+    "hero_image_url": "URL of the single strongest background/focal image for this concept",
     "top_reasons": ["string"],
     "rejected_reasons_summary": ["string"],
     "coverage": {
-      "includes_background_candidate": true/false,
-      "includes_focal_candidate": true/false,
-      "includes_supporting_detail_candidate": true/false
+      "includes_background_candidate": true,
+      "includes_focal_candidate": true,
+      "includes_supporting_detail_candidate": true
     }
   }
 }
 
 Hard checks before you answer:
-- Every selected_images entry MUST appear verbatim in {image_urls}.
+- Every selected_images[].url MUST appear verbatim in {visual_images}.
+- hero_image_url MUST be the single best image for the concept — it will be used as the vision reference for the poster.
 - Do NOT output anything except JSON.
