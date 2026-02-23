@@ -1136,6 +1136,8 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
             st.session_state["image_carousel_index"] = 0
         if "image_carousel_last_advance" not in st.session_state:
             st.session_state["image_carousel_last_advance"] = 0.0
+        if "carousel_needs_rerun" not in st.session_state:
+            st.session_state["carousel_needs_rerun"] = False
 
         # Auto-advance every 2 seconds
         _now = _time.time()
@@ -1144,7 +1146,7 @@ if isinstance(_raw_candidates, list) and _raw_candidates:
                 st.session_state["image_carousel_index"] + 1
             ) % len(_preview_urls)
             st.session_state["image_carousel_last_advance"] = _now
-            st.rerun()
+            st.session_state["carousel_needs_rerun"] = True
 
         carousel_cols = st.columns(3)
         _start_idx = st.session_state["image_carousel_index"] % len(_preview_urls)
@@ -1396,6 +1398,11 @@ else:
             st.session_state["generate_image_error"] = str(e)
             st.session_state["generate_image_request"] = None
             st.warning(f"Poster generation failed: {e}")
+
+# Defer carousel rerun until after button handling to avoid missed clicks
+if st.session_state.get("carousel_needs_rerun") and not st.session_state.get("generate_image_pending"):
+    st.session_state["carousel_needs_rerun"] = False
+    st.rerun()
 
 st.divider()
 
