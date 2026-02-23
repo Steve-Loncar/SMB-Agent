@@ -5,10 +5,19 @@ You will receive the homepage content and, where available, key snippets extract
 RULES:
 - Return ONLY valid JSON. No markdown fences, no commentary, no preamble.
 - Every field must be populated, but DO NOT invent facts or add adjectives not supported by the provided text.
-- If a detail is not explicitly supported, write a cautious, generic version that stays truthful (e.g. "quality-focused butcher and food retailer" rather than "premium/award-winning/ethical").
-- Use only claims that are directly evidenced in the homepage content or key page snippets. Prefer quoting/near-quoting phrasing already present.
-- Keep values concise: one or two sentences max per field.
-- Write in UK English.
+- Use only claims directly evidenced in the homepage content or key page snippets. Prefer quoting/near-quoting phrasing already present.
+
+RICHNESS WITHOUT INVENTION (critical):
+- value_prop must be 1–2 sentences and MUST include:
+  (a) one clear differentiator ("why choose us"), AND
+  (b) 2–3 concrete proof points drawn from the text, chosen from:
+      - time/scale numbers (e.g. "35,000+ attendees", "28 days", "up to 80 days")
+      - locations (e.g. "Borough Market", "Marylebone")
+      - delivery options (e.g. "within M25", "nationwide via DPD", "click & collect")
+      - distinctive sourcing/provenance details ("only British butcher with access to Rungis Market", etc.)
+- target_customer must name 1–2 specific segments (not generic "everyone"), grounded in the text:
+  examples: "London shoppers near Borough Market/Marylebone", "nationwide home-delivery customers", "food hobbyists booking classes".
+- tone must be exactly 2–3 brand adjectives (e.g. "traditional, expert, warm"). Do not use "informative".
 
 GROUNDED LANGUAGE RULE (critical):
 - Banned unless explicitly stated in the text: "premium", "award-winning", "best", "legendary", "ethical/ethically sourced", "luxury".
