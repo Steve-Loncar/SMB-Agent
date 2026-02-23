@@ -329,7 +329,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const parsed = JSON.parse($json.no_fences);\nconst selectedImages = $('Build Stage 2 Prompt').item.json.selected_images || [];\nconst selectionNotes = $('Build Stage 2 Prompt').item.json.selection_notes || {};\n\nreturn [{\n  json: {\n    poster_prompt: parsed.poster_prompt || '',\n    poster_metadata: parsed,\n    selected_images: selectedImages,\n    selection_notes: selectionNotes,\n  }\n}];"
+        "jsCode": "const parsed = JSON.parse($json.no_fences);\nconst selectedImages = $('Build Stage 2 Prompt').item.json.selected_images || [];\nconst selectionNotes = $('Build Stage 2 Prompt').item.json.selection_notes || {};\nconst overlay_text = parsed.render_notes?.text_overlay || {};\nconst text_safe_area = parsed.render_notes?.text_safe_area || \"Leave generous clean space for text overlay.\";\n\nconst render_notes = {\n  overlay_text,\n  text_safe_area,\n  negative_instructions: parsed.render_notes?.negative_instructions\n};\n\nlet poster_prompt = parsed.poster_prompt || '';\nposter_prompt += `\\n\\nCRITICAL: Do NOT include any text, letters, numbers, signage, labels, badges, seals, or typography. Background plate only. ${text_safe_area}`;\n\nreturn [{\n  json: {\n    poster_prompt,\n    poster_metadata: parsed,\n    selected_images: selectedImages,\n    selection_notes: selectionNotes,\n    render_notes,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
