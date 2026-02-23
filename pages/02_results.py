@@ -1202,6 +1202,20 @@ else:
                 if isinstance(tags, list) and tags:
                     st.caption("Style tags: " + ", ".join([str(t) for t in tags]))
 
+                # Evidence (optional; used to keep concepts audit-able)
+                ev = concept.get("evidence") or []
+                if isinstance(ev, list) and ev:
+                    with st.expander("Evidence", expanded=False):
+                        for item in ev[:3]:
+                            if not isinstance(item, dict):
+                                continue
+                            q = item.get("quote", "")
+                            src = item.get("source_url", "")
+                            if q:
+                                st.markdown(f'- "{q}"')
+                            if src:
+                                st.caption(src)
+
             with c_right:
                 cvp = st.session_state.get("concept_visual_packs", {})
                 img_cache = st.session_state.get("poster_images", {}) or {}
@@ -1314,7 +1328,7 @@ else:
                             "business_name": bs.get("name_guess", ""),
                             "category": bs.get("category", ""),
                             "tone": bs.get("tone", ""),
-                            "value_proposition": bs.get("value_proposition", ""),
+                            "value_proposition": bs.get("value_prop") or bs.get("value_proposition", ""),
                             "brand_colors": vp_brand.get("colors", []),
                             "brand_fonts": vp_brand.get("fonts", []),
                             "brand_motifs": vp_brand.get("motifs", []),
