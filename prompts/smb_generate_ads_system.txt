@@ -20,9 +20,21 @@ Return JSON in this exact shape:
       "cta": "Short action phrase (e.g. 'Visit us today', 'Book online')",
       "image_idea": "Description of the ideal image for this poster — subject, style, mood",
       "layout_notes": "Composition guidance: where headline sits, how much negative space, focal point position",
-      "style_tags": ["2-4 style descriptors e.g.", "warm", "photography", "bold", "minimal"]
+      "style_tags": ["2-4 style descriptors e.g.", "warm", "photography", "bold", "minimal"],
+      "evidence": [
+        {
+          "quote": "Verbatim quote from the provided snippets (do not paraphrase)",
+          "source_url": "URL of the page the quote came from"
+        }
+      ]
     }
   ]
 }
+
+EVIDENCE RULES (do not break these):
+- Every poster_concepts[i] MUST include an "evidence" array with 1–3 items.
+- Every evidence[].quote MUST be copied exactly from the provided page snippets (verbatim).
+- Every evidence[].source_url MUST match the snippet's source_url.
+- If you cannot find a relevant quote, DO NOT make the claim. Choose a different angle or return fewer concepts.
 
 Produce 6–10 distinct poster concepts spanning at least 3 different message angles.
