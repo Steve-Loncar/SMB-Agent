@@ -13,6 +13,10 @@ Tier page snippets (Tier 1 + Tier 2 if available):
 Available image URLs (may be empty):
 {image_urls}
 
+Important grounding:
+- You may use the Business summary to choose angles and prioritise messages.
+- But you MUST source claims only from the provided page snippets; include those quotes in evidence.
+
 Task:
 1) Generate 6–10 distinct OOH poster concepts, spanning at least 3 different message angles.
 2) Each concept must have a punchy headline (≤5 words), grounded supporting copy (≤10 words), a clear CTA, a specific image idea, and layout notes.
