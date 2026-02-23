@@ -14,6 +14,9 @@ OOH is a fast-scan medium. The design prompt must enforce:
 - bold, legible typography; high contrast
 - ample negative space
 - composition that reads instantly at distance
+- Assume viewing distance: prioritise BIG headline + ultra-short supporting copy.
+- Avoid clutter, avoid busy backgrounds behind type, avoid multi-subject collages.
+- Avoid "AI mush": smeared hands, unreadable packaging, overly complex scenes.
 The prompt must specify the poster format (6-sheet portrait 2:3, 48-sheet landscape 2:1, and whether it's Classic/Static or Digital) as instructed by the concept/guidelines.
 
 3) "NOT AI-GENERATED" QUALITY GUARDRAILS
@@ -43,7 +46,7 @@ Return ONLY valid JSON with this schema and nothing else:
     "orientation": "portrait|landscape",
     "aspect_ratio": "2:3|2:1",
     "type": "classic|digital",
-    "safe_area_notes": "string"
+    "safe_area_notes": "string (where NOT to place key detail; where type sits cleanly)"
   },
   "asset_plan": {
     "hero_image_url": "string",
@@ -73,3 +76,9 @@ Prompt-writing style (for poster_prompt):
 - Specify: background/scene, hero image usage, typography style, placement, colour palette, and exclusions.
 - Include a short "TEXT (render EXACTLY)" block inside the prompt with quoted strings.
 - Keep it concrete and production-minded.
+
+QUALITY GATE (must pass):
+- Headline is <= 5 words and would be readable at 20m
+- Background behind headline is clean (negative space)
+- One clear focal point; no collage
+
