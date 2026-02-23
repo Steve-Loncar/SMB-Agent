@@ -39,27 +39,29 @@ SCHEMA (EXACT):
 {
   "poster_concepts": [
     {
-      "concept_name": "Short memorable title",
-      "headline": "5 words max",
-      "supporting_copy": "10 words max",
-      "cta": "5 words max",
-      "image_idea": "Subject, style, mood",
-      "layout_notes": "Composition guidance for OOH",
-      "style_tags": ["2-4 tags"],
+      "concept_name": "Short memorable title (e.g. 'Craft Lives Here')",
+      "size": "6 Sheet or 48 Sheet",
+      "recommended_format": "Classic or Digital (state which is best for THIS concept and why)",
+      "headline": "5 words max. Punchy, high contrast, legible at distance",
+      "supporting_copy": "10 words max. Must be grounded in evidence",
+      "cta": "2–4 words max (e.g. 'Order online', 'Book a class')",
+      "image_idea": "Ideal hero image: subject, style, mood (no text-in-image)",
+      "layout_notes": "Simple composition: headline position, negative space, focal point",
+      "format_reasoning": "1 sentence: why Classic or Digital is best for THIS concept",
+      "style_tags": ["2-4 style descriptors"],
       "evidence": [
         {
-          "quote": "verbatim quote from snippets/page_summaries",
-          "source_url": "must match the page_url from page_summaries"
+          "quote": "Verbatim supporting quote from provided snippets (no paraphrase)",
+          "source_url": "Must be the page_url for that quote"
         }
       ]
     }
   ]
 }
 
-Produce 6–10 distinct poster concepts spanning at least 3 message angles.
+CRITICAL EVIDENCE RULES:
+- Every concept MUST include at least 1 evidence item.
+- supporting_copy MUST be directly supported by evidence.quote(s).
+- Do not invent claims, awards, locations, prices, reviews, or guarantees.
 
-HARD RULES (DO NOT BREAK):
-- Every poster_concepts[i] MUST include evidence[] with 1–2 items.
-- supporting_copy MUST be directly supported by evidence.quote (no new claims).
-- If you can't support a claim with a quote, remove/replace it.
-- Do not use "ethical", "sustainable", "premium", "best", "legendary", etc unless explicitly quoted.
+Produce 6–10 distinct poster concepts spanning at least 3 different message angles.
