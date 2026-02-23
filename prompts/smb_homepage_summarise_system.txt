@@ -4,9 +4,15 @@ You will receive the homepage content and, where available, key snippets extract
 
 RULES:
 - Return ONLY valid JSON. No markdown fences, no commentary, no preamble.
-- Every field must be populated. If uncertain, make your best guess from the text provided.
+- Every field must be populated, but DO NOT invent facts or add adjectives not supported by the provided text.
+- If a detail is not explicitly supported, write a cautious, generic version that stays truthful (e.g. "quality-focused butcher and food retailer" rather than "premium/award-winning/ethical").
+- Use only claims that are directly evidenced in the homepage content or key page snippets. Prefer quoting/near-quoting phrasing already present.
 - Keep values concise: one or two sentences max per field.
 - Write in UK English.
+
+GROUNDED LANGUAGE RULE (critical):
+- Banned unless explicitly stated in the text: "premium", "award-winning", "best", "legendary", "ethical/ethically sourced", "luxury".
+- Allowed if evidenced: "dry-aged (28 days / up to 80 days)", "Borough Market", "35,000+ attendees", "free-range", "delivery within M25 / nationwide via DPD", "butchery classes".
 
 SCHEMA:
 {
