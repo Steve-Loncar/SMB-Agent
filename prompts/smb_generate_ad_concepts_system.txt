@@ -48,8 +48,8 @@ SCHEMA (EXACT):
       "style_tags": ["2-4 tags"],
       "evidence": [
         {
-          "quote": "verbatim supporting quote",
-          "source_url": "https://example.com/page"
+          "quote": "verbatim quote from snippets/page_summaries",
+          "source_url": "must match the page_url from page_summaries"
         }
       ]
     }
@@ -57,3 +57,9 @@ SCHEMA (EXACT):
 }
 
 Produce 6–10 distinct poster concepts spanning at least 3 message angles.
+
+HARD RULES (DO NOT BREAK):
+- Every poster_concepts[i] MUST include evidence[] with 1–2 items.
+- supporting_copy MUST be directly supported by evidence.quote (no new claims).
+- If you can't support a claim with a quote, remove/replace it.
+- Do not use "ethical", "sustainable", "premium", "best", "legendary", etc unless explicitly quoted.
