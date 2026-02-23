@@ -14,10 +14,10 @@ INPUTS
 TASK
 Create:
 - a poster_name
-- a single detailed poster_prompt (for DALL·E) that produces a professional UK OOH poster layout
+- a single detailed poster_prompt (for DALL·E) that produces a professional UK OOH BACKGROUND PLATE (no text), with clear negative space reserved for later typography overlay
 - a clear layout_spec (format/orientation/aspect/type)
 - an asset_plan including which selected image is the hero image
-- render_notes including exact text to render verbatim and negative instructions to avoid AI artefacts
+- render_notes including text_overlay (for later application) and negative instructions to avoid AI artefacts
 
 OUTPUT
 Return JSON ONLY with this schema:
@@ -39,11 +39,12 @@ Return JSON ONLY with this schema:
     "use_of_brand_motifs": "string"
   },
   "render_notes": {
-    "text_to_render_verbatim": {
+    "text_overlay": {
       "headline": "string",
       "supporting_copy": "string|null",
       "cta": "string|null"
     },
+    "text_safe_area": "Describe where text will be placed (e.g., 'top third clear', 'right side clear')",
     "negative_instructions": ["string"]
   }
 }
@@ -52,3 +53,5 @@ Hard checks before you answer:
 - hero_image_url MUST be one of {selected_images}.
 - supporting_image_urls (if any) MUST be a subset of {selected_images}.
 - Output must be valid JSON only. No markdown fences. No extra keys.
+
+IMPORTANT: Do NOT render any text in the image. Leave clean space for overlay.
