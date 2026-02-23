@@ -55,16 +55,25 @@ Return ONLY valid JSON with this schema and nothing else:
     "use_of_brand_motifs": "string"
   },
   "render_notes": {
-    "text_to_render_verbatim": {
+    "text_overlay": {
       "headline": "string",
       "supporting_copy": "string|null",
       "cta": "string|null"
     },
+    "text_safe_area": "string",
     "negative_instructions": ["string"]
   }
 }
 
 - poster_prompt must be a single detailed natural-language prompt intended for DALL·E.
+
+CRITICAL (quality):
+- DO NOT render any text, letters, numbers, signage, labels, badges, seals, "poster designs", or pseudo-typography.
+- The image must be a BACKGROUND PLATE ONLY, with intentional empty space for later text overlay.
+- Prefer photorealistic photography unless style tags explicitly call for illustration.
+- Avoid "poster within a poster", frames/borders, vintage label layouts, and fake informational blocks.
+- Compose for OOH: one focal subject, high contrast, lots of negative space.
+
 - poster_name should be short, client-friendly, and derived from the concept name/headline.
 - logo_url: if the concept/guidelines provide a logo URL, include it; otherwise null.
 - Do not include any extra keys.
