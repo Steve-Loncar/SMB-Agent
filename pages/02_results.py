@@ -1364,6 +1364,9 @@ else:
                             "value_proposition": bs.get("value_prop") or bs.get("value_proposition", ""),
                             "target_audience": bs.get("target_audience", ""),
                             "differentiators": bs.get("differentiators", []),
+                            "key_offers": bs.get("key_offers", []),
+                            "key_proof_points": bs.get("key_proof_points", []),
+                            "key_ctas": bs.get("key_ctas", []),
                             "brand_colors": vp_brand.get("colors", []),
                             "brand_fonts": vp_brand.get("fonts", []),
                             "brand_motifs": vp_brand.get("motifs", []),
@@ -1384,6 +1387,7 @@ else:
                             "concept_index": i,
                             "concept": concept,
                             "guidelines": guidelines,
+                            "business_summary": bs,
                             "visual_images": poster_visual_images,
                         }
                         st.rerun()
@@ -1394,12 +1398,14 @@ else:
         i = req.get("concept_index")
         concept = req.get("concept", {})
         guidelines = req.get("guidelines", {})
+        business_summary_req = req.get("business_summary", {})
         poster_visual_images = req.get("visual_images", [])
         try:
             with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
                 img_res = call_n8n_generate_poster(
                     poster_concept=concept,
                     guidelines=guidelines,
+                    business_summary=business_summary_req,
                     visual_images=poster_visual_images,
                     mode=st.session_state.get("n8n_mode", "TEST"),
                 )

@@ -32,6 +32,16 @@ CONTENT QUALITY RULES:
   - classes/experience
   - local shops/locations
 
+SPECIFICITY MANDATE (HARD CHECK):
+Every concept MUST be specific to THIS business — not a generic version of its category.
+- Test: could this exact headline appear on ANY competitor in the same category? If YES → rewrite it.
+- "Your Local Butcher" → REJECTED (any butcher could say this)
+- "28-Day Dry-Aged Beef" → ACCEPTED (specific to what this business actually does)
+- "Expert Fitness Coaching" → REJECTED (any gym could say this)
+- "Women-Only HIIT. 6am Starts." → ACCEPTED (specific differentiators)
+- Use business_summary.key_offers and key_proof_points to find the specific angles
+- Use the evidence quotes for the specific numbers, durations, product names, and locations that make THIS business different
+
 OUTPUT:
 Return JSON only. No markdown fences. No commentary.
 

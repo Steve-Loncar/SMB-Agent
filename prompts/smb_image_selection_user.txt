@@ -21,6 +21,10 @@ Select the best 5–6 images for this concept. Use the enriched metadata to make
 - Use composite_score to break ties (higher = better)
 - Use type to ensure diversity (aim for background + focal + optional texture/detail)
 - Reject images with risk_notes flagging text-heavy, watermarked, or very low-res issues
+- Prioritise images that show the SPECIFIC products/services in guidelines.key_offers — not generic category shots
+- Use guidelines.tone to filter: "premium" favours dark moody shots; "warm craft" favours golden natural light; "energetic" favours high-contrast action
+
+For selection_notes.brand_tone_keywords: use guidelines.tone and guidelines.category as the primary source — do not infer from images alone. Combine with visual observations if they confirm the brand direction.
 
 OUTPUT
 Return JSON ONLY with this schema:

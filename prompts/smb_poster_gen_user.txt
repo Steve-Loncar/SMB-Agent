@@ -10,8 +10,11 @@ INPUTS
  If this is just an array, treat the first image with intended_role "background" or "hero_focal" as the hero. Fall back to the first image in the list.)
 {selected_images}
 
-3) BRAND / DESIGN GUIDELINES (business context, vertical, target_audience, differentiators, brand colours, fonts, motifs, shortlist, OOH requirements)
+3) BRAND / DESIGN GUIDELINES (brand colours, fonts, motifs, shortlist, OOH requirements)
 {guidelines}
+
+4) BUSINESS CONTEXT — use this to make the scene SPECIFIC to this business, not a generic category shot
+{business_summary}
 
 TASK
 Design a complete OOH poster with both photographic imagery and headline text.
@@ -23,15 +26,17 @@ If no image is attached, use the hero image metadata to understand the subject.
 Work through these steps:
 1. Identify the hero image URL (from selection_notes.hero_image_url OR first image with intended_role "background"/"hero_focal")
 2. If image attached: describe the real photo (subject, lighting, colour, texture, mood). If not: use metadata (type, why_selected, cropping_note)
-3. Read the concept: headline, supporting_copy, cta, image_idea, layout_notes, style_tags
-4. Determine text colour that contrasts with the background area where text will sit (white on dark, dark on light; use brand_colors if available)
-5. Write the poster_prompt — a single paragraph that describes:
+3. Read the concept: headline, supporting_copy, cta, image_idea, layout_notes, style_tags, evidence
+4. Read business_summary: use key_offers to identify the specific product/service in the scene; use key_proof_points as visual detail cues; use tone to set photographic mood
+5. Determine text colour that contrasts with the background area where text will sit (white on dark, dark on light; use guidelines.brand_colors if available)
+6. Write the poster_prompt — a single paragraph that describes:
    a) "Professional UK OOH poster." (opening)
-   b) The photographic background scene (subject, lighting, composition, colour palette)
-   c) Where the subject sits and where negative space exists
-   d) The exact headline text in quotes, with size/weight/placement (e.g. "bold white sans-serif headline reading \"Become A Butchery Pro\" across the top third")
-   e) Supporting copy and CTA placement if provided
-   f) "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts." (closing)
+   b) The specific photographic scene: name the actual subject (e.g. "close-up of 28-day dry-aged ribeye steak" not "meat") using key_offers and key_proof_points from business_summary for specificity
+   c) Lighting, texture, composition, and colour palette — informed by the hero image AND brand tone
+   d) Where the subject sits and where negative space exists for text overlay
+   e) The exact headline text in quotes, with size/weight/colour/placement (e.g. "bold white sans-serif headline reading \"Become A Butchery Pro\" across the top third")
+   f) Supporting copy and CTA placement if provided
+   g) "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts." (closing)
 
 OUTPUT
 Return JSON ONLY (no markdown fences, no commentary):
@@ -66,9 +71,11 @@ Return JSON ONLY (no markdown fences, no commentary):
 
 Hard checks before you answer:
 - poster_prompt MUST describe the subject consistent with the hero image — not a substitute scene
+- poster_prompt MUST name the SPECIFIC subject (using business context) — "dry-aged ribeye", not "meat"; "espresso extraction", not "coffee"
 - poster_prompt MUST include the EXACT headline text in quotes with rendering instructions
 - poster_prompt MUST open with "Professional UK OOH poster."
 - poster_prompt MUST end with "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts."
 - hero_image_url MUST be a URL from the selected images list — do not invent or change it
 - text_content.headline MUST match the concept headline verbatim
 - One focal subject only — no collages, no unrelated scenes
+- Scene description MUST NOT be generic (no "a professional meat display" when business sells dry-aged heritage cuts)

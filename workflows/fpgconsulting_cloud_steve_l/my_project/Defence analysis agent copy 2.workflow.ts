@@ -1,0 +1,1233 @@
+import { workflow, node, links } from '@n8n-as-code/transformer';
+
+// <workflow-map>
+// Workflow : Defence analysis agent copy 2
+// Nodes   : 21  |  Connections: 21
+//
+// NODE INDEX
+// ──────────────────────────────────────────────────────────────────
+// Property name                    Node type (short)         Flags
+// Webhook                            webhook                    
+// RespondToWebhook                   respondToWebhook           
+// RespondToWebhook1                  respondToWebhook           
+// RespondToWebhook2                  respondToWebhook           
+// CheckInput                         if                         
+// NormaliseInputs                    set                        
+// SanitizePerplexityOutput           set                        
+// PerplexityHttpRequest1             httpRequest                [creds]
+// PrepareResultForStorage            set                        
+// AppendRowInEchoStatusSheet         googleSheets               [creds]
+// SecretCheck                        if                         
+// QcPromptPrep                       set                        
+// PerplexityQcCritic                 httpRequest                [creds]
+// TidyQcOutputs                      set                        
+// Merge                              merge                      
+// _1RawTextIn                        set                        
+// _2SplitThink                       set                        
+// _3StripFences                      set                        
+// _4SliceJson                        set                        
+// _5ParseJson                        set                        
+// EditFields                         set                        
+//
+// ROUTING MAP
+// ──────────────────────────────────────────────────────────────────
+// Webhook
+//    → SecretCheck
+//      → CheckInput
+//        → NormaliseInputs
+//          → PerplexityHttpRequest1
+//            → QcPromptPrep
+//              → PerplexityQcCritic
+//                → TidyQcOutputs
+//                  → Merge.in(1)
+//                    → EditFields
+//                      → PrepareResultForStorage
+//                        → AppendRowInEchoStatusSheet
+//                        → RespondToWebhook
+//            → _1RawTextIn
+//              → _2SplitThink
+//                → _3StripFences
+//                  → _4SliceJson
+//                    → _5ParseJson
+//                      → SanitizePerplexityOutput
+//                        → Merge (↩ loop)
+//       .out(1) → RespondToWebhook2
+//     .out(1) → RespondToWebhook1
+// </workflow-map>
+
+// =====================================================================
+// METADATA DU WORKFLOW
+// =====================================================================
+
+@workflow({
+    id: "razr1XkzRxeFItvD",
+    name: "Defence analysis agent copy 2",
+    active: false,
+    settings: {executionOrder:"v1"}
+})
+export class DefenceAnalysisAgentCopy2Workflow {
+
+    // =====================================================================
+// CONFIGURATION DES NOEUDS
+// =====================================================================
+
+    @node({
+        name: "Webhook",
+        type: "n8n-nodes-base.webhook",
+        version: 2.1,
+        position: [0, -48]
+    })
+    Webhook = {
+        "httpMethod": "POST",
+        "path": "ac15de7b-a3ee-4315-b634-610ece3d9f8d",
+        "responseMode": "responseNode",
+        "options": {}
+    };
+
+    @node({
+        name: "Respond to Webhook",
+        type: "n8n-nodes-base.respondToWebhook",
+        version: 1.4,
+        position: [3120, -144]
+    })
+    RespondToWebhook = {
+        "respondWith": "allIncomingItems",
+        "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+                "entries": [
+                    {
+                        "name": "Content-Type",
+                        "value": "application/json"
+                    }
+                ]
+            }
+        }
+    };
+
+    @node({
+        name: "Respond to Webhook1",
+        type: "n8n-nodes-base.respondToWebhook",
+        version: 1.4,
+        position: [448, 48]
+    })
+    RespondToWebhook1 = {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\":\"Unauthorized - secret fail\"\n}",
+        "options": {}
+    };
+
+    @node({
+        name: "Respond to Webhook2",
+        type: "n8n-nodes-base.respondToWebhook",
+        version: 1.4,
+        position: [672, -48]
+    })
+    RespondToWebhook2 = {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"message\": \"taxonomy_node missing in payload\" }\n",
+        "options": {}
+    };
+
+    @node({
+        name: "Check Input",
+        type: "n8n-nodes-base.if",
+        version: 2.2,
+        position: [448, -144]
+    })
+    CheckInput = {
+        "conditions": {
+            "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict",
+                "version": 2
+            },
+            "conditions": [
+                {
+                    "id": "fa33d200-1df7-4a04-8a19-bd5027fdffc4",
+                    "leftValue": "={{ $json.body.taxonomy_node }}",
+                    "rightValue": "",
+                    "operator": {
+                        "type": "string",
+                        "operation": "notEmpty",
+                        "singleValue": true
+                    }
+                }
+            ],
+            "combinator": "and"
+        },
+        "options": {}
+    };
+
+    @node({
+        name: "Normalise Inputs",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [672, -240]
+    })
+    NormaliseInputs = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "4c867557-bf0e-4235-ba7d-830c1c7505a6",
+                    "name": "taxonomy_node",
+                    "value": "={{$json[\"body\"]?.[\"taxonomy_node\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "a8679b5f-e177-4530-a20b-c8af66e02eea",
+                    "name": "nodes_to_query",
+                    "value": "={{$json[\"body\"]?.[\"nodes_to_query\"] || []}}",
+                    "type": "array"
+                },
+                {
+                    "id": "1c604992-c84b-43c8-9288-a0adac954075",
+                    "name": "extra_context",
+                    "value": "={{$json[\"body\"]?.[\"extra_context\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "12e034c4-7182-4e34-874a-d8a4fd02553c",
+                    "name": "prompt_text",
+                    "value": "={{$json[\"body\"]?.[\"prompt_text\"] || $json[\"body\"]?.[\"prompt\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "8300e1f6-7cbd-4eef-bf9e-89746d3b2872",
+                    "name": "required_fields",
+                    "value": "={{$json[\"body\"]?.[\"required_fields\"] || []}}",
+                    "type": "array"
+                },
+                {
+                    "id": "f2f8450d-3af5-4c9b-b988-cf54bb9ee87b",
+                    "name": "model_name",
+                    "value": "={{ (typeof $json[\"body\"]?.[\"model_name\"] !== \"undefined\" && $json[\"body\"][\"model_name\"]) ? $json[\"body\"][\"model_name\"] : \"sonar\" }}",
+                    "type": "string"
+                },
+                {
+                    "id": "a293c84f-4458-47d8-bf2b-475674fb7be5",
+                    "name": "temperature",
+                    "value": "={{ typeof $json[\"body\"]?.[\"temperature\"] !== \"undefined\" ? Number($json[\"body\"][\"temperature\"]) : 0 }}",
+                    "type": "number"
+                },
+                {
+                    "id": "1f2bf73c-2b96-4e9b-80b0-36b1185ed8e1",
+                    "name": "max_tokens",
+                    "value": "={{ typeof $json[\"body\"]?.[\"max_tokens\"] !== \"undefined\" ? Number($json[\"body\"][\"max_tokens\"]) : 1500 }}",
+                    "type": "number"
+                },
+                {
+                    "id": "4f9f171c-5088-4882-96ca-36335122260a",
+                    "name": "query_depth",
+                    "value": "={{ typeof $json[\"body\"]?.[\"query_depth\"] !== \"undefined\" ? Number($json[\"body\"][\"query_depth\"]) : 3 }}",
+                    "type": "number"
+                },
+                {
+                    "id": "b413e42c-46d9-46a6-86bd-c9c2b3773244",
+                    "name": "rel_depth",
+                    "value": "={{ typeof $json[\"body\"]?.[\"rel_depth\"] !== \"undefined\" ? Number($json[\"body\"][\"rel_depth\"]) : 0 }}",
+                    "type": "number"
+                },
+                {
+                    "id": "03d82865-f9f7-4b5a-9e5c-ac4296d804e9",
+                    "name": "global_context",
+                    "value": "={{$json[\"body\"]?.[\"global_context\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "8eda6a2c-f669-414a-82d3-87b758973e39",
+                    "name": "=node_to_query",
+                    "value": "={{$json[\"body\"]?.[\"nodes_to_query\"]?.[0] || { } }}",
+                    "type": "object"
+                },
+                {
+                    "id": "eae7ce68-0550-48e3-8b53-66a6ee996e73",
+                    "name": "node_path",
+                    "value": "={{$json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"path\"] || $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"display_name\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "e373f9aa-a0df-4b62-b086-3d6f4b699d81",
+                    "name": "node_id",
+                    "value": "={{ typeof $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"node_id\"] !== \"undefined\" ? $json[\"body\"][\"nodes_to_query\"][0][\"node_id\"] : ( $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"id\"] || null ) }}",
+                    "type": "string"
+                },
+                {
+                    "id": "ef3f6169-dd8f-44a3-ab55-2a5626e0caf4",
+                    "name": "display_name",
+                    "value": "={{$json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"display_name\"] || $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"path\"] || \"\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "4c8d2261-1c82-4532-8830-dd0e396c73b7",
+                    "name": "level",
+                    "value": "={{ (typeof $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"level\"] !== \"undefined\" && $json[\"body\"][\"nodes_to_query\"][0][\"level\"] !== null) ? Number($json[\"body\"][\"nodes_to_query\"][0][\"level\"]) : null }}",
+                    "type": "number"
+                },
+                {
+                    "id": "5e691b66-cc55-4271-ae5a-601be434b2d1",
+                    "name": "body.parent_id",
+                    "value": "={{$json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"parent_id\"] || $json[\"body\"]?.[\"nodes_to_query\"]?.[0]?.[\"parentId\"] || null}}",
+                    "type": "string"
+                },
+                {
+                    "id": "3b7ebe68-fe9b-472c-af86-12d3e30412b8",
+                    "name": "include_retrieval",
+                    "value": "={{ $json[\"body\"]?.[\"include_retrieval\"] === true }}",
+                    "type": "boolean"
+                },
+                {
+                    "id": "c101a2d6-d210-43b7-9bd2-cd36e96c276d",
+                    "name": "priority",
+                    "value": "={{$json[\"body\"]?.[\"priority\"] || \"normal\"}}",
+                    "type": "string"
+                },
+                {
+                    "id": "0521469b-7ff2-44c3-9fe8-effa9cf3ed59",
+                    "name": "dry_run",
+                    "value": "={{ $json[\"body\"]?.[\"dry_run\"] === true }}",
+                    "type": "string"
+                },
+                {
+                    "id": "9c60a4c8-de0d-4716-a2ac-d0231639c74e",
+                    "name": "client_timestamp",
+                    "value": "={{ typeof $json[\"body\"]?.[\"client_timestamp\"] !== \"undefined\" ? Number($json[\"body\"][\"client_timestamp\"]) : Date.now()/1000 }}",
+                    "type": "number"
+                },
+                {
+                    "id": "1ea171eb-1ba5-4515-a4f1-cd2491829dda",
+                    "name": "retrieved_docs",
+                    "value": "={{$json[\"body\"]?.[\"retrieved_docs\"] || []}}",
+                    "type": "array"
+                },
+                {
+                    "id": "8e07510d-36a5-481e-9fd0-26fe671f3ed5",
+                    "name": "timout_ms",
+                    "value": "={{ $json.body.timeout_ms }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "options": {}
+    };
+
+    @node({
+        name: "Sanitize Perplexity Output",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [2240, -336]
+    })
+    SanitizePerplexityOutput = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "eb9e43d0-cb28-4cb6-ad06-5b4c4c692179",
+                    "name": "timestamp",
+                    "value": "={{ new Date().toISOString() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "051a1cd4-d612-4cd1-be70-de2cf95a0062",
+                    "name": "model",
+                    "value": "={{ $json.body.model }}",
+                    "type": "string"
+                },
+                {
+                    "id": "94fd829b-3650-4d82-a3da-b5ace43bb42d",
+                    "name": "total_tokens",
+                    "value": "={{ $json.body.usage.total_tokens }}",
+                    "type": "number"
+                },
+                {
+                    "id": "b9744d86-fb79-46f8-9308-2e5e5ca8a226",
+                    "name": "cost_usd",
+                    "value": "={{ $json.body.usage.cost.total_cost }}",
+                    "type": "number"
+                },
+                {
+                    "id": "7854b209-c467-493f-97bf-e40af54fda02",
+                    "name": "citations",
+                    "value": "={{ $json[\"body\"][\"citations\"] }}",
+                    "type": "object"
+                },
+                {
+                    "id": "e0be0962-eaf6-4675-9b5c-f0d29446f219",
+                    "name": "search_results",
+                    "value": "={{ $json.body.search_results }}",
+                    "type": "object"
+                },
+                {
+                    "id": "c8561e74-ffed-4cb0-a570-bdaf2e063e06",
+                    "name": "llm_output_raw",
+                    "value": "={{ $json.body.choices[0].message.content }}",
+                    "type": "string"
+                },
+                {
+                    "id": "7c153f91-0aa9-4e8d-8116-3803d1b12a8d",
+                    "name": "llm_output_parsed",
+                    "value": "={{ JSON.parse($json[\"body\"][\"choices\"][0][\"message\"][\"content\"]) }}",
+                    "type": "string"
+                },
+                {
+                    "id": "9ebadc48-46f7-44e8-aa9a-95181703c617",
+                    "name": "llm_output_clean",
+                    "value": "={{ $json.llm_output_clean || $json.json_slice || \"\" }}",
+                    "type": "string"
+                },
+                {
+                    "id": "ef4b0026-4e0d-4a64-a8b0-a049a176f2d0",
+                    "name": "think_block",
+                    "value": "={{ $json.think_block || \"\" }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "options": {
+            "ignoreConversionErrors": true
+        }
+    };
+
+    @node({
+        name: "Perplexity HTTP Request1",
+        type: "n8n-nodes-base.httpRequest",
+        version: 4.2,
+        position: [896, -240],
+        credentials: {perplexityApi:{id:"SkSOGLP98gXnuOBu",name:"Perplexity account"}}
+    })
+    PerplexityHttpRequest1 = {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+            "parameters": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+            "parameters": [
+                {
+                    "name": "model",
+                    "value": "={{ $json.model_name }}"
+                },
+                {
+                    "name": "max_toxens",
+                    "value": "={{ $json.max_tokens }}"
+                },
+                {
+                    "name": "temperature",
+                    "value": "={{ $json.temperature }}"
+                },
+                {
+                    "name": "display_name",
+                    "value": "={{$json.display_name || $json.body?.display_name || $json.nodes_to_query?.[0]?.display_name || $json.node_to_query?.display_name || ''}}"
+                },
+                {
+                    "name": "stream",
+                    "value": "false"
+                },
+                {
+                    "name": "messages",
+                    "value": "={{[\n  { role: 'system', content: 'You are a concise assistant. RETURN EXACTLY ONE JSON OBJECT and NOTHING ELSE. Do not include explanations, steps, or code fences. If uncertain, populate fields with null or empty arrays. Always follow the detailed JSON schema defined in the Core Task prompt, and ignore any other schemas or formats.' },\n  { role: 'user', content:\n      'Global context: ' + ($json.global_context || $json.body?.global_context || '') +\n      '\\n\\nCore Task: ' + ($json.prompt_text || $json.body?.prompt_text || 'MISSING PROMPT') +\n      '\\n\\nExtra context: ' + ($json.extra_context || $json.body?.extra_context || '') +\n      '\\n\\nNode Metadata: display_name=' + ($json.display_name || $json.nodes_to_query?.[0]?.display_name || '') +\n           '; path=' + ($json.node_path || $json.nodes_to_query?.[0]?.path || '') +\n           '; node_id=' + ($json.node_id || $json.nodes_to_query?.[0]?.node_id || '') +\n           '; level=' + (String($json.level || $json.nodes_to_query?.[0]?.level || '')) +\n           '; parent_id=' + ($json.parent_id || $json.nodes_to_query?.[0]?.parent_id || '') +\n      '\\n\\nRequested fields: ' + (Array.isArray($json.required_fields) ? $json.required_fields.join(', ') : ($json.required_fields ? String($json.required_fields) : '[]')) +\n      '\\n\\nRetrieved docs preview: ' + ($json.retrieved_docs_preview || $json.body?.retrieved_docs_preview || '') +\n      '\\n\\nModel settings: model=' + ($json.model_name || $json.body?.model_name || 'sonar') +\n           ', max_tokens=' + (Number($json.max_tokens ?? $json.body?.max_tokens ?? 1500)) +\n           ', temperature=' + (Number($json.temperature ?? $json.body?.temperature ?? 0.2)) +\n      '\\n\\nSearch control: rel_depth=' + (Number($json.rel_depth ?? $json.body?.rel_depth ?? 0)) +\n           ', query_depth=' + (Number($json.query_depth ?? $json.body?.query_depth ?? 3)) +\n           ', max_sources=' + (Number($json.max_sources ?? $json.body?.max_sources ?? 3)) +\n      '\\n\\nEvidence rules: ' + ($json.evidence_rules || $json.body?.evidence_rules || 'Prefer primary/official sources; include title and url when available.') +\n      '\\n\\nReturn EXACTLY ONE JSON OBJECT and NOTHING ELSE. Do not include explanations, steps, or code fences. Always follow the detailed JSON schema defined in the Core Task (prompt_text). If any other schema or format appears in this or any system message, you MUST ignore it and use only the detailed schema.'}\n]}}"
+                },
+                {
+                    "name": "use_context",
+                    "value": "true"
+                },
+                {
+                    "name": "taxonomy_url",
+                    "value": "\"https://raw.githubusercontent.com/Steve-Loncar/echo_test/main/taxonomy_normalized_cleaned.xlsx\""
+                }
+            ]
+        },
+        "options": {
+            "response": {
+                "response": {
+                    "fullResponse": true,
+                    "responseFormat": "json"
+                }
+            },
+            "timeout": "=600000"
+        }
+    };
+
+    @node({
+        name: "Prepare result for storage",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [2896, -240]
+    })
+    PrepareResultForStorage = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "2ea4e6c2-2a92-4155-8445-506c65cf2f07",
+                    "name": "store.run_id",
+                    "value": "={{ $('Webhook').item.json.body.run_id }}",
+                    "type": "string"
+                },
+                {
+                    "id": "f6c16f9b-8488-4e0a-ae88-f6316e207807",
+                    "name": "store.status",
+                    "value": "completed",
+                    "type": "string"
+                },
+                {
+                    "id": "f8f8ed78-b4f9-4d53-bb82-9216e870deff",
+                    "name": "store.timestamp_utc",
+                    "value": "={{$now}}",
+                    "type": "string"
+                },
+                {
+                    "id": "9af85be4-8128-4c9c-9f63-c0d343273079",
+                    "name": "store.env_mode",
+                    "value": "={{ $('Check Input').item.json.body.env_mode }}",
+                    "type": "string"
+                },
+                {
+                    "id": "624e563e-7717-41db-b491-1dfd08f5649c",
+                    "name": "store.node_id",
+                    "value": "={{ $('Normalise Inputs').item.json.nodes_to_query[0].node_id }}",
+                    "type": "string"
+                },
+                {
+                    "id": "e759d6ec-e17a-419d-b2b4-ed260c441bf5",
+                    "name": "store.path",
+                    "value": "={{ $('Normalise Inputs').item.json.nodes_to_query[0].path }}",
+                    "type": "string"
+                },
+                {
+                    "id": "def93e21-4b45-495a-9654-1bd66c516867",
+                    "name": "store.model_name",
+                    "value": "={{$json[\"model\"]}}",
+                    "type": "string"
+                },
+                {
+                    "id": "ea6996cd-1cf9-4dc0-8d2d-45c759b0943a",
+                    "name": "store.result_raw_1",
+                    "value": "={{ \n  ($json.llm_output_clean1 || '')\n    .match(/[\\s\\S]{1,49000}/g)?.[0] || ''\n}}\n\n\n",
+                    "type": "string"
+                },
+                {
+                    "id": "a862eb1d-a1e6-4b69-84de-fc58c882816d",
+                    "name": "store.result_raw_2",
+                    "value": "={{ \n  ($json.llm_output_clean || '')\n    .match(/[\\s\\S]{1,49000}/g)?.[1] || ''\n}}\n\n",
+                    "type": "string"
+                },
+                {
+                    "id": "333e8db3-070f-4e97-9cc3-e4076bd5b1d8",
+                    "name": "store.result_raw_3",
+                    "value": "={{ \n  ($json.llm_output_clean || '')\n    .match(/[\\s\\S]{1,49000}/g)?.[2] || ''\n}}\n\n",
+                    "type": "string"
+                },
+                {
+                    "id": "452b3681-ed84-469c-a6c8-23a6f2e3ae37",
+                    "name": "qc_issues_detected",
+                    "value": "={{ $json.qc_issues_detected || '[]' }}",
+                    "type": "string"
+                },
+                {
+                    "id": "b0b22a47-b99d-438c-9503-1733ddf9b5c4",
+                    "name": "qc_issue_summaries",
+                    "value": "={{ $json.qc_issue_summaries || '[]' }}",
+                    "type": "string"
+                },
+                {
+                    "id": "a5bd0d6f-af11-4439-9563-f69543c0b4f3",
+                    "name": "qc_rerun_recommended",
+                    "value": "={{ $json.qc_rerun_recommended || false }}",
+                    "type": "boolean"
+                },
+                {
+                    "id": "3e1fa924-5585-4a5e-b2e8-960f82691b23",
+                    "name": "qc_suggested_model",
+                    "value": "={{ $json.qc_suggested_model || '' }}",
+                    "type": "string"
+                },
+                {
+                    "id": "3c58c6fb-82a6-4058-9d2e-f8f717bf4f2b",
+                    "name": "qc_suggested_temperature",
+                    "value": "={{ $json.qc_suggested_temperature !== undefined && $json.qc_suggested_temperature !== null\n    ? $json.qc_suggested_temperature\n    : null }}",
+                    "type": "number"
+                },
+                {
+                    "id": "36eeca21-2f33-4177-bb8f-e62af7ee49fb",
+                    "name": "qc_suggested_max_tokens",
+                    "value": "={{ $json.qc_suggested_max_tokens !== undefined && $json.qc_suggested_max_tokens !== null\n    ? $json.qc_suggested_max_tokens\n    : null }}",
+                    "type": "number"
+                },
+                {
+                    "id": "b13716a2-f83b-44ee-ae7c-f35f3270b945",
+                    "name": "qc_suggested_extra_context_append",
+                    "value": "={{ $json.qc_suggested_extra_context_append || '' }}",
+                    "type": "string"
+                },
+                {
+                    "id": "bb4db380-84c0-40f9-8900-7afe08138b7d",
+                    "name": "qc_recommended_actions",
+                    "value": "={{ $json.qc_recommended_actions || '[]' }}",
+                    "type": "string"
+                },
+                {
+                    "id": "4d815539-7812-4285-947b-9fa454a75f53",
+                    "name": "store.total_tokens",
+                    "value": "={{ $json.total_tokens }}",
+                    "type": "number"
+                },
+                {
+                    "id": "a61df8b2-3f7b-4098-8954-e5d6775fc01b",
+                    "name": "store.cost_usd",
+                    "value": "={{ $json.cost_usd }}",
+                    "type": "number"
+                },
+                {
+                    "id": "92c295ff-6046-40bb-8b15-09a80e7aa388",
+                    "name": "store.citations",
+                    "value": "={{ $json.citations }}",
+                    "type": "array"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "Append row in ECHO STATUS sheet",
+        type: "n8n-nodes-base.googleSheets",
+        version: 4.7,
+        position: [3120, -336],
+        credentials: {googleSheetsOAuth2Api:{id:"qT2xaECAtZUmEzfn",name:"Google Sheets account 2"}}
+    })
+    AppendRowInEchoStatusSheet = {
+        "operation": "append",
+        "documentId": {
+            "__rl": true,
+            "value": "19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4",
+            "mode": "list",
+            "cachedResultName": "a_d_database_template",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+            "__rl": true,
+            "value": 292662561,
+            "mode": "list",
+            "cachedResultName": "Echo_Results",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Hsdp5zAudS-8Cqcdg742JCL8YrsH88TB3XgOeKXqp4/edit#gid=292662561"
+        },
+        "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+                "run_id": "={{ $json.store.run_id }}",
+                "status": "={{ $json.store.status }}",
+                "timestamp_utc": "={{ $json.store.timestamp_utc }}",
+                "env_mode": "={{ $json.store.env_mode }}",
+                "node_id": "={{ $json.store.node_id }}",
+                "path": "={{ $json.store.path }}",
+                "model_name": "={{ $json.store.model_name }}",
+                "display_name": "={{ $('Normalise Inputs').item.json.display_name }}",
+                "result_raw_1": "={{ $json.store.result_raw_1 }}",
+                "result_raw_2": "={{ $json.store.result_raw_2 }}",
+                "result_raw_3": "={{ $json.store.result_raw_3 }}",
+                "cost_usd": "={{ $json.store.cost_usd }}",
+                "total_tokens": "={{ $json.store.total_tokens }}",
+                "citations": "={{ $json.store.citations }}",
+                "qc_issues_detected": "={{ $json.qc_issues_detected }}",
+                "qc_issue_summaries": "={{ $json.qc_issue_summaries }}",
+                "qc_rerun_recommended": "={{ $json.qc_rerun_recommended }}",
+                "qc_suggested_model": "={{ $json.qc_suggested_model }}",
+                "qc_suggested_temperature": "={{ $json.qc_suggested_temperature }}",
+                "qc_suggested_max_tokens": "={{ $json.qc_suggested_max_tokens }}",
+                "qc_suggested_extra_context_append": "={{ $json.qc_suggested_extra_context_append }}",
+                "qc_recommended_actions": "={{ $json.qc_recommended_actions }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+                {
+                    "id": "run_id",
+                    "displayName": "run_id",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "status",
+                    "displayName": "status",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "timestamp_utc",
+                    "displayName": "timestamp_utc",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "total_tokens",
+                    "displayName": "total_tokens",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "cost_usd",
+                    "displayName": "cost_usd",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "citations",
+                    "displayName": "citations",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "env_mode",
+                    "displayName": "env_mode",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "node_id",
+                    "displayName": "node_id",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "path",
+                    "displayName": "path",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "display_name",
+                    "displayName": "display_name",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "model_name",
+                    "displayName": "model_name",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true
+                },
+                {
+                    "id": "result_raw_1",
+                    "displayName": "result_raw_1",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "result_raw_2",
+                    "displayName": "result_raw_2",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "result_raw_3",
+                    "displayName": "result_raw_3",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_issues_detected",
+                    "displayName": "qc_issues_detected",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_issue_summaries",
+                    "displayName": "qc_issue_summaries",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_rerun_recommended",
+                    "displayName": "qc_rerun_recommended",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_suggested_model",
+                    "displayName": "qc_suggested_model",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_suggested_temperature",
+                    "displayName": "qc_suggested_temperature",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_suggested_max_tokens",
+                    "displayName": "qc_suggested_max_tokens",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_suggested_extra_context_append",
+                    "displayName": "qc_suggested_extra_context_append",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                },
+                {
+                    "id": "qc_recommended_actions",
+                    "displayName": "qc_recommended_actions",
+                    "required": false,
+                    "defaultMatch": false,
+                    "display": true,
+                    "type": "string",
+                    "canBeUsedToMatch": true,
+                    "removed": false
+                }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+        },
+        "options": {}
+    };
+
+    @node({
+        name: "Secret check",
+        type: "n8n-nodes-base.if",
+        version: 2.2,
+        position: [224, -48]
+    })
+    SecretCheck = {
+        "conditions": {
+            "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict",
+                "version": 2
+            },
+            "conditions": [
+                {
+                    "id": "ab0403f9-4175-421b-894f-68425fcf97f6",
+                    "leftValue": "={{ $json.headers['x-webhook-secret'] }}",
+                    "rightValue": "WIBBLE",
+                    "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                    }
+                }
+            ],
+            "combinator": "and"
+        },
+        "options": {}
+    };
+
+    @node({
+        name: "QC Prompt Prep",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [1792, -144]
+    })
+    QcPromptPrep = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "c93d8537-4f49-426b-9ba7-270adc3ad682",
+                    "name": "analysis_json_raw",
+                    "value": "={{$json[\"body\"][\"choices\"][0][\"message\"][\"content\"]}}",
+                    "type": "string"
+                },
+                {
+                    "id": "1a074a8f-476b-4047-98f6-89b017fe4724",
+                    "name": "prompt_qc_critic",
+                    "value": "You are a quality-control critic for an Aerospace & Defence research agent.  INPUTS YOU RECEIVE: 1) analysis_json: the full JSON object produced by the main analysis agent for a single taxonomy node. 2) run_metadata: an object with fields such as model_name, temperature, max_tokens, node_id, path,    display_name, and any extra_context used.  You DO NOT rewrite or fix the analysis_json. You only review its quality.  Your job is to detect the following failure modes:  (1) Collapse toward global averages:     - node_fy23–fy25 margins look like generic sector averages.     - proxies or players show margins very close to each other without clear structural rationale.  (2) Programmatic uniformity:     - Multiple players have identical or near-identical EBITDA margins (within ±100 bps).     - Multiple players have almost the same revenue growth (within ±2 percentage points).  (3) Synthetic time series:     - Node fy15–fy22 revenue/EBITDA follow a smooth monotonic CAGR-like path with no visible       non-linearities or inflection points.  (4) Over-reliance on recent years:     - fy23–fy25 are populated but fy15–fy22 are mostly null or clearly backfilled mechanically.  (5) Insufficient differentiation:     - Proxies and diversified players have almost identical margins and growth rates.     - Commentary does not explain why players differ in economics.  (6) Overuse of generic industry averages:     - Margins or growth clearly come from broad “industry average” rather than company- or node-specific anchors.  You must output EXACTLY ONE JSON OBJECT and NOTHING ELSE, with this schema:  {   \"issues_detected\": [string],          // e.g. [\"homogeneous_player_margins\", \"synthetic_time_series\"]   \"issue_summaries\": [string],          // short human-readable bullet points (1–2 sentences each)   \"rerun_recommended\": boolean,        // true if the analysis should be re-run with different settings   \"suggested_model\": string | null,    // e.g. \"sonar-deep-research\" or \"sonar-pro\"   \"suggested_temperature\": number | null,   \"suggested_max_tokens\": number | null,   \"suggested_extra_context_append\": string | null,   \"recommended_actions\": [string]      // concrete instructions, e.g.                                        // \"Switch from sonar-pro to sonar-deep-research.\",                                        // \"Increase max_tokens to at least 6500.\",                                        // \"Add this text to extra_context and re-run: '...'\" }  \nGuidelines: \n- Be strict. If there is obvious homogeneity in margins or growth, treat it as an issue.\n- Prefer suggesting sonar-deep-research and higher max_tokens when historical years look weak or synthetic.\n- Temperature guidance: for this system the main analysis MUST run with temperature between 0.1 and 0.35.\n  When you recommend a temperature, always choose a value in this range. NEVER recommend a temperature\n  >= 0.5. Prefer leaving suggested_temperature = null rather than suggesting higher randomness.\n- When suggesting extra_context, write a short snippet the user can paste directly into an\n  \"Extra context\" box (one or two sentences).\n- If the analysis looks robust, set issues_detected = [], rerun_recommended = false and recommended_actions = [].\n- Do NOT output any prose outside the JSON object.",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "Perplexity QC Critic",
+        type: "n8n-nodes-base.httpRequest",
+        version: 4.2,
+        position: [2016, -144],
+        credentials: {perplexityApi:{id:"SkSOGLP98gXnuOBu",name:"Perplexity account"}}
+    })
+    PerplexityQcCritic = {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi",
+        "sendHeaders": true,
+        "headerParameters": {
+            "parameters": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+            "parameters": [
+                {
+                    "name": "model",
+                    "value": "=sonar-pro"
+                },
+                {
+                    "name": "max_toxens",
+                    "value": "=1500"
+                },
+                {
+                    "name": "temperature",
+                    "value": "=0"
+                },
+                {
+                    "name": "stream",
+                    "value": "false"
+                },
+                {
+                    "name": "messages",
+                    "value": "={{[\n\n{ \nrole: 'system', \ncontent: $json.prompt_qc_critic \n},\n\n\n{ \nrole: 'user', \ncontent: $json.analysis_json_raw,\nrun_metadata: {\nmodel_name: $json.body.model,\nnode_id: $('Normalise Inputs').item.json.nodes_to_query[0].node_id,\npath: $('Normalise Inputs').item.json.nodes_to_query[0].path,\ndisplay_name: $('Normalise Inputs').item.json.nodes_to_query[0].display_name,\nextra_context: $('Normalise Inputs').item.json.extra_context,\ntemperature: $('Normalise Inputs').item.json.temperature,\nmax_tokens: $('Normalise Inputs').item.json.max_tokens\n}\n}  \n]}}"
+                },
+                {
+                    "name": "use_context",
+                    "value": "true"
+                },
+                {
+                    "name": "taxonomy_url",
+                    "value": "\"https://raw.githubusercontent.com/Steve-Loncar/echo_test/main/taxonomy_normalized_cleaned.xlsx\""
+                },
+                {
+                    "name": "taxonomy_context",
+                    "value": "={{$json[\"data\"]}}"
+                }
+            ]
+        },
+        "options": {
+            "response": {
+                "response": {
+                    "fullResponse": true,
+                    "responseFormat": "json"
+                }
+            },
+            "timeout": "={{ $json.timout_ms }}"
+        }
+    };
+
+    @node({
+        name: "Tidy QC outputs",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [2240, -144]
+    })
+    TidyQcOutputs = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "e6b287b7-6895-4bfa-b45c-3624c19e531e",
+                    "name": "qc_issues_detected",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return JSON.stringify(qc.issues_detected || []);   })() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "29b7ab5a-fa85-4712-96ea-9371422e270b",
+                    "name": "qc_issue_summaries",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return JSON.stringify(qc.issue_summaries || []);   })() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "f49c123c-0d55-45f4-b3aa-70cd98f6901e",
+                    "name": "qc_rerun_recommended",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return qc.rerun_recommended === true;   })() }}",
+                    "type": "boolean"
+                },
+                {
+                    "id": "1c29ac26-6ea5-46a2-a89e-e0eac66905f1",
+                    "name": "qc_suggested_model",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return qc.suggested_model || '';   })() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "e78bc3b2-4f67-4763-8c6c-8309f9c263dc",
+                    "name": "qc_suggested_temperature",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     const t = qc.suggested_temperature;     if (t === null || t === undefined) return null;     const clamped = Math.min(Math.max(t, 0.1), 0.35);     return clamped;   })() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "ef4fc77f-6757-4702-bc75-b9d93b3f998e",
+                    "name": "qc_suggested_max_tokens",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return qc.suggested_max_tokens || null;   })() }}",
+                    "type": "number"
+                },
+                {
+                    "id": "0ce99028-1700-4f11-a2ef-bf563388b341",
+                    "name": "qc_suggested_extra_context_append",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return qc.suggested_extra_context_append || '';   })() }}",
+                    "type": "string"
+                },
+                {
+                    "id": "7a8c0b5e-def6-4616-9604-be7cabf666d9",
+                    "name": "qc_recommended_actions",
+                    "value": "={{   (() => {     const raw = $json.body.choices[0].message.content || \"\";     const cleaned = raw       .replace(/```json\\s*([\\s\\S]*?)```/i, '$1')       .replace(/```\\s*([\\s\\S]*?)```/i, '$1')       .trim();     const qc = JSON.parse(cleaned);     return JSON.stringify(qc.recommended_actions || []);   })() }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "options": {}
+    };
+
+    @node({
+        name: "Merge",
+        type: "n8n-nodes-base.merge",
+        version: 3.2,
+        position: [2464, -240]
+    })
+    Merge = {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+    };
+
+    @node({
+        name: "1 - raw text in",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [1120, -336]
+    })
+    _1RawTextIn = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "ebdb493e-2055-4902-b7b5-431714697d97",
+                    "name": "raw_text",
+                    "value": "={{ $json.body.choices[0].message.content }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "2 - split think",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [1344, -336]
+    })
+    _2SplitThink = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "6fa353f1-4d09-42da-bb88-0fa4521a2293",
+                    "name": "think_block",
+                    "value": "={{ $json.raw_text.match(/<think>[\\s\\S]*?<\\/think>/i) }}\n",
+                    "type": "string"
+                },
+                {
+                    "id": "1e886a4a-f2b9-4bb0-893a-411f2639cf81",
+                    "name": "step2_no_think",
+                    "value": "={{ $json.raw_text.replace(/<think>[\\s\\S]*?<\\/think>/gi, \"\") }}\n",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "3 - strip fences",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [1568, -336]
+    })
+    _3StripFences = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "6516e7f6-1427-4951-b9b7-d3dc0c8c5d8f",
+                    "name": "step3_no_fences",
+                    "value": "={{ $json.step2_no_think.replace(/```json([\\s\\S]*?)```/i, \"$1\").replace(/```([\\s\\S]*?)```/i, \"$1\") }}\n",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "4 - slice JSON",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [1792, -336]
+    })
+    _4SliceJson = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "44f768aa-c168-4fbe-b4d6-bf3b5b689f13",
+                    "name": "json_slice",
+                    "value": "={{ $json.step3_no_fences.substring(    $json.step3_no_fences.indexOf(\"{\"),    $json.step3_no_fences.lastIndexOf(\"}\") + 1) }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "5 - parse JSON",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [2016, -336]
+    })
+    _5ParseJson = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "3661b94d-497c-4479-944c-e211eca5e7e5",
+                    "name": "llm_output_clean",
+                    "value": "={{ $json.json_slice }}\n\n",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+    @node({
+        name: "Edit Fields",
+        type: "n8n-nodes-base.set",
+        version: 3.4,
+        position: [2672, -240]
+    })
+    EditFields = {
+        "assignments": {
+            "assignments": [
+                {
+                    "id": "7ccbbe4d-f068-4e38-930c-3bfefbf0ab23",
+                    "name": "llm_output_clean1",
+                    "value": "={{    ($json.llm_output_raw || '')     .replace(/[\\u0000-\\u001F]/g, ' ') }}",
+                    "type": "string"
+                }
+            ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+    };
+
+
+    // =====================================================================
+// ROUTAGE ET CONNEXIONS
+// =====================================================================
+
+    @links()
+    defineRouting() {
+        this.Webhook.out(0).to(this.SecretCheck.in(0));
+        this.CheckInput.out(0).to(this.NormaliseInputs.in(0));
+        this.CheckInput.out(1).to(this.RespondToWebhook2.in(0));
+        this.NormaliseInputs.out(0).to(this.PerplexityHttpRequest1.in(0));
+        this.SanitizePerplexityOutput.out(0).to(this.Merge.in(0));
+        this.PerplexityHttpRequest1.out(0).to(this.QcPromptPrep.in(0));
+        this.PerplexityHttpRequest1.out(0).to(this._1RawTextIn.in(0));
+        this.PrepareResultForStorage.out(0).to(this.AppendRowInEchoStatusSheet.in(0));
+        this.PrepareResultForStorage.out(0).to(this.RespondToWebhook.in(0));
+        this.SecretCheck.out(0).to(this.CheckInput.in(0));
+        this.SecretCheck.out(1).to(this.RespondToWebhook1.in(0));
+        this.QcPromptPrep.out(0).to(this.PerplexityQcCritic.in(0));
+        this.PerplexityQcCritic.out(0).to(this.TidyQcOutputs.in(0));
+        this.TidyQcOutputs.out(0).to(this.Merge.in(1));
+        this.Merge.out(0).to(this.EditFields.in(0));
+        this._1RawTextIn.out(0).to(this._2SplitThink.in(0));
+        this._2SplitThink.out(0).to(this._3StripFences.in(0));
+        this._3StripFences.out(0).to(this._4SliceJson.in(0));
+        this._4SliceJson.out(0).to(this._5ParseJson.in(0));
+        this._5ParseJson.out(0).to(this.SanitizePerplexityOutput.in(0));
+        this.EditFields.out(0).to(this.PrepareResultForStorage.in(0));
+    }
+}

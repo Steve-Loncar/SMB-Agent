@@ -1,9 +1,7 @@
-Business summary is CONTEXT only. Prefer snippets as evidence. Do not add any claim unless it appears verbatim in evidence.
-
 You will receive the following data below:
 
 BUSINESS SUMMARY:
-[JSON object containing business profile, value proposition, target audience]
+[JSON object containing business profile, value proposition, target audience, key_offers, key_proof_points, tone]
 
 TIER 1 & 2 PAGE SUMMARIES:
 [JSON array of page summaries from tier 1 and tier 2 sections]
@@ -12,9 +10,15 @@ TASK:
 1) Generate 6–8 distinct OOH concepts spanning Classic (print) and Digital (LED/screens) formats
 2) Mix 6 Sheet and 48 Sheet sizes with consideration for their context (foot traffic vs motorist)
 3) Headlines must be punchy and legible at distance
-4) Ground every concept in the provided page content — do not invent claims
+4) Ground every concept in the provided page content — do not invent factual claims
 5) For EACH concept include evidence[] with verbatim quotes + source_url(s). supporting_copy must be supported by those quotes.
 6) Vary messaging angles and emotional appeals across concepts
 7) Consider format-specific opportunities (animation potential for digital, print quality for classic)
+
+USING THE BUSINESS SUMMARY:
+- Use business_summary.tone and business_summary.target_customer to set the VOICE and ANGLE of concepts (this is brand direction, not a factual claim)
+- Use business_summary.key_offers to identify which products/services deserve their own concept angle
+- Use business_summary.key_proof_points to identify which differentiators are worth amplifying
+- For factual claims in supporting_copy: ONLY use verbatim quotes from snippet evidence — do not invent numbers, reviews, or guarantees
 
 Output valid JSON only in the required schema with all fields populated.

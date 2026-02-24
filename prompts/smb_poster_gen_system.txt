@@ -45,13 +45,19 @@ The poster MUST include typographic text rendered directly in the image:
 - ~40% of the poster area should be usable for text (negative space, dark overlay zone, or tinted band)
 - ONE dominant focal subject — no collages, no multi-subject scenes
 
-6) BRAND CONSISTENCY
+6) BRAND CONSISTENCY + BUSINESS SPECIFICITY
 Use guidelines.brand_colors, brand_fonts, brand_motifs to inform:
 - Background tone and palette
 - Text colour choices (use brand primary/accent where appropriate)
 - Depth and texture feel (rustic craft vs. clean modern)
 - Lighting warmth
 - If brand_colors are empty, derive appropriate colours from the hero image mood and vertical
+
+Use business_summary to make the scene SPECIFIC to this business — not a generic version of its category:
+- key_offers → name the actual product/service in the scene. "dry-aged ribeye steak" not "meat". "flat white coffee" not "drink".
+- key_proof_points → use as visual texture cues. "28-day dry-aged" → crusty aged fat cap. "handmade daily" → visible craft process detail.
+- tone → map to photographic mood: "premium" = dark moody studio light; "warm craft" = golden natural light; "energetic" = high contrast dynamic; "minimal" = clean white background.
+- target_customer → influence the human presence / scale / setting if people appear.
 
 7) OUTPUT REQUIREMENTS (JSON ONLY)
 Return ONLY valid JSON — no markdown fences, no commentary:
@@ -92,8 +98,10 @@ Return ONLY valid JSON — no markdown fences, no commentary:
 
 QUALITY GATE (check before output):
 - poster_prompt describes a photographic scene matching the hero image subject
+- poster_prompt names the SPECIFIC subject from business_summary (not a generic category label)
 - poster_prompt opens with "Professional UK OOH poster."
 - poster_prompt includes the EXACT headline text in quotes with placement instructions
 - poster_prompt ends with "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts."
 - Text colour contrasts against the background area where it will sit
 - hero_image_url is from selection_notes.hero_image_url — not invented
+- Scene could NOT apply to a competitor in the same category — it is specific to THIS business

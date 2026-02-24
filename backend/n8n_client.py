@@ -236,6 +236,7 @@ def call_n8n_generate_poster(
     poster_concept: dict,
     guidelines: dict,
     visual_images: list[dict],
+    business_summary: dict | None = None,
     mode: Mode = "TEST",
     webhook_url: Optional[str] = None,
 ) -> dict:
@@ -250,6 +251,8 @@ def call_n8n_generate_poster(
     target_url = resolve_n8n_webhook("generate_poster", mode, override_url=webhook_url)
     headers = _tender_headers()
 
+    bs = business_summary or {}
+
     # Stage 1 prompts: image selection — pass enriched image objects (not bare URLs)
     # NOTE: .replace() not .format() because templates contain literal JSON braces
     sel_system = _load_prompt("smb_image_selection_system.txt")
@@ -262,8 +265,12 @@ def call_n8n_generate_poster(
     )
 
     # Stage 2 prompts: poster prompt gen (template — n8n substitutes {selected_images} after stage 1)
+    # Pre-replace {business_summary} here since it is available in Python and doesn't depend on n8n stage 1 output
     poster_system = _load_prompt("smb_poster_gen_system.txt")
-    poster_user_template = _load_prompt("smb_poster_gen_user.txt")
+    poster_user_template = (
+        _load_prompt("smb_poster_gen_user.txt")
+        .replace("{business_summary}", json.dumps(bs, ensure_ascii=False, indent=2))
+    )
 
     # Bare URLs for n8n fallback / debug
     image_urls = [im.get("url", "") for im in visual_images if isinstance(im, dict) and im.get("url")]
@@ -271,6 +278,7 @@ def call_n8n_generate_poster(
     payload = {
         "poster_concept": poster_concept,
         "guidelines": guidelines,
+        "business_summary": bs,
         "visual_images": visual_images,
         "image_urls": image_urls,
         "prompt_system_selection": sel_system,

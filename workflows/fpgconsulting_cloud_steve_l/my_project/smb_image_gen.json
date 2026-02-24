@@ -118,10 +118,16 @@
               "type": "string"
             },
             {
-              "id": "fbd48fa6-1589-4a8c-b383-5ca976bd5e77",
-              "name": "visual_images",
-              "value": "={{ $json.body.visual_images }}",
-              "type": "array"
+              "id": "s1-h",
+              "name": "poster_concept",
+              "value": "={{ $json.body.poster_concept }}",
+              "type": "object"
+            },
+            {
+              "id": "s1-i",
+              "name": "business_summary",
+              "value": "={{ $json.body.business_summary || {} }}",
+              "type": "object"
             }
           ]
         },
@@ -238,7 +244,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inputs = $('Normalise Inputs').item.json;\nconst parsed = $json.parsed || {};\nconst selectionNotes = parsed.selection_notes || {};\nconst selectedImages = parsed.selected_images || [];\n\n// Extract hero image URL for vision input\nconst heroImageUrl = selectionNotes.hero_image_url ||\n  (selectedImages.length > 0\n    ? (typeof selectedImages[0] === 'string' ? selectedImages[0] : selectedImages[0].url)\n    : '');\n\n// Build selected_images as simple URL array for backwards compat\nconst selectedImageUrls = selectedImages.map(im =>\n  typeof im === 'string' ? im : (im.url || '')\n).filter(Boolean);\n\nlet userPrompt = inputs.poster_gen_user_template || '';\nuserPrompt = userPrompt.split('{poster_concept}').join(\n  JSON.stringify(inputs.poster_concept, null, 2)\n);\nuserPrompt = userPrompt.split('{selected_images}').join(\n  JSON.stringify(parsed, null, 2)\n);\nuserPrompt = userPrompt.split('{guidelines}').join(\n  JSON.stringify(inputs.guidelines, null, 2)\n);\n\nreturn [{\n  json: {\n    system_prompt_poster: inputs.poster_gen_system,\n    user_prompt_poster: userPrompt,\n    hero_image_url: heroImageUrl,\n    selected_images: selectedImageUrls,\n    selection_notes: selectionNotes,\n  }\n}];"
+        "jsCode": "const inputs = $('Normalise Inputs').item.json;\nconst parsed = $json.parsed || {};\nconst selectionNotes = parsed.selection_notes || {};\nconst selectedImages = parsed.selected_images || [];\n\n// Extract hero image URL for vision input\nconst heroImageUrl = selectionNotes.hero_image_url ||\n  (selectedImages.length > 0\n    ? (typeof selectedImages[0] === 'string' ? selectedImages[0] : selectedImages[0].url)\n    : '');\n\n// Build selected_images as simple URL array for backwards compat\nconst selectedImageUrls = selectedImages.map(im =>\n  typeof im === 'string' ? im : (im.url || '')\n).filter(Boolean);\n\n// Business summary — passed directly from Python (already pre-serialised into template),\n// but also available here as inputs.business_summary for any remaining {business_summary} placeholders\nconst businessSummary = inputs.business_summary || {};\n\nlet userPrompt = inputs.poster_gen_user_template || '';\nuserPrompt = userPrompt.split('{poster_concept}').join(\n  JSON.stringify(inputs.poster_concept, null, 2)\n);\nuserPrompt = userPrompt.split('{selected_images}').join(\n  JSON.stringify(parsed, null, 2)\n);\nuserPrompt = userPrompt.split('{guidelines}').join(\n  JSON.stringify(inputs.guidelines, null, 2)\n);\n// Fallback: replace {business_summary} if not already substituted by Python\nuserPrompt = userPrompt.split('{business_summary}').join(\n  JSON.stringify(businessSummary, null, 2)\n);\n\nreturn [{\n  json: {\n    system_prompt_poster: inputs.poster_gen_system,\n    user_prompt_poster: userPrompt,\n    hero_image_url: heroImageUrl,\n    selected_images: selectedImageUrls,\n    selection_notes: selectionNotes,\n    business_summary: businessSummary,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
