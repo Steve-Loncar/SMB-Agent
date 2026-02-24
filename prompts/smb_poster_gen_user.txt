@@ -1,4 +1,4 @@
-You are creating a gpt-image-1 poster brief for ONE OOH concept.
+You are creating a gpt-image-1 poster brief for ONE OOH concept. The poster must include BOTH a photographic scene AND typographic text rendered in the image.
 
 INPUTS
 
@@ -14,30 +14,37 @@ INPUTS
 {guidelines}
 
 TASK
-Identify the HERO IMAGE — the single best image for this concept. Then write a gpt-image-1 brief that produces a background plate matching the subject and style of that image.
+Design a complete OOH poster with both photographic imagery and headline text.
 
-DO NOT invent a different scene. If the hero image is beef/meat photography, the prompt is about beef/meat. If it is a person, the prompt is about a person. Stay strictly true to what the image metadata describes.
+If an image is attached above, LOOK AT IT — describe what you actually see (subject, lighting, textures, colours, mood) and use that as the basis for the photographic scene.
+
+If no image is attached, use the hero image metadata to understand the subject.
 
 Work through these steps:
 1. Identify the hero image URL (from selection_notes.hero_image_url OR first image with intended_role "background"/"hero_focal")
-2. Read its metadata: type, why_selected, cropping_note, layout_pairing
-3. Read the concept: image_idea, layout_notes, style_tags — use these to refine the brief
-4. Confirm photographic style from guidelines.vertical and guidelines.tone
-5. Write the poster_prompt:
-   "Photographic UK OOH poster background plate. [subject description based on image type and why_selected]. [lighting and mood]. [composition: where subject sits, where negative space is for text overlay]. [colour palette from brand_colors]. No text, no typography, no logos, no overlaid graphics. Background plate only."
+2. If image attached: describe the real photo (subject, lighting, colour, texture, mood). If not: use metadata (type, why_selected, cropping_note)
+3. Read the concept: headline, supporting_copy, cta, image_idea, layout_notes, style_tags
+4. Determine text colour that contrasts with the background area where text will sit (white on dark, dark on light; use brand_colors if available)
+5. Write the poster_prompt — a single paragraph that describes:
+   a) "Professional UK OOH poster." (opening)
+   b) The photographic background scene (subject, lighting, composition, colour palette)
+   c) Where the subject sits and where negative space exists
+   d) The exact headline text in quotes, with size/weight/placement (e.g. "bold white sans-serif headline reading \"Become A Butchery Pro\" across the top third")
+   e) Supporting copy and CTA placement if provided
+   f) "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts." (closing)
 
 OUTPUT
 Return JSON ONLY (no markdown fences, no commentary):
 
 {
   "poster_name": "string",
-  "poster_prompt": "string",
+  "poster_prompt": "string (complete poster brief — scene + text rendering instructions)",
   "layout_spec": {
     "format": "6-sheet|48-sheet",
     "orientation": "portrait|landscape",
     "aspect_ratio": "1:1.5|2:1",
     "type": "classic|digital",
-    "safe_area_notes": "string"
+    "text_zone": "string (where text sits)"
   },
   "asset_plan": {
     "hero_image_url": "exact URL from selection_notes.hero_image_url",
@@ -45,20 +52,23 @@ Return JSON ONLY (no markdown fences, no commentary):
     "logo_url": "string|null",
     "use_of_brand_motifs": "string"
   },
+  "text_content": {
+    "headline": "string (verbatim from concept)",
+    "supporting_copy": "string|null",
+    "cta": "string|null",
+    "text_colour": "string",
+    "placement_description": "string"
+  },
   "render_notes": {
-    "text_overlay": {
-      "headline": "string (from concept)",
-      "supporting_copy": "string|null",
-      "cta": "string|null"
-    },
-    "text_safe_area": "string",
     "negative_instructions": ["string"]
   }
 }
 
 Hard checks before you answer:
-- poster_prompt MUST describe the subject consistent with the hero image type and metadata — not a substitute scene, not a landscape, not an unrelated background
+- poster_prompt MUST describe the subject consistent with the hero image — not a substitute scene
+- poster_prompt MUST include the EXACT headline text in quotes with rendering instructions
+- poster_prompt MUST open with "Professional UK OOH poster."
+- poster_prompt MUST end with "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts."
 - hero_image_url MUST be a URL from the selected images list — do not invent or change it
-- poster_prompt MUST open with "Photographic UK OOH poster background plate."
-- poster_prompt MUST end with "No text, no typography, no logos, no overlaid graphics. Background plate only."
+- text_content.headline MUST match the concept headline verbatim
 - One focal subject only — no collages, no unrelated scenes
