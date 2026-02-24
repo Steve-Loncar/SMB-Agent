@@ -1282,54 +1282,14 @@ else:
                     if st.button("Generate Poster", key=f"gen_poster_{i}", use_container_width=True, type="primary", disabled=st.session_state.get("generate_image_pending", False)):
                         bs = st.session_state.get("business_summary", {}) or {}
 
-                        # Step 1: Run image hunt for this specific concept
-                        all_candidates = st.session_state.get("asset_candidates", [])
-                        concept_vp_result = None
-                        if all_candidates:
-                            try:
-                                with st.spinner(f"Searching {len(all_candidates)} website images for best matches..."):
-                                    hunt_dbg = call_n8n_image_hunt(
-                                        url=st.session_state.get("target_url", ""),
-                                        business_summary=bs,
-                                        page_summaries=st.session_state.get("tier1_page_summaries", []),
-                                        tier2_page_summaries=st.session_state.get("tier2_page_summaries", []),
-                                        asset_candidates=all_candidates,
-                                        concept=concept,
-                                        mode=st.session_state.get("n8n_mode", "TEST"),
-                                    )
-                                hunt_resp = hunt_dbg.get("_n8n_response_json")
-                                if isinstance(hunt_resp, list) and hunt_resp and isinstance(hunt_resp[0], dict):
-                                    hunt_resp = hunt_resp[0]
-                                concept_vp = hunt_resp.get("visual_pack") if isinstance(hunt_resp, dict) else None
-                                if concept_vp and isinstance(concept_vp, dict) and concept_vp.get("images"):
-                                    cvp_store = st.session_state.get("concept_visual_packs", {})
-                                    cvp_store[i] = concept_vp
-                                    st.session_state["concept_visual_packs"] = cvp_store
-                                    concept_vp_result = concept_vp
-                                else:
-                                    st.warning("Per-concept image hunt returned no images — will try fallbacks.")
-                            except Exception as hunt_err:
-                                st.warning(f"Image search encountered an issue: {hunt_err}")
-                        else:
-                            st.warning("No asset candidates available from page analysis — image hunt skipped.")
+                        # Use already-collected images from global image hunt (no need to re-hunt per concept)
+                        _global_vp = st.session_state.get("visual_pack", {})
+                        vp_images = (_global_vp.get("images") if isinstance(_global_vp, dict) else None) or []
+                        vp_logos = (_global_vp.get("logos") if isinstance(_global_vp, dict) else None) or []
+                        vp_brand = (_global_vp.get("brand") if isinstance(_global_vp, dict) else None) or {}
+                        vp_shortlist = (_global_vp.get("shortlist") if isinstance(_global_vp, dict) else None) or {}
 
-                        # Step 2: Collect enriched image objects and build guidelines for n8n poster workflow
-                        # Fallback chain: concept hunt → stored concept pack → global visual_pack → raw asset_candidates
-                        if concept_vp_result is None:
-                            concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
-                        if not concept_vp_result or not concept_vp_result.get("images"):
-                            # Fallback to global visual_pack (from button ④)
-                            _global_vp = st.session_state.get("visual_pack")
-                            if isinstance(_global_vp, dict) and _global_vp.get("images"):
-                                concept_vp_result = _global_vp
-                                st.info("Using global image hunt results (per-concept hunt returned empty).")
-                        vp_images = (concept_vp_result.get("images") if isinstance(concept_vp_result, dict) else None) or []
-                        vp_logos = (concept_vp_result.get("logos") if isinstance(concept_vp_result, dict) else None) or []
-                        vp_brand = (concept_vp_result.get("brand") if isinstance(concept_vp_result, dict) else None) or {}
-                        vp_shortlist = (concept_vp_result.get("shortlist") if isinstance(concept_vp_result, dict) else None) or {}
-
-                        # Pass full enriched image objects (type, recommended_use, cropping_guidance,
-                        # layout_pairing, why_relevant, composite_score) — not just bare URLs.
+                        # Build enriched image list for poster gen
                         poster_visual_images = [
                             im for im in vp_images
                             if isinstance(im, dict) and im.get("url")
@@ -1353,7 +1313,11 @@ else:
                                        and c.get("kind") != "svg_inline"
                                 ][:30]  # cap to avoid huge payloads
                                 if poster_visual_images:
-                                    st.warning(f"Image hunt returned no curated images — falling back to {len(poster_visual_images)} raw website images.")
+                                    st.warning(f"Using {len(poster_visual_images)} website images for poster generation.")
+                        
+                        if not poster_visual_images:
+                            st.warning("No images available for poster generation. Please run Global Image Hunt first.")
+                            st.stop()
 
                         # Build guidelines dict — include full business context + brand cues + shortlist
                         guidelines = {
@@ -1380,65 +1344,40 @@ else:
                             },
                         }
 
-                        # Do NOT call n8n inline in the loop. Store intent; process once after loop.
-                        st.session_state["generate_image_pending"] = True
-                        st.session_state["generate_image_error"] = None
-                        st.session_state["generate_image_request"] = {
-                            "concept_index": i,
-                            "concept": concept,
-                            "guidelines": guidelines,
-                            "business_summary": bs,
-                            "visual_images": poster_visual_images,
-                        }
-                        st.rerun()
-
-    # ---- Process any pending image generation request (single-shot) ----
-    req = st.session_state.get("generate_image_request")
-    if st.session_state.get("generate_image_pending") and isinstance(req, dict):
-        i = req.get("concept_index")
-        concept = req.get("concept", {})
-        guidelines = req.get("guidelines", {})
-        business_summary_req = req.get("business_summary", {})
-        poster_visual_images = req.get("visual_images", [])
-        try:
-            with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
-                if DEBUG_UI:
-                    st.info(f"Sending to n8n: {len(poster_visual_images)} images, {len(guidelines)} guidelines")
-                img_res = call_n8n_generate_poster(
-                    poster_concept=concept,
-                    guidelines=guidelines,
-                    business_summary=business_summary_req,
-                    visual_images=poster_visual_images,
-                    mode=st.session_state.get("n8n_mode", "TEST"),
-                )
-                if DEBUG_UI:
-                    st.info(f"Response OK: {img_res.get('ok')}, Status: {img_res.get('status_code')}")
-                if not img_res.get("ok"):
-                    raise RuntimeError(
-                        img_res.get("response_text_snippet", "n8n poster call failed")
-                    )
-                resp = img_res.get("response_json") or {}
-                b64 = (resp or {}).get("image_b64", "")
-                if not b64:
-                    raise RuntimeError("Missing image_b64 in n8n response")
-                img_bytes = base64.b64decode(b64)
-
-            # Success: store bytes and clear pending
-            st.session_state["poster_images"][i] = img_bytes
-            st.session_state["generate_image_pending"] = False
-            st.session_state["generate_image_request"] = None
-            st.session_state["generate_image_error"] = None
-            st.rerun()
-        except Exception as e:
-            # Failure: clear pending but keep error visible (do not require double clicks)
-            st.session_state["generate_image_pending"] = False
-            st.session_state["generate_image_error"] = str(e)
-            st.session_state["generate_image_request"] = None
-            st.error(f"❌ Poster generation failed: {e}")
-            # Show debug info if available
-            if "img_res" in locals():
-                st.caption(f"n8n HTTP status: {img_res.get('status_code')}")
-                st.caption(f"Response snippet: {img_res.get('response_text_snippet', 'N/A')}")
+                        # Call poster gen directly (no defer, no re-run)
+                        try:
+                            with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
+                                if DEBUG_UI:
+                                    st.info(f"Sending to n8n: {len(poster_visual_images)} images, {len(guidelines)} guidelines")
+                                img_res = call_n8n_generate_poster(
+                                    poster_concept=concept,
+                                    guidelines=guidelines,
+                                    business_summary=bs,
+                                    visual_images=poster_visual_images,
+                                    mode=st.session_state.get("n8n_mode", "TEST"),
+                                )
+                                if DEBUG_UI:
+                                    st.info(f"Response OK: {img_res.get('ok')}, Status: {img_res.get('status_code')}")
+                                if not img_res.get("ok"):
+                                    raise RuntimeError(
+                                        img_res.get("response_text_snippet", "n8n poster call failed")
+                                    )
+                                resp = img_res.get("response_json") or {}
+                                b64 = (resp or {}).get("image_b64", "")
+                                if not b64:
+                                    raise RuntimeError("Missing image_b64 in n8n response")
+                                img_bytes = base64.b64decode(b64)
+                            
+                            # Success: store bytes
+                            st.session_state["poster_images"][i] = img_bytes
+                            st.success("✅ Poster generated!")
+                            st.rerun()
+                        except Exception as e:
+                            # Failure: show error
+                            st.error(f"❌ Poster generation failed: {e}")
+                            if "img_res" in locals():
+                                st.caption(f"n8n HTTP status: {img_res.get('status_code')}")
+                                st.caption(f"Response snippet: {img_res.get('response_text_snippet', 'N/A')}")
 
 # Defer carousel rerun until after button handling to avoid missed clicks
 if st.session_state.get("carousel_needs_rerun") and not st.session_state.get("generate_image_pending"):
