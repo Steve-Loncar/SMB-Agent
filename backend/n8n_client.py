@@ -14,26 +14,38 @@ Mode = Literal["TEST", "LIVE"]
 Endpoint = Literal["generate_ads", "generate_image", "generate_poster", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise", "image_hunt", "generate_ad_concepts"]
 
 
+# n8n webhook ID mapping (from .n8n-state.json webhook nodes)
+# Maps path -> webhook ID for correct n8n cloud webhook URLs
+WEBHOOK_IDS = {
+    "SMB-generate-ad-concepts": "f1c1027f-7f30-4778-9e86-50d3eec43abb",  # zRiOBZzZe1xC2s4o
+    "check-text-blobs": "dd8ce2f3-ccd9-46c3-a98f-3ad205206af0",  # MPLFXEKhILpVNwJE
+    "generate-image": "c0a3cdfa-59d0-4ff7-a159-de6404b3a52d",  # LwppGj55f48uEPcm (smb_image_gen)
+    "scrape-pack": "8f48c91d-fd36-44fb-8f81-35cbf52dec3f",  # MOC3yN0C7ke04nM4
+    "SMB-image-hunt": "f50e2198-bc22-4bdf-a4de-cec065a6b0d9",  # Q5kdwj9M7VlCwX2Z
+    "SMB-homepage-summarise": "2cab9d6a-e4cd-48bc-bdbe-1d3f9200e051",  # ykqSvp3N92Yq6GjM
+    "SMB-tier1-summariser": "b49fa9a7-a057-44b0-8475-bbe71b5c69b7",  # rJmG2127XE4XU3Zs
+}
+
+
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
     """
     Single source of truth for webhook URLs.
+    Uses webhookId format (required for n8n cloud).
 
     Env:
       N8N_BASE_URL (optional, defaults to your n8n cloud)
       N8N_WEBHOOK_SECRET (optional, sent as X-Webhook-Secret)
 
-      Optional per-endpoint override env vars (if you want them later):
+      Optional per-endpoint override env vars:
         N8N_GENERATE_ADS_URL_TEST / _LIVE
-        N8N_GENERATE_IMAGE_URL_TEST / _LIVE
-        N8N_SCRAPE_PACK_URL_TEST / _LIVE
-        N8N_CHECK_TEXT_BLOBS_URL_TEST / _LIVE
+        N8N_GENERATE_IMAGE_URL_TEST / _LIVE, etc.
     """
     if override_url:
         target_url = override_url.strip()
     else:
         base = (os.getenv("N8N_BASE_URL") or "https://fpgconsulting.app.n8n.cloud").rstrip("/")
 
-        # Optional explicit full URL overrides (handy for quick swaps)
+        # Optional explicit full URL overrides
         env_map = {
             ("generate_ads", "TEST"): "N8N_GENERATE_ADS_URL_TEST",
             ("generate_ads", "LIVE"): "N8N_GENERATE_ADS_URL_LIVE",
@@ -59,34 +71,32 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
         if explicit:
             target_url = explicit
         else:
-            # Default paths (your current conventions)
-            paths = {
-                ("generate_ads", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
-                ("generate_ads", "LIVE"): "/webhook/SMB-generate-ad-concepts",
-                ("generate_ad_concepts", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
-                ("generate_ad_concepts", "LIVE"): "/webhook/SMB-generate-ad-concepts",
-                ("generate_image", "TEST"): "/webhook-test/generate-image",
-                ("generate_image", "LIVE"): "/webhook/generate-image",
-                ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",
-                ("scrape_pack", "LIVE"): "/webhook/scrape-pack",
-                ("check_text_blobs", "TEST"): "/webhook-test/check-text-blobs",
-                ("check_text_blobs", "LIVE"): "/webhook/check-text-blobs",
-                ("homepage_summarise", "TEST"): "/webhook-test/SMB-homepage-summarise",
-                ("homepage_summarise", "LIVE"): "/webhook/SMB-homepage-summarise",
-                ("tier1_summarise", "TEST"): "/webhook-test/SMB-tier1-summariser",
-                ("tier1_summarise", "LIVE"): "/webhook/SMB-tier1-summariser",
-                ("image_hunt", "TEST"): "/webhook-test/SMB-image-hunt",
-                ("image_hunt", "LIVE"): "/webhook/SMB-image-hunt",
-                ("generate_poster", "TEST"): "/webhook-test/generate-image",
-                ("generate_poster", "LIVE"): "/webhook/generate-image",
+            # Webhook paths and their IDs
+            webhook_paths = {
+                "generate_ads": "SMB-generate-ad-concepts",
+                "generate_ad_concepts": "SMB-generate-ad-concepts",
+                "generate_image": "generate-image",
+                "generate_poster": "generate-image",
+                "scrape_pack": "scrape-pack",
+                "check_text_blobs": "check-text-blobs",
+                "homepage_summarise": "SMB-homepage-summarise",
+                "tier1_summarise": "SMB-tier1-summariser",
+                "image_hunt": "SMB-image-hunt",
             }
-            target_url = base + paths[(endpoint, mode)]
+            path = webhook_paths.get(endpoint)
+            webhook_id = WEBHOOK_IDS.get(path) if path else None
+            
+            if not webhook_id:
+                raise RuntimeError(f"Unknown webhook ID for endpoint {endpoint}")
+            
+            # Use webhookId format for n8n cloud
+            target_url = f"{base}/webhook/{webhook_id}"
 
     # Hard fail if URL isn't exactly what we expect (prevents "posting to nowhere")
     if (
         not isinstance(target_url, str)
         or not target_url.startswith("https://")
-        or "/webhook" not in target_url
+        or "/webhook/" not in target_url
     ):
         raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
 
@@ -241,20 +251,47 @@ def call_n8n_generate_poster(
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
-    POST structured data to n8n /generate-image (poster workflow).
+    POST structured data to n8n poster generation workflow.
+    Triggers workflow execution directly via the n8n API.
+    
     Three-stage flow in n8n:
       (1) LLM selects best images from enriched visual_images (with type/cropping/layout metadata)
       (2) LLM (vision-enabled) generates poster prompt, seeing the hero image directly
       (3) gpt-image-1 generates background plate using hero image as reference
     Returns { image_b64, mime, selected_images, poster_metadata }.
     """
-    target_url = resolve_n8n_webhook("generate_poster", mode, override_url=webhook_url)
-    headers = _tender_headers()
-
+    # If webhook URL provided, use the old webhook method
+    if webhook_url:
+        target_url = webhook_url.strip()
+        headers = _tender_headers()
+    else:
+        # Use n8n API to trigger workflow directly (more reliable for n8n cloud)
+        # This executes the workflow and waits for completion
+        n8n_host = (os.getenv("N8N_BASE_URL") or "https://fpgconsulting.app.n8n.cloud").rstrip("/")
+        
+        # Get API key from environment or .vscode/settings.json
+        api_key = os.getenv("N8N_API_KEY")
+        if not api_key:
+            try:
+                with open(".vscode/settings.json", "r") as f:
+                    vscode_settings = json.load(f)
+                    api_key = vscode_settings.get("n8n.apiKey", "")
+            except Exception:
+                api_key = ""
+        
+        if not api_key:
+            raise RuntimeError("N8N_API_KEY not found in environment or .vscode/settings.json")
+        
+        workflow_id = "LwppGj55f48uEPcm"  # smb_image_gen workflow ID
+        target_url = f"{n8n_host}/api/v1/workflows/{workflow_id}/execute"
+        headers = {
+            "Content-Type": "application/json",
+            "X-N8N-API-KEY": api_key,
+        }
+    
     bs = business_summary or {}
 
     # Stage 1 prompts: image selection — pass enriched image objects (not bare URLs)
-    # NOTE: .replace() not .format() because templates contain literal JSON braces
     sel_system = _load_prompt("smb_image_selection_system.txt")
     sel_user_template = _load_prompt("smb_image_selection_user.txt")
     sel_user = (
@@ -265,7 +302,6 @@ def call_n8n_generate_poster(
     )
 
     # Stage 2 prompts: poster prompt gen (template — n8n substitutes {selected_images} after stage 1)
-    # Pre-replace {business_summary} here since it is available in Python and doesn't depend on n8n stage 1 output
     poster_system = _load_prompt("smb_poster_gen_system.txt")
     poster_user_template = (
         _load_prompt("smb_poster_gen_user.txt")
@@ -287,7 +323,13 @@ def call_n8n_generate_poster(
         "prompt_user_poster_template": poster_user_template,
     }
 
-    r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 180))
+    if webhook_url:
+        # Legacy webhook mode
+        r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 180))
+    else:
+        # n8n API execute mode (waits for completion, returns full execution result)
+        r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 300))
+    
     out: Dict[str, Any] = {
         "ok": (200 <= r.status_code < 300),
         "status_code": r.status_code,
@@ -296,14 +338,41 @@ def call_n8n_generate_poster(
         "_debug_image_url_count": len(visual_images),
     }
     out["response_text_snippet"] = (r.text or "")[:1200]
+    
+    if not out["ok"]:
+        return out
+    
     try:
         resp_json = r.json()
-        # n8n respondWith allIncomingItems wraps in a list
-        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
-            resp_json = resp_json[0]
+        # n8n /execute API returns the full execution result
+        # We need to extract the final output data
+        if isinstance(resp_json, dict) and "data" in resp_json:
+            # API execute response has execution data
+            exec_data = resp_json.get("data", {})
+            if isinstance(exec_data, dict) and "resultData" in exec_data:
+                result_data = exec_data.get("resultData", {})
+                # Try to get output from "Step 10: Respond to Webhook" node
+                if isinstance(result_data, dict) and "runData" in result_data:
+                    run_data = result_data.get("runData", {})
+                    if isinstance(run_data, dict):
+                        # Find the last executed node's output
+                        for node_name, node_output in run_data.items():
+                            if isinstance(node_output, list) and node_output:
+                                last_output = node_output[-1]
+                                if isinstance(last_output, dict) and "data" in last_output:
+                                    node_data = last_output.get("data", {})
+                                    if isinstance(node_data, dict) and "main" in node_data:
+                                        main = node_data.get("main", [[]])
+                                        if isinstance(main, list) and main and isinstance(main[0], list):
+                                            if main[0]:
+                                                out["response_json"] = main[0][0].get("json", {})
+                                                return out
+        # Fallback: if structured format not found, use as-is
         out["response_json"] = resp_json
-    except Exception:
+    except Exception as e:
+        out["_parse_error"] = str(e)
         out["response_json"] = None
+    
     return out
 
 

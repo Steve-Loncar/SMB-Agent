@@ -28,7 +28,7 @@ initstate()
 
 # Toggle dev diagnostics (keep plumbing; hide clutter for client demos)
 # Flip to True when you're debugging n8n request/response envelopes.
-DEBUG_UI = False
+DEBUG_UI = True
 
 st.markdown(
     """
@@ -1402,6 +1402,8 @@ else:
         poster_visual_images = req.get("visual_images", [])
         try:
             with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
+                if DEBUG_UI:
+                    st.info(f"Sending to n8n: {len(poster_visual_images)} images, {len(guidelines)} guidelines")
                 img_res = call_n8n_generate_poster(
                     poster_concept=concept,
                     guidelines=guidelines,
@@ -1409,6 +1411,8 @@ else:
                     visual_images=poster_visual_images,
                     mode=st.session_state.get("n8n_mode", "TEST"),
                 )
+                if DEBUG_UI:
+                    st.info(f"Response OK: {img_res.get('ok')}, Status: {img_res.get('status_code')}")
                 if not img_res.get("ok"):
                     raise RuntimeError(
                         img_res.get("response_text_snippet", "n8n poster call failed")
@@ -1430,7 +1434,11 @@ else:
             st.session_state["generate_image_pending"] = False
             st.session_state["generate_image_error"] = str(e)
             st.session_state["generate_image_request"] = None
-            st.warning(f"Poster generation failed: {e}")
+            st.error(f"❌ Poster generation failed: {e}")
+            # Show debug info if available
+            if "img_res" in locals():
+                st.caption(f"n8n HTTP status: {img_res.get('status_code')}")
+                st.caption(f"Response snippet: {img_res.get('response_text_snippet', 'N/A')}")
 
 # Defer carousel rerun until after button handling to avoid missed clicks
 if st.session_state.get("carousel_needs_rerun") and not st.session_state.get("generate_image_pending"):
