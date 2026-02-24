@@ -90,8 +90,6 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
     ):
         raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
 
-    return target_url        raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
-
     return target_url
 
 
