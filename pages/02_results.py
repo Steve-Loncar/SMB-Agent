@@ -1287,7 +1287,7 @@ else:
                         concept_vp_result = None
                         if all_candidates:
                             try:
-                                with st.spinner("Searching for the best images for this concept..."):
+                                with st.spinner(f"Searching {len(all_candidates)} website images for best matches..."):
                                     hunt_dbg = call_n8n_image_hunt(
                                         url=st.session_state.get("target_url", ""),
                                         business_summary=bs,
@@ -1301,21 +1301,32 @@ else:
                                 if isinstance(hunt_resp, list) and hunt_resp and isinstance(hunt_resp[0], dict):
                                     hunt_resp = hunt_resp[0]
                                 concept_vp = hunt_resp.get("visual_pack") if isinstance(hunt_resp, dict) else None
-                                if concept_vp:
+                                if concept_vp and isinstance(concept_vp, dict) and concept_vp.get("images"):
                                     cvp_store = st.session_state.get("concept_visual_packs", {})
                                     cvp_store[i] = concept_vp
                                     st.session_state["concept_visual_packs"] = cvp_store
                                     concept_vp_result = concept_vp
+                                else:
+                                    st.warning("Per-concept image hunt returned no images — will try fallbacks.")
                             except Exception as hunt_err:
                                 st.warning(f"Image search encountered an issue: {hunt_err}")
+                        else:
+                            st.warning("No asset candidates available from page analysis — image hunt skipped.")
 
                         # Step 2: Collect enriched image objects and build guidelines for n8n poster workflow
+                        # Fallback chain: concept hunt → stored concept pack → global visual_pack → raw asset_candidates
                         if concept_vp_result is None:
                             concept_vp_result = st.session_state.get("concept_visual_packs", {}).get(i, {})
-                        vp_images = concept_vp_result.get("images") or []
-                        vp_logos = concept_vp_result.get("logos") or []
-                        vp_brand = concept_vp_result.get("brand") or {}
-                        vp_shortlist = concept_vp_result.get("shortlist") or {}
+                        if not concept_vp_result or not concept_vp_result.get("images"):
+                            # Fallback to global visual_pack (from button ④)
+                            _global_vp = st.session_state.get("visual_pack")
+                            if isinstance(_global_vp, dict) and _global_vp.get("images"):
+                                concept_vp_result = _global_vp
+                                st.info("Using global image hunt results (per-concept hunt returned empty).")
+                        vp_images = (concept_vp_result.get("images") if isinstance(concept_vp_result, dict) else None) or []
+                        vp_logos = (concept_vp_result.get("logos") if isinstance(concept_vp_result, dict) else None) or []
+                        vp_brand = (concept_vp_result.get("brand") if isinstance(concept_vp_result, dict) else None) or {}
+                        vp_shortlist = (concept_vp_result.get("shortlist") if isinstance(concept_vp_result, dict) else None) or {}
 
                         # Pass full enriched image objects (type, recommended_use, cropping_guidance,
                         # layout_pairing, why_relevant, composite_score) — not just bare URLs.
@@ -1327,6 +1338,22 @@ else:
                         for lg in vp_logos:
                             if isinstance(lg, dict) and lg.get("url"):
                                 poster_visual_images.append({**lg, "recommended_use": "logo"})
+
+                        # Last-resort fallback: use raw asset_candidates as bare image objects
+                        if not poster_visual_images:
+                            _fallback_candidates = st.session_state.get("asset_candidates", [])
+                            if _fallback_candidates:
+                                poster_visual_images = [
+                                    {"url": c["url"], "type": "other", "recommended_use": "background",
+                                     "why_relevant": c.get("alt", ""), "composite_score": 50,
+                                     "alt": c.get("alt", ""), "source_page": c.get("source_page", "")}
+                                    for c in _fallback_candidates
+                                    if isinstance(c, dict) and c.get("url")
+                                       and not c.get("url", "").startswith("data:")
+                                       and c.get("kind") != "svg_inline"
+                                ][:30]  # cap to avoid huge payloads
+                                if poster_visual_images:
+                                    st.warning(f"Image hunt returned no curated images — falling back to {len(poster_visual_images)} raw website images.")
 
                         # Build guidelines dict — include full business context + brand cues + shortlist
                         guidelines = {
