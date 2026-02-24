@@ -14,38 +14,26 @@ Mode = Literal["TEST", "LIVE"]
 Endpoint = Literal["generate_ads", "generate_image", "generate_poster", "scrape_pack", "check_text_blobs", "homepage_summarise", "tier1_summarise", "image_hunt", "generate_ad_concepts"]
 
 
-# n8n webhook ID mapping (from .n8n-state.json webhook nodes)
-# Maps path -> webhook ID for correct n8n cloud webhook URLs
-WEBHOOK_IDS = {
-    "SMB-generate-ad-concepts": "f1c1027f-7f30-4778-9e86-50d3eec43abb",  # zRiOBZzZe1xC2s4o
-    "check-text-blobs": "dd8ce2f3-ccd9-46c3-a98f-3ad205206af0",  # MPLFXEKhILpVNwJE
-    "generate-image": "c0a3cdfa-59d0-4ff7-a159-de6404b3a52d",  # LwppGj55f48uEPcm (smb_image_gen)
-    "scrape-pack": "8f48c91d-fd36-44fb-8f81-35cbf52dec3f",  # MOC3yN0C7ke04nM4
-    "SMB-image-hunt": "f50e2198-bc22-4bdf-a4de-cec065a6b0d9",  # Q5kdwj9M7VlCwX2Z
-    "SMB-homepage-summarise": "2cab9d6a-e4cd-48bc-bdbe-1d3f9200e051",  # ykqSvp3N92Yq6GjM
-    "SMB-tier1-summariser": "b49fa9a7-a057-44b0-8475-bbe71b5c69b7",  # rJmG2127XE4XU3Zs
-}
-
-
 def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optional[str] = None) -> str:
     """
     Single source of truth for webhook URLs.
-    Uses webhookId format (required for n8n cloud).
 
     Env:
       N8N_BASE_URL (optional, defaults to your n8n cloud)
       N8N_WEBHOOK_SECRET (optional, sent as X-Webhook-Secret)
 
-      Optional per-endpoint override env vars:
+      Optional per-endpoint override env vars (if you want them later):
         N8N_GENERATE_ADS_URL_TEST / _LIVE
-        N8N_GENERATE_IMAGE_URL_TEST / _LIVE, etc.
+        N8N_GENERATE_IMAGE_URL_TEST / _LIVE
+        N8N_SCRAPE_PACK_URL_TEST / _LIVE
+        N8N_CHECK_TEXT_BLOBS_URL_TEST / _LIVE
     """
     if override_url:
         target_url = override_url.strip()
     else:
         base = (os.getenv("N8N_BASE_URL") or "https://fpgconsulting.app.n8n.cloud").rstrip("/")
 
-        # Optional explicit full URL overrides
+        # Optional explicit full URL overrides (handy for quick swaps)
         env_map = {
             ("generate_ads", "TEST"): "N8N_GENERATE_ADS_URL_TEST",
             ("generate_ads", "LIVE"): "N8N_GENERATE_ADS_URL_LIVE",
@@ -71,34 +59,38 @@ def resolve_n8n_webhook(endpoint: Endpoint, mode: Mode, *, override_url: Optiona
         if explicit:
             target_url = explicit
         else:
-            # Webhook paths and their IDs
-            webhook_paths = {
-                "generate_ads": "SMB-generate-ad-concepts",
-                "generate_ad_concepts": "SMB-generate-ad-concepts",
-                "generate_image": "generate-image",
-                "generate_poster": "generate-image",
-                "scrape_pack": "scrape-pack",
-                "check_text_blobs": "check-text-blobs",
-                "homepage_summarise": "SMB-homepage-summarise",
-                "tier1_summarise": "SMB-tier1-summariser",
-                "image_hunt": "SMB-image-hunt",
+            # Default paths (your current conventions)
+            paths = {
+                ("generate_ads", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
+                ("generate_ads", "LIVE"): "/webhook/SMB-generate-ad-concepts",
+                ("generate_ad_concepts", "TEST"): "/webhook-test/SMB-generate-ad-concepts",
+                ("generate_ad_concepts", "LIVE"): "/webhook/SMB-generate-ad-concepts",
+                ("generate_image", "TEST"): "/webhook-test/generate-image",
+                ("generate_image", "LIVE"): "/webhook/generate-image",
+                ("scrape_pack", "TEST"): "/webhook-test/scrape-pack",
+                ("scrape_pack", "LIVE"): "/webhook/scrape-pack",
+                ("check_text_blobs", "TEST"): "/webhook-test/check-text-blobs",
+                ("check_text_blobs", "LIVE"): "/webhook/check-text-blobs",
+                ("homepage_summarise", "TEST"): "/webhook-test/SMB-homepage-summarise",
+                ("homepage_summarise", "LIVE"): "/webhook/SMB-homepage-summarise",
+                ("tier1_summarise", "TEST"): "/webhook-test/SMB-tier1-summariser",
+                ("tier1_summarise", "LIVE"): "/webhook/SMB-tier1-summariser",
+                ("image_hunt", "TEST"): "/webhook-test/SMB-image-hunt",
+                ("image_hunt", "LIVE"): "/webhook/SMB-image-hunt",
+                ("generate_poster", "TEST"): "/webhook-test/generate-image",
+                ("generate_poster", "LIVE"): "/webhook/generate-image",
             }
-            path = webhook_paths.get(endpoint)
-            webhook_id = WEBHOOK_IDS.get(path) if path else None
-            
-            if not webhook_id:
-                raise RuntimeError(f"Unknown webhook ID for endpoint {endpoint}")
-            
-            # Use webhookId format for n8n cloud
-            target_url = f"{base}/webhook/{webhook_id}"
+            target_url = base + paths[(endpoint, mode)]
 
     # Hard fail if URL isn't exactly what we expect (prevents "posting to nowhere")
     if (
         not isinstance(target_url, str)
         or not target_url.startswith("https://")
-        or "/webhook/" not in target_url
+        or "/webhook" not in target_url
     ):
         raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
+
+    return target_url        raise RuntimeError(f"Invalid n8n webhook URL: {repr(target_url)}")
 
     return target_url
 
