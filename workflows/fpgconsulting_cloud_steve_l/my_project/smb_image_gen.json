@@ -53,7 +53,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2000,
+        2688,
         0
       ],
       "name": "Step 9: Prepare Response Payload"
@@ -66,7 +66,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2224,
+        2912,
         0
       ],
       "name": "Step 10: Respond to Webhook"
@@ -77,9 +77,9 @@
           "assignments": [
             {
               "id": "s1-a",
-              "name": "poster_concept",
-              "value": "={{ $json.body.poster_concept }}",
-              "type": "object"
+              "name": "visual_images",
+              "value": "={{ $json.body.visual_images }}",
+              "type": "array"
             },
             {
               "id": "s1-b",
@@ -119,9 +119,9 @@
             },
             {
               "id": "fbd48fa6-1589-4a8c-b383-5ca976bd5e77",
-              "name": "",
-              "value": "",
-              "type": "string"
+              "name": "visual_images",
+              "value": "={{ $json.body.visual_images }}",
+              "type": "array"
             }
           ]
         },
@@ -150,7 +150,7 @@
             },
             {
               "name": "messages",
-              "value": "={{[\n  {\n    role: 'system',\n    content: ($json.image_selection_system)\n  },\n  {\n    role: 'user',\n    content: \n      ($json.image_selection_user_template) +\n      '\\n\\n===== DATA INPUTS =====\\n\\n' +\n      'POSTER CONCEPT:\\n' +\n      JSON.stringify($json.poster_concept) +\n      '\\n\\nGUIDELINES:\\n' +\n      JSON.stringify($json.guidelines) +\n      '\\n\\nIMAGE URLS:\\n' +\n      JSON.stringify($json.image_urls)\n  }\n]}}"
+              "value": "={{[\n  {\n    role: 'system',\n    content: $json.image_selection_system\n  },\n  {\n    role: 'user',\n    content: $json.image_selection_user_template\n  }\n]}}"
             }
           ]
         },
@@ -238,12 +238,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const inputs = $('Normalise Inputs').item.json;\nconst parsed = $json.parsed || {};\nconst selectedImages = parsed.selected_images || [];\n\nlet userPrompt = inputs.poster_gen_user_template || '';\nuserPrompt = userPrompt.split('{poster_concept}').join(\n  JSON.stringify(inputs.poster_concept, null, 2)\n);\nuserPrompt = userPrompt.split('{selected_images}').join(\n  JSON.stringify(selectedImages, null, 2)\n);\nuserPrompt = userPrompt.split('{guidelines}').join(\n  JSON.stringify(inputs.guidelines, null, 2)\n);\n\nreturn [{\n  json: {\n    system_prompt_poster: inputs.poster_gen_system,\n    user_prompt_poster: userPrompt,\n    selected_images: selectedImages,\n    selection_notes: parsed.selection_notes || {},\n  }\n}];"
+        "jsCode": "const inputs = $('Normalise Inputs').item.json;\nconst parsed = $json.parsed || {};\nconst selectionNotes = parsed.selection_notes || {};\nconst selectedImages = parsed.selected_images || [];\n\n// Extract hero image URL for vision input\nconst heroImageUrl = selectionNotes.hero_image_url ||\n  (selectedImages.length > 0\n    ? (typeof selectedImages[0] === 'string' ? selectedImages[0] : selectedImages[0].url)\n    : '');\n\n// Build selected_images as simple URL array for backwards compat\nconst selectedImageUrls = selectedImages.map(im =>\n  typeof im === 'string' ? im : (im.url || '')\n).filter(Boolean);\n\nlet userPrompt = inputs.poster_gen_user_template || '';\nuserPrompt = userPrompt.split('{poster_concept}').join(\n  JSON.stringify(inputs.poster_concept, null, 2)\n);\nuserPrompt = userPrompt.split('{selected_images}').join(\n  JSON.stringify(parsed, null, 2)\n);\nuserPrompt = userPrompt.split('{guidelines}').join(\n  JSON.stringify(inputs.guidelines, null, 2)\n);\n\nreturn [{\n  json: {\n    system_prompt_poster: inputs.poster_gen_system,\n    user_prompt_poster: userPrompt,\n    hero_image_url: heroImageUrl,\n    selected_images: selectedImageUrls,\n    selection_notes: selectionNotes,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
+        1344,
         0
       ],
       "name": "Build Stage 2 Prompt"
@@ -263,7 +263,7 @@
             },
             {
               "name": "messages",
-              "value": "={{ [ { \"role\": \"system\", \"content\": $json.system_prompt_poster }, { \"role\": \"user\", \"content\": $json.user_prompt_poster } ] }}"
+              "value": "={{[\n  {\n    role: \"system\",\n    content: $json.system_prompt_poster\n  },\n  {\n    role: \"user\",\n    content: [\n      ...($json.hero_image_url ? [{\n        type: \"image_url\",\n        image_url: {\n          url: $json.hero_image_url,\n          detail: \"high\"\n        }\n      }] : []),\n      {\n        type: \"text\",\n        text: $json.user_prompt_poster\n      }\n    ]\n  }\n]}}"
             }
           ]
         },
@@ -272,7 +272,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1536,
+        1568,
         0
       ],
       "name": "Generate Poster Prompt",
@@ -300,8 +300,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1264,
-        224
+        1792,
+        0
       ],
       "name": "Raw text in1"
     },
@@ -322,20 +322,20 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1488,
-        224
+        2016,
+        0
       ],
       "name": "Strip fences1"
     },
     {
       "parameters": {
-        "jsCode": "const parsed = JSON.parse($json.no_fences);\nconst selectedImages = $('Build Stage 2 Prompt').item.json.selected_images || [];\nconst selectionNotes = $('Build Stage 2 Prompt').item.json.selection_notes || {};\nconst overlay_text = parsed.render_notes?.text_overlay || {};\nconst text_safe_area = parsed.render_notes?.text_safe_area || \"Leave generous clean space for text overlay.\";\n\nconst render_notes = {\n  overlay_text,\n  text_safe_area,\n  negative_instructions: parsed.render_notes?.negative_instructions\n};\n\nlet poster_prompt = parsed.poster_prompt || '';\nposter_prompt += `\\n\\nCRITICAL: Do NOT include any text, letters, numbers, signage, labels, badges, seals, or typography. Background plate only. ${text_safe_area}`;\n\nreturn [{\n  json: {\n    poster_prompt,\n    poster_metadata: parsed,\n    selected_images: selectedImages,\n    selection_notes: selectionNotes,\n    render_notes,\n  }\n}];"
+        "jsCode": "const parsed = JSON.parse($json.no_fences);\nconst selectedImages = $('Build Stage 2 Prompt').item.json.selected_images || [];\nconst selectionNotes = $('Build Stage 2 Prompt').item.json.selection_notes || {};\nconst overlay_text = parsed.render_notes?.text_overlay || {};\nconst text_safe_area = parsed.render_notes?.text_safe_area || \"Leave generous clean space for text overlay.\";\n\nconst render_notes = {\n  overlay_text,\n  text_safe_area,\n  negative_instructions: parsed.render_notes?.negative_instructions\n};\n\n// Format-aware size for gpt-image-1\nconst orientation = parsed.layout_spec?.orientation || 'portrait';\nconst imageSize = orientation === 'landscape' ? '1536x1024' : '1024x1536';\n\nlet poster_prompt = parsed.poster_prompt || '';\nposter_prompt += `\\n\\nCRITICAL: Do NOT include any text, letters, numbers, signage, labels, badges, seals, or typography. Background plate only. ${text_safe_area}`;\n\nreturn [{\n  json: {\n    poster_prompt,\n    image_size: imageSize,\n    poster_metadata: parsed,\n    selected_images: selectedImages,\n    selection_notes: selectionNotes,\n    render_notes,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1696,
-        224
+        2240,
+        0
       ],
       "name": "Build Stage 3 Prompt"
     },
@@ -350,23 +350,27 @@
           "parameters": [
             {
               "name": "model",
-              "value": "dall-e-3"
+              "value": "gpt-image-1"
             },
             {
               "name": "prompt",
-              "value": "={{ $json.poster_prompt }}"
+              "value": "={{ $('Build Stage 3 Prompt').item.json.poster_prompt }}"
             },
             {
               "name": "n",
               "value": 1
             },
             {
-              "name": "size",
-              "value": "1024x1024"
+              "name": "output_format",
+              "value": "png"
             },
             {
-              "name": "response_format",
-              "value": "b64_json"
+              "name": "quality",
+              "value": "high"
+            },
+            {
+              "name": "size",
+              "value": "={{ $('Build Stage 3 Prompt').item.json.image_size }}"
             }
           ]
         },
@@ -375,10 +379,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1744,
+        2464,
         0
       ],
-      "name": "DALL-E - Generate Poster Image",
+      "name": "GPT-Image-1 - Generate Poster Image",
       "credentials": {
         "openAiApi": {
           "id": "qvYIchzeQAYSEfoi",
@@ -513,14 +517,14 @@
       "main": [
         [
           {
-            "node": "DALL-E - Generate Poster Image",
+            "node": "GPT-Image-1 - Generate Poster Image",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "DALL-E - Generate Poster Image": {
+    "GPT-Image-1 - Generate Poster Image": {
       "main": [
         [
           {
@@ -535,12 +539,5 @@
   "settings": {},
   "tags": [],
   "active": true,
-  "projectId": "FINYdRRpzfX9wIho",
-  "projectName": "My project",
-  "homeProject": {
-    "id": "FINYdRRpzfX9wIho",
-    "name": "My project",
-    "type": "team"
-  },
   "isArchived": false
 }
