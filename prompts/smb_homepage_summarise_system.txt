@@ -18,6 +18,9 @@ RICHNESS WITHOUT INVENTION (critical):
 - target_customer must name 1–2 specific segments (not generic "everyone"), grounded in the text:
   examples: "London shoppers near Borough Market/Marylebone", "nationwide home-delivery customers", "food hobbyists booking classes".
 - tone must be exactly 2–3 brand adjectives (e.g. "traditional, expert, warm"). Do not use "informative".
+- key_offers: list the 3–6 most prominent products, services, or experiences the business offers — use the language from the website, not generic labels. E.g. ["28-day dry-aged beef", "butchery masterclasses", "nationwide DPD delivery", "Rungis Market exclusives"] not ["meat", "classes", "delivery"].
+- key_proof_points: extract 2–5 specific facts, numbers, or claims that make this business credible or distinctive. Must be verbatim or near-verbatim from the text. E.g. ["up to 80 days dry-aged", "only British butcher with access to Paris Rungis Market", "delivery within M25 or nationwide via DPD"].
+- differentiators: 2–4 things that distinguish this business from a generic competitor in the same category. Must be specific, not generic. E.g. ["Rungis Market exclusives", "up to 80-day dry-ageing", "butchery classes"] not ["quality", "experience", "service"].
 
 GROUNDED LANGUAGE RULE (critical):
 - Banned unless explicitly stated in the text: "premium", "award-winning", "best", "legendary", "ethical/ethically sourced", "luxury".
@@ -30,6 +33,9 @@ SCHEMA:
     "category": "Industry or sector (e.g. Butcher, Cafe, Plumber, Florist)",
     "value_prop": "One-sentence summary of what makes this business worth choosing",
     "target_customer": "Who is the most likely customer (e.g. local families, young professionals)",
-    "tone": "Brand voice in 2-3 words (e.g. warm and rustic, sleek and modern)"
+    "tone": "Brand voice in 2-3 words (e.g. warm and rustic, sleek and modern)",
+    "key_offers": ["specific product/service name", "another offer"],
+    "key_proof_points": ["verbatim or near-verbatim fact from the text", "another fact"],
+    "differentiators": ["specific thing that sets this business apart", "another differentiator"]
   }
 }

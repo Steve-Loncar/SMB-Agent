@@ -265,11 +265,15 @@ def call_n8n_generate_poster(
         .replace("{visual_images}", json.dumps(visual_images, ensure_ascii=False, indent=2))
     )
 
-    # Stage 2 prompts: poster prompt gen (template — n8n substitutes {selected_images} after stage 1)
+    # Stage 2 prompts: poster prompt gen
+    # Pre-replace everything except {selected_images} (which depends on n8n stage 1 image selection output).
+    # This ensures poster gen is fully populated regardless of n8n workflow sync state.
     poster_system = _load_prompt("smb_poster_gen_system.txt")
     poster_user_template = (
         _load_prompt("smb_poster_gen_user.txt")
         .replace("{business_summary}", json.dumps(bs, ensure_ascii=False, indent=2))
+        .replace("{poster_concept}", json.dumps(poster_concept, ensure_ascii=False, indent=2))
+        .replace("{guidelines}", json.dumps(guidelines, ensure_ascii=False, indent=2))
     )
 
     # Bare URLs for n8n fallback / debug

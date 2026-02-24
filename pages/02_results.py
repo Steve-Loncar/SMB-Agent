@@ -1326,7 +1326,7 @@ else:
                             "vertical": bs.get("vertical", ""),
                             "tone": bs.get("tone", ""),
                             "value_proposition": bs.get("value_prop") or bs.get("value_proposition", ""),
-                            "target_audience": bs.get("target_audience", ""),
+                            "target_audience": bs.get("target_customer", "") or bs.get("target_audience", ""),
                             "differentiators": bs.get("differentiators", []),
                             "key_offers": bs.get("key_offers", []),
                             "key_proof_points": bs.get("key_proof_points", []),
