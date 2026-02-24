@@ -630,6 +630,7 @@ if not target_url:
 
 # --- Client-facing narrative header ---
 status = st.session_state.get("scrape_status", "idle")
+st.info(f"DEBUG: Current scrape_status = '{status}'")
 
 st.markdown("### Thank you — we're reviewing your website")
 if status in ("queued", "idle"):
@@ -815,6 +816,7 @@ if isinstance(_t2_decision, dict) and _t2_decision:
 st.divider()
 
 if status == "queued":
+    st.info(f"DEBUG: Status is 'queued', calling scrape_pack for {target_url}")
     with st.spinner("Scanning your website — this may take a moment..."):
         try:
             debug = call_n8n_scrape_pack(
