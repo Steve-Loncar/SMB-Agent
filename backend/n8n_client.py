@@ -151,19 +151,7 @@ def call_n8n_generate_ads(
     )
 
     payload = {
-        "payload_type": "smb_generate_ads_v2",
         "url": url,
-        # Keep legacy fields for backward compatibility / debugging
-        "scraped_text": (scraped_text or "")[:20000],
-        "scraped_text_len": len(scraped_text or ""),
-        "sample_text": (scraped_text or "")[:500],
-        # New, richer inputs
-        "homepage_markdown": (homepage_markdown or "")[:30000],
-        "page_summaries": page_summaries or [],
-        "business_summary": business_summary or {},
-        "image_urls": image_urls or [],
-        "image_count": len(image_urls or []),
-        # Prompts (consistent with other workflows)
         "prompt_system": _load_prompt("smb_generate_ads_system.txt"),
         "prompt_user": prompt_user,
     }
@@ -279,10 +267,9 @@ def call_n8n_generate_poster(
     # Bare URLs for n8n fallback / debug
     image_urls = [im.get("url", "") for im in visual_images if isinstance(im, dict) and im.get("url")]
 
+    # Payload: only send what n8n actually needs
+    # (prompts already have concept/guidelines embedded, visual_images needed for selection)
     payload = {
-        "poster_concept": poster_concept,
-        "guidelines": guidelines,
-        "business_summary": bs,
         "visual_images": visual_images,
         "image_urls": image_urls,
         "prompt_system_selection": sel_system,
@@ -680,13 +667,8 @@ def call_n8n_image_hunt(
     )
 
     payload = {
-        "payload_type": "smb_image_hunt",
         "url": url,
-        "business_summary": business_summary or {},
-        "page_summaries": page_summaries or [],
-        "tier2_page_summaries": tier2_page_summaries or [],
         "asset_candidates": filtered_candidates,
-        "concept": concept or {},
         "prompt_system": _load_prompt("smb_image_hunt_system.txt"),
         "prompt_user": prompt_user,
     }
