@@ -241,8 +241,7 @@ def call_n8n_generate_poster(
     webhook_url: Optional[str] = None,
 ) -> dict:
     """
-    POST structured data to n8n poster generation workflow.
-    Triggers workflow execution directly via the n8n API.
+    POST structured data to n8n poster generation workflow via webhook.
     
     Three-stage flow in n8n:
       (1) LLM selects best images from enriched visual_images (with type/cropping/layout metadata)
@@ -250,34 +249,9 @@ def call_n8n_generate_poster(
       (3) gpt-image-1 generates background plate using hero image as reference
     Returns { image_b64, mime, selected_images, poster_metadata }.
     """
-    # If webhook URL provided, use the old webhook method
-    if webhook_url:
-        target_url = webhook_url.strip()
-        headers = _tender_headers()
-    else:
-        # Use n8n API to trigger workflow directly (more reliable for n8n cloud)
-        # This executes the workflow and waits for completion
-        n8n_host = (os.getenv("N8N_BASE_URL") or "https://fpgconsulting.app.n8n.cloud").rstrip("/")
-        
-        # Get API key from environment or .vscode/settings.json
-        api_key = os.getenv("N8N_API_KEY")
-        if not api_key:
-            try:
-                with open(".vscode/settings.json", "r") as f:
-                    vscode_settings = json.load(f)
-                    api_key = vscode_settings.get("n8n.apiKey", "")
-            except Exception:
-                api_key = ""
-        
-        if not api_key:
-            raise RuntimeError("N8N_API_KEY not found in environment or .vscode/settings.json")
-        
-        workflow_id = "LwppGj55f48uEPcm"  # smb_image_gen workflow ID
-        target_url = f"{n8n_host}/api/v1/workflows/{workflow_id}/execute"
-        headers = {
-            "Content-Type": "application/json",
-            "X-N8N-API-KEY": api_key,
-        }
+    # Use webhook endpoint (same path-based format as other endpoints)
+    target_url = resolve_n8n_webhook("generate_poster", mode, override_url=webhook_url)
+    headers = _tender_headers()
     
     bs = business_summary or {}
 
@@ -313,12 +287,7 @@ def call_n8n_generate_poster(
         "prompt_user_poster_template": poster_user_template,
     }
 
-    if webhook_url:
-        # Legacy webhook mode
-        r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 180))
-    else:
-        # n8n API execute mode (waits for completion, returns full execution result)
-        r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 300))
+    r = requests.post(target_url, json=payload, headers=headers, timeout=(10, 180))
     
     out: Dict[str, Any] = {
         "ok": (200 <= r.status_code < 300),
@@ -334,33 +303,11 @@ def call_n8n_generate_poster(
     
     try:
         resp_json = r.json()
-        # n8n /execute API returns the full execution result
-        # We need to extract the final output data
-        if isinstance(resp_json, dict) and "data" in resp_json:
-            # API execute response has execution data
-            exec_data = resp_json.get("data", {})
-            if isinstance(exec_data, dict) and "resultData" in exec_data:
-                result_data = exec_data.get("resultData", {})
-                # Try to get output from "Step 10: Respond to Webhook" node
-                if isinstance(result_data, dict) and "runData" in result_data:
-                    run_data = result_data.get("runData", {})
-                    if isinstance(run_data, dict):
-                        # Find the last executed node's output
-                        for node_name, node_output in run_data.items():
-                            if isinstance(node_output, list) and node_output:
-                                last_output = node_output[-1]
-                                if isinstance(last_output, dict) and "data" in last_output:
-                                    node_data = last_output.get("data", {})
-                                    if isinstance(node_data, dict) and "main" in node_data:
-                                        main = node_data.get("main", [[]])
-                                        if isinstance(main, list) and main and isinstance(main[0], list):
-                                            if main[0]:
-                                                out["response_json"] = main[0][0].get("json", {})
-                                                return out
-        # Fallback: if structured format not found, use as-is
+        # n8n respondWith allIncomingItems wraps in a list
+        if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            resp_json = resp_json[0]
         out["response_json"] = resp_json
-    except Exception as e:
-        out["_parse_error"] = str(e)
+    except Exception:
         out["response_json"] = None
     
     return out

@@ -1311,7 +1311,7 @@ else:
                                     if isinstance(c, dict) and c.get("url")
                                        and not c.get("url", "").startswith("data:")
                                        and c.get("kind") != "svg_inline"
-                                ][:30]  # cap to avoid huge payloads
+                                ]
                                 if poster_visual_images:
                                     st.warning(f"Using {len(poster_visual_images)} website images for poster generation.")
                         
