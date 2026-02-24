@@ -252,8 +252,8 @@
             {
               "id": "c5f00247-cedb-4141-9d52-5be046d891e5",
               "name": "ad_snippets_structured",
-              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
-              "type": "string"
+              "value": "={{ (() => { const allowed = new Set(['proof','offer','cta','differentiation','location','delivery','classes','headline_candidate','supporting_copy']); const p = $json.parsed || {}; const arr = Array.isArray(p.ad_snippets_structured) ? p.ad_snippets_structured : []; return arr.map(o => { const useArr = Array.isArray(o.use) ? o.use : []; const normalised = useArr.map(u => (u === 'prooff' ? 'proof' : u)).filter(u => allowed.has(u)); return { ...o, use: normalised }; }); })() }}",
+              "type": "array"
             }
           ]
         },
@@ -363,7 +363,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 15000
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -415,7 +415,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 15000
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -577,7 +577,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 15000
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -815,8 +815,8 @@
             {
               "id": "b64a5370-3dae-4088-b7b8-49c26dd9994b",
               "name": "ad_snippets_structured",
-              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
-              "type": "string"
+              "value": "={{ (() => { const allowed = new Set(['proof','offer','cta','differentiation','location','delivery','classes','headline_candidate','supporting_copy']); const p = $json.parsed || {}; const arr = Array.isArray(p.ad_snippets_structured) ? p.ad_snippets_structured : []; return arr.map(o => { const useArr = Array.isArray(o.use) ? o.use : []; const normalised = useArr.map(u => (u === 'prooff' ? 'proof' : u)).filter(u => allowed.has(u)); return { ...o, use: normalised }; }); })() }}",
+              "type": "array"
             }
           ]
         },
@@ -1006,7 +1006,7 @@
               "responseFormat": "json"
             }
           },
-          "timeout": 15000
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1136,8 +1136,8 @@
             {
               "id": "b6e69441-47bd-4612-a1dc-5be15738c57c",
               "name": "ad_snippets_structured",
-              "value": "={{ $json.parsed.page_summaries ? ($json.parsed.page_summaries[0].ad_snippets_structured || []) : ($json.parsed.ad_snippets_structured || []) }}",
-              "type": "string"
+              "value": "={{ (() => { const allowed = new Set(['proof','offer','cta','differentiation','location','delivery','classes','headline_candidate','supporting_copy']); const p = $json.parsed || {}; const arr = Array.isArray(p.ad_snippets_structured) ? p.ad_snippets_structured : []; return arr.map(o => { const useArr = Array.isArray(o.use) ? o.use : []; const normalised = useArr.map(u => (u === 'prooff' ? 'proof' : u)).filter(u => allowed.has(u)); return { ...o, use: normalised }; }); })() }}",
+              "type": "array"
             }
           ]
         },
@@ -1230,13 +1230,13 @@
             {
               "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
               "name": "page_summaries",
-              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, ad_snippets_structured: (p.ad_snippets_structured || []), page_source: p.page_source })) }}",
               "type": "array"
             },
             {
               "id": "id-2",
               "name": "tier2_page_summaries",
-              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, ad_snippets_structured: (p.ad_snippets_structured || []), page_source: p.page_source })) }}",
               "type": "array"
             },
             {
@@ -1270,13 +1270,13 @@
             {
               "id": "5ff9906d-783a-4c32-9894-3e26c1bd38dd",
               "name": "page_summaries",
-              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "value": "={{ $json.page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, ad_snippets_structured: (p.ad_snippets_structured || []), page_source: p.page_source })) }}",
               "type": "array"
             },
             {
               "id": "id-2",
               "name": "tier2_page_summaries",
-              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, page_source: p.page_source })) }}",
+              "value": "={{ $json.tier2_page_summaries.map(p => ({ page_url: p.page_url, page_title: p.page_title, ad_snippets: p.ad_snippets, ad_snippets_structured: (p.ad_snippets_structured || []), page_source: p.page_source })) }}",
               "type": "array"
             },
             {

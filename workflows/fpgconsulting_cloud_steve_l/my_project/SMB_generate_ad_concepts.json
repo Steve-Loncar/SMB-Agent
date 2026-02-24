@@ -33,7 +33,7 @@
             },
             {
               "name": "messages",
-              "value": "={{[\n  {\n    role: 'system',\n    content: ($json.prompt_system)\n  },\n  {\n    role: 'user',\n    content: ($json.prompt_user) +\n      '\\n\\nBUSINESS SUMMARY:\\n' +\n      JSON.stringify(($json.body.business_summary) || {}) +\n      '\\n\\nTIER 1 & 2 PAGE SUMMARIES:\\n' +\n      JSON.stringify(($json.page_summaries) || []) \n  }\n]}}"
+              "value": "={{[\n  {\n    role: 'system',\n    content: ($json.prompt_system)\n  },\n  {\n    role: 'user',\n    content: ($json.prompt_user) +\n      '\\n\\nBUSINESS SUMMARY:\\n' +\n      JSON.stringify(($json.business_summary) || {}) +\n      '\\n\\nTIER 1 & 2 PAGE SUMMARIES:\\n' +\n      JSON.stringify(($json.page_summaries) || []) \n  }\n]}}"
             }
           ]
         },
@@ -167,8 +167,8 @@
             },
             {
               "id": "bd08992b-f26a-47e1-965b-9ca7474cddb6",
-              "name": "body.business_summary",
-              "value": "={{$json.body.business_summary ||  [] }}",
+              "name": "business_summary",
+              "value": "={{$json.body.business_summary ||  {} }}",
               "type": "object"
             }
           ]
