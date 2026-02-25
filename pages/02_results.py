@@ -523,6 +523,35 @@ with st.sidebar:
 
     # Step 4: Global image hunt (for testing / sidebar use)
     can_run_image_hunt = bool(st.session_state.get("asset_candidates"))
+    
+    # If no asset_candidates, offer to re-analyze pages
+    if not can_run_image_hunt and st.session_state.get("tier1_summarise_done"):
+        st.warning("⚠️ No images were extracted during page analysis. Try re-running page analysis.")
+        if st.button("🔄 Re-run Page Analysis (Find Images)", use_container_width=True):
+            _t1_url = st.session_state.get("target_url", "")
+            _sp = st.session_state.get("scrape_pack", {}) or {}
+            _t1_urls = _sp.get("tier1_urls", []) if isinstance(_sp, dict) else []
+            _t2_urls = _sp.get("tier2_urls", []) if isinstance(_sp, dict) else []
+            with st.spinner("Analysing pages…"):
+                _t1_dbg = call_n8n_tier1_summarise(
+                    url=_t1_url,
+                    tier1_urls=_t1_urls,
+                    tier2_urls=_t2_urls,
+                    business_summary=st.session_state.get("business_summary", {}),
+                    mode=mode,
+                )
+            _t1_resp = _t1_dbg.get("_n8n_response_json")
+            if isinstance(_t1_resp, list) and _t1_resp:
+                _t1_resp = _t1_resp[0]
+            if isinstance(_t1_resp, dict):
+                if isinstance(_t1_resp.get("page_summaries"), list):
+                    st.session_state["tier1_page_summaries"] = _t1_resp["page_summaries"]
+                if isinstance(_t1_resp.get("asset_candidates"), list):
+                    st.session_state["asset_candidates"] = _t1_resp["asset_candidates"]
+                    st.success(f"Found {len(st.session_state['asset_candidates'])} candidate images.")
+            st.rerun()
+        st.divider()
+    
     if st.button("④ Global Image Hunt", disabled=not can_run_image_hunt, use_container_width=True):
         _ih_url = st.session_state.get("target_url", "")
         _ih_ok = False
@@ -1316,7 +1345,13 @@ else:
                                     st.warning(f"Using {len(poster_visual_images)} website images for poster generation.")
                         
                         if not poster_visual_images:
-                            st.warning("No images available for poster generation. Please run Global Image Hunt first.")
+                            st.warning("⚠️ No images available for poster generation.")
+                            st.info(
+                                "**How to fix:** "
+                                "Scroll up to the **Manual Controls** section and:\n"
+                                "1. Click **④ Global Image Hunt** (to curate website images)\n"
+                                "2. Then click **Generate Poster** again"
+                            )
                             st.stop()
 
                         # Build guidelines dict — include full business context + brand cues + shortlist
