@@ -272,6 +272,9 @@ def call_n8n_generate_poster(
     payload = {
         "visual_images": visual_images,
         "image_urls": image_urls,
+        "poster_concept": poster_concept,
+        "guidelines": guidelines,
+        "business_summary": bs,
         "prompt_system_selection": sel_system,
         "prompt_user_selection": sel_user,
         "prompt_system_poster": poster_system,

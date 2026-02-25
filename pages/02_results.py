@@ -1346,9 +1346,19 @@ else:
 
                         # Call poster gen directly (no defer, no re-run)
                         try:
+                            # Validate inputs before sending to n8n
+                            if not poster_visual_images:
+                                raise RuntimeError("No images available (failed validation)")
+                            if not isinstance(concept, dict) or not concept.get("headline"):
+                                raise RuntimeError("Invalid poster concept (missing headline)")
+                            if not isinstance(guidelines, dict):
+                                raise RuntimeError("Invalid guidelines dict")
+                            
                             with st.spinner("Generating your poster (selecting images, building prompt, rendering)..."):
                                 if DEBUG_UI:
-                                    st.info(f"Sending to n8n: {len(poster_visual_images)} images, {len(guidelines)} guidelines")
+                                    st.info(f"Sending to n8n: {len(poster_visual_images)} images, {len(guidelines)} guidelines keys")
+                                    st.info(f"Concept: {concept.get('concept_name', '?')} | Headline: {concept.get('headline', '?')[:30]}...")
+                                
                                 img_res = call_n8n_generate_poster(
                                     poster_concept=concept,
                                     guidelines=guidelines,
@@ -1356,28 +1366,59 @@ else:
                                     visual_images=poster_visual_images,
                                     mode=st.session_state.get("n8n_mode", "TEST"),
                                 )
+                                
+                                # Store debug info for diagnostics
+                                if "poster_gen_debug" not in st.session_state:
+                                    st.session_state["poster_gen_debug"] = {}
+                                st.session_state["poster_gen_debug"][i] = {
+                                    **img_res,
+                                    "concept_name": concept.get("concept_name", "?"),
+                                }
+                                
                                 if DEBUG_UI:
-                                    st.info(f"Response OK: {img_res.get('ok')}, Status: {img_res.get('status_code')}")
+                                    st.info(f"n8n Response OK: {img_res.get('ok')} | HTTP {img_res.get('status_code')}")
+                                    if img_res.get('_debug_payload_keys'):
+                                        st.info(f"Payload keys sent: {img_res.get('_debug_payload_keys')}")
+                                
+                                # Check for HTTP errors
                                 if not img_res.get("ok"):
-                                    raise RuntimeError(
-                                        img_res.get("response_text_snippet", "n8n poster call failed")
-                                    )
+                                    error_msg = img_res.get("_error") or img_res.get("response_text_snippet", "n8n returned non-200 status")
+                                    raise RuntimeError(f"n8n HTTP {img_res.get('status_code')}: {error_msg[:500]}")
+                                
+                                # Parse response (handle list wrapping from n8n respondWith)
                                 resp = img_res.get("response_json") or {}
-                                b64 = (resp or {}).get("image_b64", "")
-                                if not b64:
-                                    raise RuntimeError("Missing image_b64 in n8n response")
-                                img_bytes = base64.b64decode(b64)
+                                if isinstance(resp, list) and resp:
+                                    resp = resp[0]
+                                
+                                # Validate response structure
+                                if not isinstance(resp, dict):
+                                    raise RuntimeError(f"Invalid response type: {type(resp).__name__} (expected dict)")
+                                
+                                b64 = resp.get("image_b64", "")
+                                if not b64 or not isinstance(b64, str):
+                                    raise RuntimeError(f"Missing/invalid image_b64 in response (got {type(b64).__name__})")
+                                
+                                # Decode the image
+                                try:
+                                    img_bytes = base64.b64decode(b64)
+                                except Exception as decode_err:
+                                    raise RuntimeError(f"Failed to decode base64 image: {decode_err}")
                             
                             # Success: store bytes
                             st.session_state["poster_images"][i] = img_bytes
                             st.success("✅ Poster generated!")
                             st.rerun()
                         except Exception as e:
-                            # Failure: show error
-                            st.error(f"❌ Poster generation failed: {e}")
-                            if "img_res" in locals():
-                                st.caption(f"n8n HTTP status: {img_res.get('status_code')}")
-                                st.caption(f"Response snippet: {img_res.get('response_text_snippet', 'N/A')}")
+                            # Failure: show detailed error
+                            st.error(f"❌ Poster generation failed: {str(e)[:300]}")
+                            if "img_res" in locals() and isinstance(img_res, dict):
+                                st.caption(f"HTTP status: {img_res.get('status_code', '?')}")
+                                if img_res.get("_error"):
+                                    st.caption(f"Error: {img_res.get('_error')[:400]}")
+                                if img_res.get('response_text_snippet'):
+                                    st.caption(f"Response: {img_res.get('response_text_snippet')[:400]}")
+                                if img_res.get('_debug_payload_keys'):
+                                    st.caption(f"Payload keys: {', '.join(img_res.get('_debug_payload_keys', []))}")
 
 # Defer carousel rerun until after button handling to avoid missed clicks
 if st.session_state.get("carousel_needs_rerun") and not st.session_state.get("generate_image_pending"):
@@ -1438,6 +1479,24 @@ with st.expander("Developer diagnostics (scrape + requests)", expanded=False):
             display_payload["page_summaries"] = f"[{len(display_payload['page_summaries'])} items]"
         st.json(display_payload)
         st.json(img_dbg.get("_n8n_response_json", {}))
+
+    # Poster generation debug info
+    poster_gen_attempts = st.session_state.get("poster_gen_debug", {})
+    if poster_gen_attempts and isinstance(poster_gen_attempts, dict):
+        st.subheader("Debug: poster generation attempts")
+        for concept_idx, gen_debug in poster_gen_attempts.items():
+            if isinstance(gen_debug, dict):
+                with st.expander(f"Concept {concept_idx}: {gen_debug.get('concept_name', '?')}", expanded=False):
+                    st.code(gen_debug.get("_debug_target_url", ""), language="text")
+                    st.write(f"HTTP {gen_debug.get('_debug_http_status', '?')}")
+                    if gen_debug.get("_error"):
+                        st.error(gen_debug.get("_error"))
+                    payload_keys = gen_debug.get("_debug_payload_keys", [])
+                    if payload_keys:
+                        st.write(f"Payload keys sent: {', '.join(payload_keys)}")
+                    st.write(f"Images sent: {gen_debug.get('_debug_image_url_count', 0)}")
+                    if gen_debug.get('response_text_snippet'):
+                        st.code(gen_debug.get('response_text_snippet'), language="json")
 
     st.subheader("Scraped pages")
     visited = st.session_state.get("visited_urls", [])
