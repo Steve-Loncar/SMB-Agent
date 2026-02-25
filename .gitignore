@@ -5,6 +5,11 @@ __pycache__/
 n8nac-skills
 n8nac-skills.cmd
 
+# n8n-as-code auto-generated files (don't commit)
+*.workflow.ts
+.n8n-state.json
+.trash/
+
 # Editor artifacts
 .history/
 .claude/
