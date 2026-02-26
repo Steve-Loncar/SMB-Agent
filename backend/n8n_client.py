@@ -725,6 +725,15 @@ def call_n8n_generate_ad_concepts(
     prompt_system = _load_prompt("smb_generate_ad_concepts_system.txt")
     prompt_user = _load_prompt("smb_generate_ad_concepts_user.txt")
 
+    # The n8n workflow appends business_summary and page_summaries to the prompt itself,
+    # but does not handle homepage_markdown. Pre-embed it here so the LLM sees it.
+    if homepage_markdown:
+        prompt_user = (
+            prompt_user
+            + "\n\nHOMEPAGE CONTENT (condensed markdown — additional brand context):\n"
+            + homepage_markdown[:15000]
+        )
+
     payload = {
         "prompt_system": prompt_system,
         "prompt_user": prompt_user,

@@ -26,6 +26,12 @@ GROUNDED LANGUAGE RULE (critical):
 - Banned unless explicitly stated in the text: "premium", "award-winning", "best", "legendary", "ethical/ethically sourced", "luxury".
 - Allowed if evidenced: "dry-aged (28 days / up to 80 days)", "Borough Market", "35,000+ attendees", "free-range", "delivery within M25 / nationwide via DPD", "butchery classes".
 
+BRAND VISUAL PROFILE (infer from copy and content — never invent):
+- photography_style: describe the photographic aesthetic implied by the copy and any image descriptions. E.g. "rustic farm and craft photography, earthy tones, natural light" or "clean white-background product shots". Use copy cues like "farm", "artisan", "heritage", "minimal", "vibrant", "seasonal".
+- visual_aesthetic: 2–4 words describing the overall visual feel the brand projects. E.g. "earthy, heritage, craft" or "clean, modern, clinical". Base this on tone + subject matter.
+- brand_vocabulary: 4–8 distinctive words or short phrases the brand actually uses (or strongly implies) that should appear in ad copy. Taken from the website text, not invented. E.g. ["provenance", "heritage breeds", "Tamworth", "Borough Market", "dry-aged", "hand-made"].
+- If you cannot confidently infer a field, return an empty string or empty array — do not guess.
+
 SCHEMA:
 {
   "business_summary": {
@@ -36,6 +42,11 @@ SCHEMA:
     "tone": "Brand voice in 2-3 words (e.g. warm and rustic, sleek and modern)",
     "key_offers": ["specific product/service name", "another offer"],
     "key_proof_points": ["verbatim or near-verbatim fact from the text", "another fact"],
-    "differentiators": ["specific thing that sets this business apart", "another differentiator"]
+    "differentiators": ["specific thing that sets this business apart", "another differentiator"],
+    "brand_visual": {
+      "photography_style": "e.g. rustic farm photography, natural light, earthy tones",
+      "visual_aesthetic": "e.g. earthy, heritage, craft",
+      "brand_vocabulary": ["distinctive word or phrase from the site", "another"]
+    }
   }
 }

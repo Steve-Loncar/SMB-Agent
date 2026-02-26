@@ -42,6 +42,13 @@ Every concept MUST be specific to THIS business — not a generic version of its
 - Use business_summary.key_offers and key_proof_points to find the specific angles
 - Use the evidence quotes for the specific numbers, durations, product names, and locations that make THIS business different
 
+USING BRAND VISUAL CUES (when business_summary.brand_visual is present):
+- Use brand_visual.brand_vocabulary as the preferred language pool for headlines and copy — these are the brand's own words, not invented.
+  E.g. if brand_vocabulary includes "Tamworth", "provenance", "Borough Market", "dry-aged" → use those exact words where relevant.
+- Use brand_visual.visual_aesthetic and photography_style to inform image_idea and style_tags.
+  E.g. if visual_aesthetic is "earthy, heritage, craft" → image_idea should describe earthy farm or craft photography, not generic stock shots.
+- If brand_visual is absent or empty, fall back to tone and category to set visual direction.
+
 OUTPUT:
 Return JSON only. No markdown fences. No commentary.
 

@@ -995,6 +995,29 @@ if isinstance(bs, dict) and bs:
     st.markdown(f"**Value prop:** {bs.get('value_prop','')}")
     st.markdown(f"**Target customer:** {bs.get('target_customer','')}")
     st.markdown(f"**Tone:** {bs.get('tone','')}")
+
+    key_offers = bs.get("key_offers") or []
+    key_proof = bs.get("key_proof_points") or []
+    differentiators = bs.get("differentiators") or []
+    brand_visual = bs.get("brand_visual") or {}
+
+    if key_offers:
+        st.markdown("**Key offers:** " + " · ".join(key_offers))
+    if key_proof:
+        st.markdown("**Proof points:** " + " · ".join(key_proof))
+    if differentiators:
+        st.markdown("**Differentiators:** " + " · ".join(differentiators))
+    if brand_visual:
+        bv_parts = []
+        if brand_visual.get("visual_aesthetic"):
+            bv_parts.append(f"Aesthetic: *{brand_visual['visual_aesthetic']}*")
+        if brand_visual.get("photography_style"):
+            bv_parts.append(f"Photography: *{brand_visual['photography_style']}*")
+        vocab = brand_visual.get("brand_vocabulary") or []
+        if vocab:
+            bv_parts.append("Brand vocabulary: " + ", ".join(f"`{w}`" for w in vocab))
+        if bv_parts:
+            st.markdown("**Brand visual:** " + " · ".join(bv_parts))
 else:
     st.info("We're still working on this. It will appear here shortly.")
 
@@ -1042,25 +1065,23 @@ if (
     )
     if can_autorun:
         with st.spinner("Creating your campaign concepts..."):
-            debug_result = call_n8n_generate_ads(
-                url=target_url,
-                scraped_text=st.session_state.get("scraped_text", ""),
-                image_urls=st.session_state.get("scraped_images", []),
-                homepage_markdown=homepage_md,
-                page_summaries=all_page_summaries,
+            debug_result = call_n8n_generate_ad_concepts(
                 business_summary=st.session_state.get("business_summary") or {},
+                page_summaries=all_page_summaries,
+                homepage_markdown=homepage_md,
+                image_urls=st.session_state.get("scraped_images", []),
                 mode=st.session_state.get("n8n_mode", "TEST"),
             )
         st.session_state["ads_debug"] = debug_result
 
         resp_json = debug_result.get("_n8n_response_json")
         try:
-            if isinstance(resp_json, list) and resp_json and isinstance(resp_json[0], dict):
+            # Handle both flat dict and list-wrapped responses from n8n respondWith
+            item0 = resp_json
+            if isinstance(resp_json, list) and resp_json:
                 item0 = resp_json[0]
-                bs = item0.get("business_summary")
+            if isinstance(item0, dict):
                 pc = item0.get("poster_concepts")
-                if isinstance(bs, dict):
-                    st.session_state["business_summary"] = bs
                 if isinstance(pc, list):
                     st.session_state["poster_concepts"] = pc
                     st.session_state["poster_images"] = {}
