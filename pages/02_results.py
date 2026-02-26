@@ -10,6 +10,7 @@ st.set_page_config(
 )
 
 from typing import Any
+from backend.brand_extractor import extract_css_brand_cues
 from backend.n8n_client import (
     call_n8n_generate_ads,
     call_n8n_check_text_blobs,
@@ -340,6 +341,7 @@ st.session_state.setdefault("tier1_page_summaries", [])
 st.session_state.setdefault("tier2_page_summaries", [])
 st.session_state.setdefault("tier2_decision", {})
 st.session_state.setdefault("asset_candidates", [])
+st.session_state.setdefault("css_brand_cues", {})
 
 # Image generation request plumbing (prevents missed clicks / double submits)
 st.session_state.setdefault("generate_image_pending", False)
@@ -627,6 +629,7 @@ with st.sidebar:
         st.session_state["visited_urls"] = []
         st.session_state["scrape_pack"] = None
         st.session_state["scrape_pack_debug"] = None
+        st.session_state["css_brand_cues"] = {}
         st.session_state["business_summary"] = {}
         st.session_state["poster_concepts"] = []
         st.session_state["check_text_blobs_debug"] = None
@@ -891,6 +894,14 @@ if status == "queued":
                 ]
 
             st.session_state["scrape_status"] = "scraped"
+
+            # CSS brand cue extraction — fast, runs in the same spinner block
+            try:
+                css_cues = extract_css_brand_cues(target_url)
+                st.session_state["css_brand_cues"] = css_cues
+            except Exception:
+                st.session_state["css_brand_cues"] = {}
+
             st.rerun()
         except Exception as e:
             st.session_state["scrape_status"] = "error"
@@ -975,6 +986,18 @@ if status == "analysing_pages" and not st.session_state.get("homepage_summarise_
         if isinstance(resp_json, dict):
             bs = resp_json.get("business_summary")
             if isinstance(bs, dict):
+                # Merge CSS brand cues into brand_visual (LLM inference + hard CSS evidence)
+                css_cues = st.session_state.get("css_brand_cues") or {}
+                if css_cues:
+                    bv = bs.setdefault("brand_visual", {})
+                    if css_cues.get("colors"):
+                        bv["css_colors"] = css_cues["colors"]
+                    if css_cues.get("fonts"):
+                        bv["css_fonts"] = css_cues["fonts"]
+                    if css_cues.get("og_image"):
+                        bv["og_image"] = css_cues["og_image"]
+                    if css_cues.get("theme_color"):
+                        bv["theme_color"] = css_cues["theme_color"]
                 st.session_state["business_summary"] = bs
     except Exception:
         pass
@@ -1018,6 +1041,22 @@ if isinstance(bs, dict) and bs:
             bv_parts.append("Brand vocabulary: " + ", ".join(f"`{w}`" for w in vocab))
         if bv_parts:
             st.markdown("**Brand visual:** " + " · ".join(bv_parts))
+        css_colors = brand_visual.get("css_colors") or []
+        css_fonts = brand_visual.get("css_fonts") or []
+        if css_colors or css_fonts:
+            swatch_parts = []
+            if css_fonts:
+                swatch_parts.append("Font: " + ", ".join(f"`{f}`" for f in css_fonts))
+            if css_colors:
+                swatches = " ".join(
+                    f'<span style="display:inline-block;width:14px;height:14px;border-radius:3px;'
+                    f'background:{c["hex"]};border:1px solid rgba(255,255,255,.25);'
+                    f'margin-right:3px;vertical-align:middle;" title="{c["hex"]} ({c["role"]})">'
+                    f'</span>`{c["hex"]}` ({c["role"]})'
+                    for c in css_colors
+                )
+                swatch_parts.append("CSS colors: " + swatches)
+            st.markdown("**Extracted from CSS:** " + " · ".join(swatch_parts), unsafe_allow_html=True)
 else:
     st.info("We're still working on this. It will appear here shortly.")
 
@@ -1376,6 +1415,8 @@ else:
                             st.stop()
 
                         # Build guidelines dict — include full business context + brand cues + shortlist
+                        bv = bs.get("brand_visual") or {}
+                        css_cues = st.session_state.get("css_brand_cues") or {}
                         guidelines = {
                             "business_name": bs.get("name_guess", ""),
                             "category": bs.get("category", ""),
@@ -1387,9 +1428,18 @@ else:
                             "key_offers": bs.get("key_offers", []),
                             "key_proof_points": bs.get("key_proof_points", []),
                             "key_ctas": bs.get("key_ctas", []),
+                            # Image-hunt brand cues (from visual_pack)
                             "brand_colors": vp_brand.get("colors", []),
                             "brand_fonts": vp_brand.get("fonts", []),
                             "brand_motifs": vp_brand.get("motifs", []),
+                            # CSS-extracted brand cues (direct from stylesheet/inline CSS)
+                            "css_colors": bv.get("css_colors") or css_cues.get("colors") or [],
+                            "css_fonts": bv.get("css_fonts") or css_cues.get("fonts") or [],
+                            "css_og_image": bv.get("og_image") or css_cues.get("og_image") or "",
+                            # Inferred brand visual personality (from LLM homepage summarise)
+                            "photography_style": bv.get("photography_style", ""),
+                            "visual_aesthetic": bv.get("visual_aesthetic", ""),
+                            "brand_vocabulary": bv.get("brand_vocabulary") or [],
                             "logo_url": vp_logos[0].get("url", "") if vp_logos else "",
                             "shortlist": vp_shortlist,
                             "ooh_requirements": {

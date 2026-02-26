@@ -13,6 +13,12 @@ INPUTS
 3) BRAND / DESIGN GUIDELINES (brand colours, fonts, motifs, shortlist, OOH requirements)
 {guidelines}
 
+Note on guidelines fields:
+- guidelines.css_colors: hex color palette extracted directly from the site's CSS — use these as the actual brand palette for text colour, overlays, and backgrounds.
+- guidelines.css_fonts: typeface(s) loaded by the site — reference these in the typography description (e.g. "bold Inter").
+- guidelines.photography_style / visual_aesthetic / brand_vocabulary: inferred from the site's copy and imagery — use to set scene tone and copy language.
+- If css_colors is empty, fall back to brand_colors from the image hunt.
+
 4) BUSINESS CONTEXT — use this to make the scene SPECIFIC to this business, not a generic category shot
 {business_summary}
 
