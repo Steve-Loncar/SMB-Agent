@@ -1,655 +1,377 @@
-# 🎯 SMB Ad Agent: System Architecture & Optimization Guide
+# SMB Ad Agent — Current System Architecture (Assistant-Optimized)
 
-> **Purpose:** Generate professional UK OOH (Out-of-Home) advertising campaigns for SMBs from their websites using a multi-stage AI pipeline.
-
----
-
-## 🏗️ Architecture Overview
-
-### Stack
-- **Frontend:** Streamlit (Python) - `app.py`, `pages/01_home.py`, `pages/02_results.py`
-- **Backend:** n8n Cloud workflows (webhook-triggered)
-- **AI Models:** OpenAI GPT-4o (analysis), DALL-E 3 (image generation)
-- **Integration:** Python → HTTP → n8n → OpenAI APIs → Python
-
-### Data Flow Pattern
-```
-User URL → Scrape → Tier 1 Analysis → Homepage Summary → 
-Image Hunt → Generate Concepts → Generate Posters
-```
+> Purpose: give contributors and coding assistants a high-signal map of the **actual running system** so they can work safely without re-reading the whole repository.
 
 ---
 
-## 📂 Project Structure
+## 1) What this system does
 
-### Python Files (Streamlit)
+The SMB Ad Agent takes a business URL and produces:
 
-#### `app.py`
-- Entry point, basic landing page
-- Sets up page config and navigation
+1. A structured business summary
+2. Evidence-backed campaign concepts
+3. Optional curated visual packs from site imagery
+4. Concept-specific generated poster images
 
-#### `pages/01_home.py`
-- **Purpose:** URL input, scrape configuration
-- **Key Actions:**
-  - User enters website URL
-  - Sets scrape depth (homepage_only | homepage_plus)
-  - Triggers scrape queue
-  - **Session State:** `target_url`, `scrape_depth`, `scrape_max_pages`, `n8n_mode`
+Primary runtime architecture:
 
-#### `pages/02_results.py` ⭐ **MAIN ORCHESTRATOR**
-- **Purpose:** Workflow orchestration, results display, controls
-- **Role:** Triggers all n8n workflows in sequence, manages state, displays outputs
-- **Key Features:**
-  - Auto-triggers workflows when data is ready
-  - Manual re-run buttons for each stage
-  - Poster concept carousel with image generation
-  - Session state management for entire pipeline
-
-### Backend Files
-
-#### `backend/n8n_client.py` ⭐ **API CLIENT**
-- **Purpose:** All n8n webhook communication
-- **Key Functions:**
-  - `call_n8n_scrape_pack()` - Scrapes website
-  - `call_n8n_tier1_summarise()` - Page-level analysis
-  - `call_n8n_homepage_summarise()` - Business summary
-  - `call_n8n_image_hunt()` - Curate on-brand images
-  - `call_n8n_generate_ad_concepts()` - Generate campaign concepts
-  - `call_n8n_generate_poster()` - Multi-stage poster generation
-  - `resolve_n8n_webhook()` - URL resolution (TEST/LIVE modes)
-
-#### `backend/state.py`
-- **Purpose:** Session state initialization
-- **Key States:** URL, scrape data, summaries, concepts, images, flags
-
-#### `backend/scraper.py`
-- (Legacy/unused) - scraping now handled by n8n workflow
-
-#### `backend/image_gen.py`
-- (Deprecated) - image generation now in n8n workflows
+`Streamlit UI (Python) -> backend/n8n_client.py -> n8n webhooks -> LLM/image APIs -> Streamlit session state`
 
 ---
 
-## 🔄 Workflow Pipeline (End-to-End)
+## 2) Runtime entrypoints and ownership
 
-### Stage 0: Scrape Website
-**Workflow:** `SMB-scrape-pack.json`  
-**Trigger:** Auto (on page load if URL set) or Manual button  
-**Endpoint:** `/webhook/scrape-pack`  
-**Prompts:** None (pure scraping)
+## Streamlit pages
 
-**Input:**
-- `url`: Target website URL
-- `depth`: `homepage_only` | `homepage_plus`
-- `max_pages`: Integer (default 3)
+- `app.py`
+  - Minimal landing shell + top nav.
+  - Calls `initstate()` and routes users to Home/Results.
 
-**Output (`scrape_pack`):**
+- `pages/01_home.py`
+  - Collects URL and mode (`TEST` / `LIVE`).
+  - Initializes pipeline by setting `scrape_status = "queued"`.
+  - Clears downstream state to avoid stale cross-run artifacts.
+  - Navigates to `pages/02_results.py`.
+
+- `pages/02_results.py` (**main orchestrator**)
+  - Runs the auto pipeline from queued URL.
+  - Hosts manual controls for re-running each stage.
+  - Renders summaries, page evidence, candidate image carousel, concept cards, and generated posters.
+  - Owns most practical state transitions and user-facing status messaging.
+
+## Backend modules
+
+- `backend/state.py`
+  - Defines baseline session keys and defaults (core app state).
+
+- `backend/n8n_client.py` (**integration contract layer**)
+  - Resolves endpoint URLs by mode/env.
+  - Loads prompt templates from `prompts/`.
+  - Sends typed payloads to n8n webhooks.
+  - Returns debug-rich envelopes (`_debug_*`, `_n8n_response_json`, `_error`).
+
+- `backend/brand_extractor.py`
+  - Extracts CSS brand cues from the homepage (colors/fonts/theme/og:image).
+  - Merges cues into `business_summary.brand_visual` to enrich poster guidance.
+
+- `backend/scraper.py`
+  - Legacy local scraper (not the main path now).
+
+- `backend/image_gen.py`
+  - Deprecated by design; generation must go via n8n.
+
+---
+
+## 3) End-to-end flow (current behavior)
+
+## Stage A — URL capture + queue
+
+- Trigger: user clicks **Apply** in `01_home.py`.
+- Key effects:
+  - Saves `target_url`, mode, scrape knobs.
+  - Resets prior artifacts (`poster_concepts`, `visual_pack`, `poster_images`, etc.).
+  - Sets `scrape_status = "queued"`.
+
+## Stage B — Scrape pack
+
+- Trigger: `02_results.py` sees `scrape_status == "queued"`.
+- Client call: `call_n8n_scrape_pack()`.
+- Webhook path: `/webhook(-test)/scrape-pack`.
+- Expected normalized payload shape used downstream:
+
 ```json
 {
-  "homepage_url": "https://...",
-  "homepage_markdown": "# Homepage content...",
-  "homepage_images": ["url1", "url2"],
-  "additional_pages": [
-    {
-      "url": "https://.../about",
-      "title": "About Us",
-      "markdown": "...",
-      "images": ["..."]
-    }
-  ]
+  "homepage_url": "...",
+  "homepage_markdown": "...",
+  "tier1_urls": ["..."],
+  "tier2_urls": ["..."]
 }
 ```
 
-**Purpose:** Extract homepage + key internal pages as markdown, collect all images.
+- App hydrates compatibility fields:
+  - `scraped_text`
+  - `scraped_images` (often empty in new shape)
+  - `visited_urls`
+- Status transitions to `scraped`.
+
+## Stage C — Tier 1 summarise (+ optional tier2)
+
+- Trigger: `scrape_status == "scraped"` and not done.
+- Client call: `call_n8n_tier1_summarise()`.
+- Webhook path: `/webhook(-test)/SMB-tier1-summariser`.
+- Inputs include:
+  - `tier1_urls`, `tier2_urls`, `business_summary` (can be empty initially)
+  - tier1 + tier2 decision prompts.
+- Stores:
+  - `tier1_page_summaries`
+  - `tier2_page_summaries` (if workflow decides to crawl)
+  - `tier2_decision`
+  - `asset_candidates`
+- Status transitions to `analysing_pages` then rerun.
+
+## Stage D — Homepage summarise (business profile)
+
+- Trigger: `scrape_status == "analysing_pages"` and not done.
+- Client call: `call_n8n_homepage_summarise()`.
+- Webhook path: `/webhook(-test)/SMB-homepage-summarise`.
+- Inputs:
+  - homepage markdown
+  - tier1/tier2 snippets
+- Stores:
+  - `business_summary`
+- Merge step:
+  - `css_brand_cues` from `backend/brand_extractor.py` are merged into `business_summary.brand_visual`.
+- Status transitions to `summarising` then rerun.
+
+## Stage E — Concept generation (auto-run)
+
+- Trigger: `scrape_status == "summarising"` + summary done + not autorun done.
+- Client call: `call_n8n_generate_ad_concepts()`.
+- Webhook path: `/webhook(-test)/SMB-generate-ad-concepts`.
+- Stores:
+  - `poster_concepts`
+  - `poster_images` reset
+  - `ads_autorun_done = True`
+  - `scrape_status = "done"`
+
+## Stage F — Image hunt (optional/manual)
+
+- Trigger: manual sidebar button **④ Global Image Hunt**.
+- Client call: `call_n8n_image_hunt()`.
+- Webhook path: `/webhook(-test)/SMB-image-hunt`.
+- Pre-filtering: `_filter_asset_candidates()` in Python removes junk + dedupes + caps.
+- Stores:
+  - `visual_pack`
+  - `image_hunt_done`
+- Then auto-runs concept generation again using visual pack image URLs.
+
+## Stage G — Poster generation per concept
+
+- Trigger: **Generate Poster** button on each concept card.
+- Client call: `call_n8n_generate_poster()`.
+- Endpoint currently resolves to same path as generate image:
+  - `/webhook(-test)/generate-image`
+- n8n workflow (`smb_image_gen.json`) performs internal stages:
+  1. Select best images for this concept
+  2. Build poster prompt
+  3. Call image model and return base64 image
+- App decodes `image_b64` and caches bytes in `poster_images[concept_index]`.
 
 ---
 
-### Stage 1: Tier 1 Page Analysis
-**Workflow:** `SMB_tier1_summariser.json`  
-**Trigger:** Auto after scrape or Manual button "① Re-run Page Analysis"  
-**Endpoint:** `/webhook/SMB-tier1-summariser`
+## 4) n8n integration contracts (practical map)
 
-**Prompts:**
-- `prompts/smb_tier1_summarise_system.txt`
-- `prompts/smb_tier1_summarise_user.txt`
+## Webhook resolution
 
-**Input:**
-- `url`: Website URL
-- `scrape_pack`: Full scrape output
-- `business_summary`: (Initial summary if available)
+`backend/n8n_client.py::resolve_n8n_webhook()` is the single source of truth.
 
-**Processing:**
-1. Loop through all pages (homepage + additional)
-2. For each page: OpenAI extracts key snippets (services, value props, differentiators, team, process)
-3. Collects "asset candidates" (strong image/headline hooks)
+- Mode-aware: `TEST` / `LIVE`
+- Supports explicit env URL overrides per endpoint
+- Defaults to `N8N_BASE_URL` or hardcoded n8n cloud base
+- Adds webhook secret header if `WEBHOOK_SECRET`/`N8N_WEBHOOK_SECRET` is set
 
-**Output:**
-```json
-{
-  "page_summaries": [
-    {
-      "page_url": "https://.../about",
-      "page_title": "About Us",
-      "snippets": ["snippet1", "snippet2"],
-      "category": "about|services|process|team|..."
-    }
-  ],
-  "asset_candidates": [
-    {
-      "text": "Award-winning craft",
-      "image_url": "https://.../photo.jpg",
-      "context": "Homepage hero",
-      "why_relevant": "Shows credibility"
-    }
-  ]
-}
-```
+## Endpoints used by UI
 
-**Purpose:** Extract structured insights from each page for downstream analysis.
+- `scrape_pack` -> `/scrape-pack`
+- `tier1_summarise` -> `/SMB-tier1-summariser`
+- `homepage_summarise` -> `/SMB-homepage-summarise`
+- `generate_ad_concepts` -> `/SMB-generate-ad-concepts`
+- `image_hunt` -> `/SMB-image-hunt`
+- `generate_poster` -> `/generate-image`
+- `check_text_blobs` -> `/check-text-blobs` (manual diagnostics / fallback)
+
+## Workflow files in active SMB path
+
+Primary workflow directory:
+
+`workflows/fpgconsulting_cloud_steve_l/my_project/`
+
+Core SMB workflows relevant to runtime:
+
+- `SMB-scrape-pack.json`
+- `SMB_tier1_summariser.json`
+- `SMB_homepage_summariser.workflow.ts` (TS source currently present for homepage summariser)
+- `SMB_generate_ad_concepts.json`
+- `SMB_Image_hunt.json`
+- `smb_image_gen.json`
+- `SMB_check_text_blobs_generate_business_summary.json` (manual re-analysis path)
 
 ---
 
-### Stage 2: Homepage / Business Summary
-**Workflow:** `SMB_check_text_blobs_generate_business_summary.json`  
-**Trigger:** Auto after Tier 1 or Manual button "② Re-run Business Summary"  
-**Endpoint:** `/webhook/SMB-homepage-summarise`
+## 5) Prompt architecture (source of model behavior)
 
-**Prompts:**
-- `prompts/smb_homepage_summarise_system.txt`
-- `prompts/smb_homepage_summarise_user.txt`
+Prompt files live in `prompts/` and are loaded in Python before webhook calls.
 
-**Input:**
-- `url`: Website URL
-- `homepage_markdown`: From scrape_pack
-- `page_summaries`: From Tier 1 (all pages combined)
+Key prompt groups:
 
-**Processing:**
-1. Analyzes homepage content + all page summaries
-2. Generates a consolidated business profile
+- Concepts:
+  - `smb_generate_ad_concepts_system.txt`
+  - `smb_generate_ad_concepts_user.txt`
 
-**Output (`business_summary`):**
-```json
-{
-  "name_guess": "Acme Plumbing",
-  "category": "Home Services - Plumbing",
-  "vertical": "Trades",
-  "tone": "Professional, trusted, local",
-  "value_proposition": "Emergency response, 20+ years, fixed-price quotes",
-  "differentiators": ["24/7 availability", "No call-out fees"],
-  "target_audience": "Homeowners, landlords",
-  "evidence_strength": "high|medium|low",
-  "confidence": 0.85
-}
-```
+- Homepage summary:
+  - `smb_homepage_summarise_system.txt`
+  - `smb_homepage_summarise_user.txt`
 
-**Purpose:** Build a single authoritative business profile for campaign generation.
+- Tier analysis:
+  - `smb_tier1_summarise_system.txt`
+  - `smb_tier1_summarise_user.txt`
+  - `smb_tier2_decision_system.txt`
+  - `smb_tier2_decision_user.txt`
 
----
+- Image hunt:
+  - `smb_image_hunt_system.txt`
+  - `smb_image_hunt_user.txt`
 
-### Stage 3: Generate Campaign Concepts
-**Workflow:** `SMB_generate_ad_concepts.json`  
-**Trigger:** Auto after Business Summary or Manual button "③ Generate Concepts"  
-**Endpoint:** `/webhook/SMB-generate-ad-concepts`
+- Poster generation:
+  - `smb_image_selection_system.txt`
+  - `smb_image_selection_user.txt`
+  - `smb_poster_gen_system.txt`
+  - `smb_poster_gen_user.txt`
 
-**Prompts:**
-- `prompts/smb_generate_ad_concepts_system.txt`
-- `prompts/smb_generate_ad_concepts_user.txt`
+Legacy but still present:
 
-**Input:**
-- `url`: Website URL
-- `business_summary`: From Stage 2
-- `page_summaries`: Tier 1 + Tier 2 combined
+- `smb_generate_ads_system.txt`
+- `smb_generate_ads_user.txt`
 
-**Processing:**
-1. OpenAI generates 3 distinct OOH campaign concepts
-2. Each concept has headline, message angle, evidence, tone
-
-**Output (`poster_concepts`):**
-```json
-{
-  "concepts": [
-    {
-      "concept_name": "The Trust Play",
-      "headline": "20 Years. Zero Surprises.",
-      "message_angle": "Reliability & transparency",
-      "supporting_copy": "Fixed-price quotes. No hidden fees.",
-      "cta": "Call 0800...",
-      "evidence": ["20+ years in business", "5-star reviews"],
-      "tone": "Reassuring, professional",
-      "target_emotion": "Confidence"
-    },
-    { ... },
-    { ... }
-  ]
-}
-```
-
-**Purpose:** Create campaign-ready messaging concepts grounded in scraped evidence.
+Note: current auto pipeline prefers `generate_ad_concepts` path; `generate_ads` helpers remain in client for compatibility.
 
 ---
 
-### Stage 4: Global Image Hunt
-**Workflow:** `SMB_Image_hunt.json`  
-**Trigger:** Auto after concepts generated or Manual button "④ Global Image Hunt"  
-**Endpoint:** `/webhook/SMB-image-hunt`
+## 6) Session state model (keys that matter most)
 
-**Prompts:**
-- `prompts/smb_image_hunt_system.txt`
-- `prompts/smb_image_hunt_user.txt`
+## Control / mode
 
-**Input:**
-- `url`: Website URL
-- `business_summary`: From Stage 2
-- `page_summaries`: All page summaries
-- `asset_candidates`: From Tier 1 (image URLs + context)
+- `target_url`
+- `n8n_mode` (`TEST`/`LIVE`)
+- `scrape_status` (`idle`, `queued`, `scraped`, `analysing_pages`, `summarising`, `generating_ads`, `done`, `error`)
 
-**Processing:**
-1. OpenAI curates best images from all scraped pages
-2. Extracts brand colors, fonts, motifs
-3. Selects hero images, product shots, textures, logos
+## Core data artifacts
 
-**Output (`visual_pack`):**
-```json
-{
-  "images": [
-    {
-      "url": "https://.../hero.jpg",
-      "category": "hero|product|process|texture",
-      "why_relevant": "Shows craftsman at work",
-      "ooh_suitability": "High - clear focal point",
-      "suggested_use": "Background for Trust Play concept"
-    }
-  ],
-  "logos": [
-    {
-      "url": "https://.../logo.svg",
-      "format": "svg|png",
-      "background": "transparent|white"
-    }
-  ],
-  "brand": {
-    "colors": [
-      {"hex": "#1E3A8A", "role": "primary"},
-      {"hex": "#FFFFFF", "role": "background"}
-    ],
-    "fonts": [
-      {"name": "Roboto", "weight": "bold", "usage": "headlines"}
-    ],
-    "motifs": ["rounded corners", "clean minimalism"]
-  }
-}
-```
+- `scrape_pack`
+- `homepage_markdown`
+- `tier1_page_summaries`
+- `tier2_page_summaries`
+- `tier2_decision`
+- `business_summary`
+- `asset_candidates`
+- `visual_pack`
+- `poster_concepts`
+- `poster_images` (bytes cache by index)
 
-**Purpose:** Build a brand-consistent visual asset library for poster generation.
+## Flow guards / booleans
+
+- `tier1_summarise_done`
+- `homepage_summarise_done`
+- `ads_autorun_done`
+- `check_text_blobs_autorun_done`
+- `image_hunt_done`
+
+## Diagnostics
+
+- `scrape_pack_debug`
+- `tier1_summarise_debug`
+- `homepage_summarise_debug`
+- `ads_debug`
+- `image_hunt_debug`
+- `check_text_blobs_debug`
+- `poster_gen_debug`
+
+## UX helpers
+
+- `image_carousel_index`
+- `image_carousel_last_advance`
+- `concept_visual_packs`
 
 ---
 
-### Stage 5: Generate Poster (Per Concept)
-**Workflow:** `smb_image_gen.json` ⭐ **COMPLEX MULTI-STAGE**  
-**Trigger:** Manual button "Generate Poster" on each concept card  
-**Endpoint:** `/webhook/generate-image`
+## 7) Response envelope pattern (important for robust code)
 
-**Sub-Stage 5A: Image Selection**
-**Prompts:**
-- `prompts/smb_image_selection_system.txt`
-- `prompts/smb_image_selection_user.txt`
+Most `backend/n8n_client.py` functions return a common shape:
 
-**Input:**
-- `poster_concept`: Single concept from Stage 3
-- `guidelines`: Business summary + brand cues from visual_pack
-- `image_urls`: All curated images from visual_pack
+- `_debug_target_url`
+- `_debug_payload_sent`
+- `_debug_http_status`
+- `_debug_resp_text_snippet`
+- `_n8n_response_json` (if parseable)
+- `_error` (if non-200 or fatal issue)
 
-**Processing:**
-1. Concept-specific image hunt (selects 5-6 best images for THIS concept)
-2. Ensures OOH suitability (negative space, focal point, contrast)
+Consumer logic in `02_results.py` often handles both:
 
-**Output:**
-```json
-{
-  "selected_images": ["url1", "url2", "url3", "url4", "url5"],
-  "selection_notes": {
-    "concept_name": "The Trust Play",
-    "top_reasons": ["Hero shot shows craftsman", "Logo has transparency"],
-    "coverage": {
-      "includes_background_candidate": true,
-      "includes_focal_candidate": true
-    }
-  }
-}
-```
+- direct dict response
+- `respondWith: allIncomingItems` list-wrapped response (`[ { ... } ]`)
 
-**Sub-Stage 5B: Poster Prompt Generation**
-**Prompts:**
-- `prompts/smb_poster_gen_system.txt`
-- `prompts/smb_poster_gen_user.txt`
-
-**Input:**
-- `poster_concept`: Same concept
-- `selected_images`: From 5A
-- `guidelines`: Same guidelines
-
-**Processing:**
-1. OpenAI builds a detailed DALL-E prompt
-2. Specifies layout, typography, colors, text placement
-3. Includes anti-AI-sheen instructions (realistic, professional)
-
-**Output:**
-```json
-{
-  "poster_name": "Trust Play - 20 Years",
-  "poster_prompt": "Flat graphic design poster layout (NOT a photographed billboard). 6-sheet portrait format (2:3 aspect). Background: Professional plumber in branded uniform inspecting pipe...",
-  "layout_spec": {
-    "format": "6-sheet",
-    "orientation": "portrait",
-    "aspect_ratio": "2:3",
-    "type": "classic"
-  },
-  "asset_plan": {
-    "hero_image_url": "https://.../craftsman.jpg",
-    "logo_url": "https://.../logo.svg"
-  },
-  "render_notes": {
-    "text_to_render_verbatim": {
-      "headline": "20 Years. Zero Surprises.",
-      "supporting_copy": "Fixed-price quotes. No call-out fees.",
-      "cta": "Call 0800 123 4567"
-    },
-    "negative_instructions": ["No extra text", "No AI sheen", "No gibberish"]
-  }
-}
-```
-
-**Sub-Stage 5C: DALL-E Image Generation**
-**API:** OpenAI DALL-E 3  
-**Input:** `poster_prompt` from 5B
-
-**Output:**
-- Base64-encoded PNG image
-- Stored in `poster_images[concept_index]`
-
-**Purpose:** Generate print-ready poster mockups for each campaign concept.
+When adding integrations, preserve this envelope to avoid silent UI regressions.
 
 ---
 
-## 🧠 Session State Management
+## 8) Active UI surfaces in Results page
 
-### Critical State Variables
+User-visible blocks:
 
-| Variable | Type | Set By | Used By | Purpose |
-|----------|------|--------|---------|---------|
-| `target_url` | str | Home page | All workflows | Website being analyzed |
-| `scrape_pack` | dict | Stage 0 | All stages | Raw scraped data |
-| `tier1_page_summaries` | list | Stage 1 | Stages 2,3,4 | Page-level insights |
-| `asset_candidates` | list | Stage 1 | Stage 4 | Image/text hooks |
-| `business_summary` | dict | Stage 2 | Stages 3,4,5 | Business profile |
-| `poster_concepts` | list | Stage 3 | Stage 5 | Campaign concepts |
-| `visual_pack` | dict | Stage 4 | Stage 5 | Brand assets |
-| `concept_visual_packs` | dict | Stage 5 | Poster display | Per-concept images |
-| `poster_images` | dict | Stage 5 | Display | Generated posters |
+1. Narrative progress header
+2. Website scan pages (key vs supporting)
+3. Tier 1 / Tier 2 snippet cards
+4. Business summary + brand visual evidence
+5. Candidate image carousel
+6. Campaign concept cards
+7. Per-concept poster generation controls
+8. Developer diagnostics expander
 
-### Workflow Flags (Auto-trigger Prevention)
+Manual controls in sidebar:
 
-| Flag | Prevents | Reset By |
-|------|----------|----------|
-| `tier1_summarise_done` | Re-running Tier 1 | New URL or manual reset |
-| `homepage_summarise_done` | Re-running homepage analysis | New URL or manual reset |
-| `ads_autorun_done` | Re-running concept generation | New URL or manual reset |
-| `image_hunt_done` | Re-running image hunt | New URL or manual reset |
+- Re-run page analysis
+- Re-run business summary
+- Generate concepts
+- Global image hunt
+- Re-analyse text (2nd pass)
+- Reset & start over
 
 ---
 
-## 🎨 Prompt Architecture
+## 9) Known architectural nuances and gotchas
 
-### Naming Convention
-`smb_[stage]_[role]_[type].txt`
-
-**Examples:**
-- `smb_tier1_summarise_system.txt` - System prompt for Tier 1
-- `smb_homepage_summarise_user.txt` - User prompt for homepage summary
-
-### Prompt Pairs (All Stages)
-
-| Stage | System Prompt | User Prompt | n8n Workflow |
-|-------|---------------|-------------|--------------|
-| Tier 1 Page Analysis | `smb_tier1_summarise_system.txt` | `smb_tier1_summarise_user.txt` | `SMB_tier1_summariser.json` |
-| Homepage Summary | `smb_homepage_summarise_system.txt` | `smb_homepage_summarise_user.txt` | `SMB_check_text_blobs_generate_business_summary.json` |
-| Generate Concepts | `smb_generate_ad_concepts_system.txt` | `smb_generate_ad_concepts_user.txt` | `SMB_generate_ad_concepts.json` |
-| Image Hunt | `smb_image_hunt_system.txt` | `smb_image_hunt_user.txt` | `SMB_Image_hunt.json` |
-| Image Selection | `smb_image_selection_system.txt` | `smb_image_selection_user.txt` | `smb_image_gen.json` (sub-stage A) |
-| Poster Prompt Gen | `smb_poster_gen_system.txt` | `smb_poster_gen_user.txt` | `smb_image_gen.json` (sub-stage B) |
-
-### Deprecated Prompts (Not in Active Use)
-- `smb_generate_ads_system.txt` - Replaced by `smb_generate_ad_concepts_*`
-- `smb_generate_ads_user.txt` - Replaced by `smb_generate_ad_concepts_*`
-- `smb_tier2_decision_system.txt` - Not currently used
-- `smb_tier2_decision_user.txt` - Not currently used
+1. `smb_image_gen` has historically had JSON/TS sync drift; runtime currently depends on the JSON webhook contract consumed by Python.
+2. Homepage summariser currently appears as `.workflow.ts` in repo; ensure exports stay in sync if editing in n8n UI.
+3. `scraper.py` is not the primary path; avoid introducing mixed local-scrape + n8n-scrape logic unless deliberate.
+4. Auto-rerun logic in Streamlit depends on guard flags; if a stage seems skipped/repeated, inspect `*_done` flags first.
+5. Debug blocks are intentionally verbose and useful for diagnosing schema drifts from n8n.
 
 ---
 
-## 🔌 N8N Workflow Details
+## 10) Assistant playbook (how to make safe changes fast)
 
-### Active Workflows
+If changing this system, follow this order:
 
-#### 1. `SMB-scrape-pack.json`
-- **Nodes:** Webhook → Jina.ai Scraper → Response
-- **No AI:** Pure HTTP scraping
-- **Timeout:** 60s
-- **Output Format:** JSON with markdown content + images
-
-#### 2. `SMB_tier1_summariser.json`
-- **Nodes:** Webhook → Loop Pages → OpenAI (GPT-4o-mini) → Aggregate → Response
-- **AI Model:** gpt-4o-mini (fast, cheap for extraction tasks)
-- **Batching:** Processes pages in parallel
-- **Output Format:** JSON with page_summaries + asset_candidates
-
-#### 3. `SMB_check_text_blobs_generate_business_summary.json`
-- **Nodes:** Webhook → OpenAI (GPT-4o) → Response
-- **AI Model:** gpt-4o (needs reasoning for synthesis)
-- **Timeout:** 60s
-- **Output Format:** JSON with business_summary object
-
-#### 4. `SMB_generate_ad_concepts.json`
-- **Nodes:** Webhook → OpenAI (GPT-4o) → Parse JSON → Response
-- **AI Model:** gpt-4o (creative + structured output)
-- **Response Format:** JSON mode enforced
-- **Timeout:** 180s (can be slow for creative tasks)
-- **Output Format:** JSON with concepts array
-
-#### 5. `SMB_Image_hunt.json`
-- **Nodes:** Webhook → OpenAI (GPT-4o) → Response
-- **AI Model:** gpt-4o (visual curation + brand extraction)
-- **Timeout:** 120s
-- **Output Format:** JSON with visual_pack (images + logos + brand)
-
-#### 6. `smb_image_gen.json` ⭐ **MOST COMPLEX**
-- **Nodes:** 
-  - Webhook → Normalize Inputs
-  - → OpenAI Chat (Image Selection) → Extract Selected
-  - → OpenAI Chat (Poster Prompt Gen) → Extract Prompt
-  - → DALL-E 3 → Response
-- **AI Models:** 
-  - gpt-4o (2x for selection + prompt generation)
-  - dall-e-3 (final image render)
-- **Timeout:** Total ~300s
-- **Output Format:** Base64-encoded PNG + metadata
-
-### Workflow Communication Pattern
-
-**Python → n8n:**
-```python
-response = requests.post(
-    url=webhook_url,
-    json=payload,
-    headers={"Content-Type": "application/json"},
-    timeout=(10, 180)  # connect, read
-)
-```
-
-**n8n → Python:**
-```json
-{
-  "ok": true,
-  "response_json": { ... },  // Parsed response
-  "_n8n_response_json": { ... },  // Debug envelope
-  "_debug_http_status": 200
-}
-```
+1. Identify stage owner (`02_results.py` orchestration vs `n8n_client.py` contract vs workflow JSON).
+2. Update prompt/template and payload contract together.
+3. Preserve response envelope fields and list-wrapper parsing.
+4. Confirm session state reset paths in both:
+   - `01_home.py` on Apply
+   - `02_results.py` Reset button
+5. Re-check endpoint path in `resolve_n8n_webhook()`.
+6. Validate that manual controls still work after auto-flow changes.
 
 ---
 
-## 🎯 Optimization Targets
+## 11) Minimal file map for fast onboarding
 
-### Performance Bottlenecks (Current)
+Read these first (in order):
 
-1. **Stage 3 (Generate Concepts):** 
-   - Timeout: 180s
-   - Often slow due to creativity demands
-   - **Prompt Impact:** High - better structured prompts = faster responses
+1. `pages/02_results.py` — orchestration truth
+2. `backend/n8n_client.py` — webhook contract truth
+3. `backend/state.py` — state keys/defaults
+4. `pages/01_home.py` — pipeline entry/reset
+5. Core workflows under `workflows/fpgconsulting_cloud_steve_l/my_project/`
 
-2. **Stage 5 (Poster Generation):**
-   - Total: ~300s (60s + 60s + 180s)
-   - DALL-E is slowest (180s)
-   - **Prompt Impact:** Medium - better poster prompts = fewer retries
-
-3. **Stage 1 (Tier 1 Analysis):**
-   - Batched but can be slow with many pages
-   - **Prompt Impact:** High - concise prompts = faster extraction
-
-### Quality Issues (Current)
-
-1. **Concept Relevance:**
-   - Sometimes generic, not evidence-led
-   - **Prompt Fix:** Strengthen evidence requirement, add constraints
-
-2. **Poster Visual Quality:**
-   - Occasional "AI sheen" or illegible text
-   - **Prompt Fix:** Better negative instructions, clearer layout specs
-
-3. **Image Selection:**
-   - Sometimes picks low-quality/irrelevant images
-   - **Prompt Fix:** Strengthen OOH suitability criteria
+Then read prompts for behavior tuning.
 
 ---
 
-## 📊 Data Transformations (Key Points)
+## 12) Last updated scope
 
-### Scrape → Tier 1
-```
-Raw HTML → Markdown → 
-Per-Page Snippets (services, team, process, value props) + 
-Asset Candidates (text+image hooks)
-```
+This document reflects current repository runtime wiring as of the latest synced `main` branch, with emphasis on:
 
-### Tier 1 → Homepage Summary
-```
-All Page Summaries + Homepage Markdown → 
-Single Business Profile (name, category, tone, value prop, differentiators)
-```
-
-### Summary + Tier 1 → Concepts
-```
-Business Profile + Page Evidence → 
-3 Campaign Concepts (headline, angle, evidence, tone, CTA)
-```
-
-### Asset Candidates → Visual Pack
-```
-All Image URLs + Contexts → 
-Curated Images (hero, product, texture) + 
-Logos + Brand (colors, fonts, motifs)
-```
-
-### Concept + Visual Pack → Poster
-```
-1 Concept + All Images → 
-5-6 Selected Images → 
-DALL-E Prompt → 
-Base64 PNG Image
-```
-
----
-
-## 🚀 Quick Start for Optimization
-
-### Files to Focus On (Prompt Improvement)
-
-**High Impact:**
-1. `prompts/smb_generate_ad_concepts_system.txt` - Controls concept quality
-2. `prompts/smb_generate_ad_concepts_user.txt` - Evidence grounding
-3. `prompts/smb_poster_gen_system.txt` - Visual quality control
-4. `prompts/smb_tier1_summarise_system.txt` - Extraction precision
-
-**Medium Impact:**
-5. `prompts/smb_image_hunt_system.txt` - Image curation quality
-6. `prompts/smb_homepage_summarise_system.txt` - Business profile accuracy
-
-**Low Impact (Working Well):**
-7. `prompts/smb_image_selection_system.txt` - Already constrained
-8. `prompts/smb_poster_gen_user.txt` - Template-driven
-
-### Testing Strategy
-
-1. **Unit Test:** Test single prompt pair with known input
-2. **Integration Test:** Run full pipeline on sample URLs
-3. **A/B Test:** Compare old vs new prompt outputs
-4. **Monitor:** Track execution times + quality scores
-
-### Key Metrics to Track
-
-- **Speed:** Workflow execution time per stage
-- **Quality:** Evidence grounding, message relevance, visual quality
-- **Consistency:** Same input → similar output quality
-- **Failure Rate:** How often workflows error out
-
----
-
-## 🔧 Development Mode
-
-### TEST vs LIVE Mode
-- **TEST:** Uses `/webhook-test/` URLs (safe for iteration)
-- **LIVE:** Uses `/webhook/` URLs (production)
-- Toggle in UI or set `n8n_mode` session state
-
-### Manual Re-run Buttons
-- Each stage has a manual button in Results page
-- Allows iterative refinement without full pipeline re-run
-- Essential for prompt testing
-
-### Debug Information
-- All workflows return debug envelopes
-- Stored in `*_debug` session state variables
-- Viewable in "Developer diagnostics" expander
-
----
-
-## 📁 Key Files for Another LLM to Review
-
-**Essential:**
-1. All 12 prompt files in `prompts/`
-2. `backend/n8n_client.py` (lines 1-200) - API structure
-3. `pages/02_results.py` (lines 350-600) - Workflow orchestration
-
-**Helpful Context:**
-4. This architecture document
-5. `N8N_HTTP_MESSAGES_GUIDE.md` - Technical syntax reference
-
-**Optional:**
-6. Workflow JSON files (if deep n8n changes needed)
-
----
-
-## 🎓 Glossary
-
-- **OOH:** Out-of-Home advertising (billboards, posters, bus shelters)
-- **Tier 1:** First-pass page-level analysis
-- **Scrape Pack:** Complete scraped website data package
-- **Asset Candidates:** High-value text/image hooks extracted during Tier 1
-- **Visual Pack:** Curated brand assets (images, logos, colors, fonts)
-- **Concept:** A complete campaign idea (headline, message, evidence, tone)
-- **6-sheet / 48-sheet:** UK poster formats (portrait / landscape)
-
----
-
-**Last Updated:** February 2026  
-**Status:** Alpha - End-to-end functional, optimization in progress  
-**Primary Optimization Goal:** Improve prompt quality → faster execution + higher relevance
+- Streamlit auto + manual pipeline behavior
+- n8n webhook contracts and payload envelopes
+- Prompt and session-state dependencies
+- Poster generation and image-hunt integration details
