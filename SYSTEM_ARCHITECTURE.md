@@ -336,6 +336,33 @@ Manual controls in sidebar:
 4. Auto-rerun logic in Streamlit depends on guard flags; if a stage seems skipped/repeated, inspect `*_done` flags first.
 5. Debug blocks are intentionally verbose and useful for diagnosing schema drifts from n8n.
 
+## 9.1) Source-of-truth and edit policy (important)
+
+This repository uses a **split edit model**:
+
+- **App + prompts + Python integration code:**
+  - Edited in VS Code.
+  - Committed/pushed normally from git.
+
+- **n8n workflow behavior changes (node wiring/params):**
+  - n8n UI is treated as operationally authoritative because direct sync tooling is not always reliable.
+  - Assistant still prepares the workflow change locally first (JSON/TS in repo) so there is an auditable spec.
+  - User then applies equivalent edits in n8n UI and publishes.
+
+Required assistant behavior for workflow changes:
+
+1. Assistant edits local workflow files first.
+2. Assistant provides clear, exact UI change instructions (node, field, value).
+3. User applies in n8n UI and publishes.
+4. Assistant runs a **status diff pass** to verify expected local-vs-repo deltas and confirm no unintended drift.
+5. Assistant only commits/pushes after verification is clean.
+
+Practical verification checklist after UI edits:
+
+- `git status -sb` to see changed workflow files.
+- `git diff -- workflows/...` to confirm only intended workflow deltas.
+- If available, re-export/re-sync workflow file and re-diff to ensure parity with local edited spec.
+
 ---
 
 ## 10) Assistant playbook (how to make safe changes fast)
@@ -349,7 +376,8 @@ If changing this system, follow this order:
    - `01_home.py` on Apply
    - `02_results.py` Reset button
 5. Re-check endpoint path in `resolve_n8n_webhook()`.
-6. Validate that manual controls still work after auto-flow changes.
+6. For workflow logic changes, use the split model in section 9.1 (local spec edit -> UI apply -> status diff verification).
+7. Validate that manual controls still work after auto-flow changes.
 
 ---
 
