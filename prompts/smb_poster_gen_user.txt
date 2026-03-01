@@ -44,6 +44,11 @@ Work through these steps:
    f) Supporting copy and CTA placement if provided
    g) "Clean professional sans-serif typography. No decorative or script fonts. No AI artefacts." (closing)
 
+OOH FORMAT DISCIPLINE
+- If layout_spec.orientation is landscape (48-sheet style), keep copy sparse: headline mandatory, CTA optional, supporting_copy only if it does not reduce instant readability.
+- If layout_spec.orientation is portrait (6-sheet style), supporting_copy may be included but must remain secondary to headline.
+- The scene must remain unmistakably tied to the selected hero image context (subject, mood, palette, composition intent).
+
 OUTPUT
 Return JSON ONLY (no markdown fences, no commentary):
 

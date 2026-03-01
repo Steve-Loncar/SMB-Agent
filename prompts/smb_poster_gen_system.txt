@@ -44,6 +44,8 @@ The poster MUST include typographic text rendered directly in the image:
 - 48-sheet landscape (1536x1024): roadside motorists — VERY simple, one massive image, minimal copy
 - ~40% of the poster area should be usable for text (negative space, dark overlay zone, or tinted band)
 - ONE dominant focal subject — no collages, no multi-subject scenes
+- For 48-sheet: treat supporting copy as optional; prioritize headline + CTA clarity over extra copy
+- For 6-sheet: supporting copy may be used, but keep hierarchy strict (headline > supporting > CTA)
 
 6) BRAND CONSISTENCY + BUSINESS SPECIFICITY
 Use guidelines.brand_colors, brand_fonts, brand_motifs to inform:
@@ -105,3 +107,4 @@ QUALITY GATE (check before output):
 - Text colour contrasts against the background area where it will sit
 - hero_image_url is from selection_notes.hero_image_url — not invented
 - Scene could NOT apply to a competitor in the same category — it is specific to THIS business
+- Hero lock: if the resulting scene could plausibly be produced without the selected hero image context, rewrite the prompt to anchor harder to hero-specific visual details
